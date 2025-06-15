@@ -119,7 +119,9 @@ class PrismaDataService {
         startDate: p.startDate,
         endDate: p.endDate || undefined,
         createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString()
+        updatedAt: p.updatedAt.toISOString(),
+        lastActivityDate: p.lastActivityDate?.toISOString(),
+        phaseChangeDate: p.phaseChangeDate?.toISOString()
       }));
     } catch (error) {
       console.error('Failed to get projects:', error);
@@ -145,7 +147,9 @@ class PrismaDataService {
       startDate: newProject.startDate,
       endDate: newProject.endDate || undefined,
       createdAt: newProject.createdAt.toISOString(),
-      updatedAt: newProject.updatedAt.toISOString()
+      updatedAt: newProject.updatedAt.toISOString(),
+      lastActivityDate: newProject.lastActivityDate?.toISOString(),
+      phaseChangeDate: newProject.phaseChangeDate?.toISOString()
     };
   }
 
@@ -167,7 +171,9 @@ class PrismaDataService {
         startDate: updatedProject.startDate,
         endDate: updatedProject.endDate || undefined,
         createdAt: updatedProject.createdAt.toISOString(),
-        updatedAt: updatedProject.updatedAt.toISOString()
+        updatedAt: updatedProject.updatedAt.toISOString(),
+        lastActivityDate: updatedProject.lastActivityDate?.toISOString(),
+        phaseChangeDate: updatedProject.phaseChangeDate?.toISOString()
       };
     } catch (error) {
       console.error('Failed to update project:', error);
@@ -368,7 +374,10 @@ class PrismaDataService {
         color: u.color,
         isActive: u.isActive,
         createdAt: u.createdAt.toISOString(),
-        updatedAt: u.updatedAt.toISOString()
+        updatedAt: u.updatedAt.toISOString(),
+        skills: u.skills as any || undefined,
+        preferences: u.preferences as any || undefined,
+        workStyle: u.workStyle as any || undefined
       }));
     } catch (error) {
       console.error('Failed to get users:', error);
@@ -392,10 +401,82 @@ class PrismaDataService {
         color: user.color,
         isActive: user.isActive,
         createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString()
+        updatedAt: user.updatedAt.toISOString(),
+        skills: user.skills as any || undefined,
+        preferences: user.preferences as any || undefined,
+        workStyle: user.workStyle as any || undefined
       };
     } catch (error) {
       console.error('Failed to get user by line ID:', error);
+      return null;
+    }
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    try {
+      const user = await prisma.users.findUnique({
+        where: { id }
+      });
+      
+      if (!user) return null;
+      
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email || undefined,
+        lineUserId: user.lineUserId || undefined,
+        color: user.color,
+        isActive: user.isActive,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+        skills: user.skills as any || undefined,
+        preferences: user.preferences as any || undefined,
+        workStyle: user.workStyle as any || undefined
+      };
+    } catch (error) {
+      console.error('Failed to get user by ID:', error);
+      return null;
+    }
+  }
+
+  async updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | null> {
+    try {
+      const updateData: any = {};
+      
+      // Copy regular fields
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.email !== undefined) updateData.email = updates.email;
+      if (updates.lineUserId !== undefined) updateData.lineUserId = updates.lineUserId;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+      
+      // Handle JSON fields
+      if (updates.skills !== undefined) updateData.skills = updates.skills;
+      if (updates.preferences !== undefined) updateData.preferences = updates.preferences;
+      if (updates.workStyle !== undefined) updateData.workStyle = updates.workStyle;
+      
+      updateData.updatedAt = new Date();
+      
+      const updatedUser = await prisma.users.update({
+        where: { id },
+        data: updateData
+      });
+      
+      return {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email || undefined,
+        lineUserId: updatedUser.lineUserId || undefined,
+        color: updatedUser.color,
+        isActive: updatedUser.isActive,
+        createdAt: updatedUser.createdAt.toISOString(),
+        updatedAt: updatedUser.updatedAt.toISOString(),
+        skills: updatedUser.skills as any || undefined,
+        preferences: updatedUser.preferences as any || undefined,
+        workStyle: updatedUser.workStyle as any || undefined
+      };
+    } catch (error) {
+      console.error('Failed to update user:', error);
       return null;
     }
   }

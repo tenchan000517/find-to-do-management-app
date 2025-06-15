@@ -7,6 +7,9 @@ export interface User {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  skills?: UserSkills;
+  preferences?: UserPreferences;
+  workStyle?: WorkStyle;
 }
 
 export interface Project {
@@ -21,6 +24,13 @@ export interface Project {
   priority: 'A' | 'B' | 'C' | 'D';
   createdAt: string;
   updatedAt: string;
+  phase?: string;
+  kgi?: string;
+  successProbability?: number;
+  activityScore?: number;
+  connectionPower?: number;
+  lastActivityDate?: string;
+  phaseChangeDate?: string;
 }
 
 export interface TaskCollaborator {
@@ -46,6 +56,11 @@ export interface Task {
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  difficultyScore?: number;
+  aiIssueLevel?: 'A' | 'B' | 'C' | 'D';
+  resourceWeight?: number;
 }
 
 export interface Connection {
@@ -124,3 +139,64 @@ export const PRIORITY_LABELS = {
   C: '緊急',
   D: '要検討'
 } as const;
+
+// 新規インターフェース（既存は変更しない）
+
+export interface UserSkills {
+  engineering: number;  // 1-10
+  sales: number;
+  creative: number;
+  marketing: number;
+  management: number;
+  pr: number;
+}
+
+export interface UserPreferences {
+  qol_weight: number;  // 0.5-2.0
+  target_areas: string[];
+  strengths: string[];
+  weaknesses: string[];
+}
+
+export interface WorkStyle {
+  focus_time: 'morning' | 'afternoon' | 'evening' | 'night';
+  collaboration_preference: 'low' | 'medium' | 'high';
+  stress_tolerance: 'low' | 'medium' | 'high';
+}
+
+export interface ProjectAlert {
+  id: string;
+  projectId: string;
+  alertType: 'progress_stagnation' | 'activity_stagnation' | 'phase_stagnation';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  isRead: boolean;
+  isResolved: boolean;
+  triggeredAt: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface UserAlert {
+  id: string;
+  userId: string;
+  alertType: 'workload_risk' | 'low_priority_overload';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface AIEvaluation {
+  id: string;
+  entityType: string;
+  entityId: string;
+  evaluationType: 'resource_weight' | 'success_probability' | 'issue_level';
+  score: number;
+  reasoning?: string;
+  confidence: number;
+  modelVersion: string;
+  createdAt: string;
+}

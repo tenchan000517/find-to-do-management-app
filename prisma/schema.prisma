@@ -81,18 +81,28 @@ model line_integration_logs {
 }
 
 model projects {
-  id          String         @id
-  name        String
-  description String         @default("")
-  status      project_status @default(PLANNING)
-  progress    Int            @default(0)
-  startDate   String
-  endDate     String?
-  teamMembers String[]       @default([])
-  priority    priority       @default(C)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime
-  tasks       tasks[]
+  id                    String                  @id
+  name                  String
+  description           String                  @default("")
+  status                project_status          @default(PLANNING)
+  progress              Int                     @default(0)
+  startDate             String
+  endDate               String?
+  teamMembers           String[]                @default([])
+  priority              priority                @default(C)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  phase                 String                  @default("concept")
+  kgi                   String                  @default("")
+  successProbability    Float                   @default(0.0)
+  activityScore         Float                   @default(0.0)
+  connectionPower       Int                     @default(0)
+  lastActivityDate      DateTime                @default(now())
+  phaseChangeDate       DateTime                @default(now())
+  tasks                 tasks[]
+  project_relationships project_relationships[]
+  project_alerts        project_alerts[]
+  project_phase_history project_phase_history[]
 }
 
 model task_archives {
@@ -126,23 +136,33 @@ model tasks {
   isArchived         Boolean              @default(false)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime
+  estimatedHours     Float                @default(0)
+  actualHours        Float                @default(0)
+  difficultyScore    Int                  @default(3)
+  aiIssueLevel       String               @default("C")
+  resourceWeight     Float                @default(1.0)
   task_collaborators task_collaborators[]
   projects           projects?            @relation(fields: [projectId], references: [id])
   users              users                @relation(fields: [userId], references: [id])
 }
 
 model users {
-  id                 String               @id
-  name               String
-  email              String?              @unique
-  lineUserId         String?              @unique
-  discordId          String?              @unique
-  color              String
-  isActive           Boolean              @default(true)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  task_collaborators task_collaborators[]
-  tasks              tasks[]
+  id                    String                  @id
+  name                  String
+  email                 String?                 @unique
+  lineUserId            String?                 @unique
+  discordId             String?                 @unique
+  color                 String
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  skills                Json                    @default("{}")
+  preferences           Json                    @default("{}")
+  workStyle             Json                    @default("{}")
+  task_collaborators    task_collaborators[]
+  tasks                 tasks[]
+  user_alerts           user_alerts[]
+  project_phase_history project_phase_history[]
 }
 
 enum appointment_status {
@@ -224,4 +244,68 @@ model discord_metrics {
   updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("discord_metrics")
+}
+
+model project_relationships {
+  id                   String   @id @default(cuid())
+  projectId            String
+  relatedType          String
+  relatedId            String
+  relationshipStrength Float    @default(1.0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  projects             projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, relatedType, relatedId])
+}
+
+model ai_evaluations {
+  id             String   @id @default(cuid())
+  entityType     String
+  entityId       String
+  evaluationType String
+  score          Float
+  reasoning      String?
+  confidence     Float    @default(0.0)
+  modelVersion   String   @default("gemini-1.5")
+  createdAt      DateTime @default(now())
+}
+
+model project_alerts {
+  id          String    @id @default(cuid())
+  projectId   String
+  alertType   String
+  severity    String    @default("medium")
+  message     String
+  isRead      Boolean   @default(false)
+  isResolved  Boolean   @default(false)
+  triggeredAt DateTime  @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  projects    projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model user_alerts {
+  id                String   @id @default(cuid())
+  userId            String
+  alertType         String
+  severity          String   @default("medium")
+  message           String
+  relatedEntityType String?
+  relatedEntityId   String?
+  isRead            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  users             users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model project_phase_history {
+  id        String   @id @default(cuid())
+  projectId String
+  fromPhase String?
+  toPhase   String
+  changedBy String?
+  reason    String?
+  createdAt DateTime @default(now())
+  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  users     users?   @relation(fields: [changedBy], references: [id])
 }
