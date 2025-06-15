@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       take: days
     });
 
-    const formattedMetrics = metrics.map((metric) => ({
+    const formattedMetrics = metrics.map((metric: any) => ({
       id: metric.id,
       date: metric.date.toISOString().split('T')[0],
       memberCount: metric.memberCount,

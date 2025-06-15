@@ -6,6 +6,7 @@ interface ProjectsTableProps {
   projects: Project[];
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
+  onViewDetails?: (project: Project) => void;
 }
 
 const statusColors = {
@@ -36,7 +37,7 @@ const priorityText = {
   D: '緊急でない・重要でない',
 };
 
-export default function ProjectsTable({ projects, onEdit, onDelete }: ProjectsTableProps) {
+export default function ProjectsTable({ projects, onEdit, onDelete, onViewDetails }: ProjectsTableProps) {
   if (projects.length === 0) {
     return (
       <div className="text-center py-12">
@@ -139,9 +140,17 @@ export default function ProjectsTable({ projects, onEdit, onDelete }: ProjectsTa
                   </div>
                 </td>
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  {onViewDetails && (
+                    <button
+                      onClick={() => onViewDetails(project)}
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                    >
+                      詳細
+                    </button>
+                  )}
                   <button
                     onClick={() => onEdit(project)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    className="text-indigo-600 hover:text-indigo-900 mr-3"
                   >
                     編集
                   </button>

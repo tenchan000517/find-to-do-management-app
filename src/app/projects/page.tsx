@@ -4,11 +4,14 @@ import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { useUsers } from '@/hooks/useUsers';
-import { Project } from '@/lib/types';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { Project, User } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
 import Tabs from '@/components/Tabs';
 import ProjectsTable from '@/components/ProjectsTable';
 import GanttChart from '@/components/GanttChart';
+import ProjectDetailModal from '@/components/ProjectDetailModal';
+import UserProfileModal from '@/components/UserProfileModal';
 
 const statusColors = {
   planning: 'from-gray-500 to-gray-600',
@@ -35,11 +38,20 @@ export default function ProjectsPage() {
   const { projects, loading: projectsLoading, addProject, updateProject, deleteProject } = useProjects();
   const { tasks, loading: tasksLoading } = useTasks();
   const { users, loading: usersLoading } = useUsers();
+  const { saveUserProfile } = useUserProfile();
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [filter, setFilter] = useState<'all' | 'planning' | 'active' | 'on_hold' | 'completed'>('all');
   const [activeTab, setActiveTab] = useState('table');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [projectDetailModal, setProjectDetailModal] = useState<{ isOpen: boolean; project: Project | null }>({
+    isOpen: false,
+    project: null
+  });
+  const [userProfileModal, setUserProfileModal] = useState<{ isOpen: boolean; user: User | null }>({
+    isOpen: false,
+    user: null
+  });
 
   const tabs = [
     { id: 'table', label: 'プロジェクト一覧', icon: '📋' },
@@ -174,6 +186,9 @@ export default function ProjectsPage() {
                   } catch (error) {
                     console.error('Failed to delete project:', error);
                   }
+                }}
+                onViewDetails={(project) => {
+                  setProjectDetailModal({ isOpen: true, project });
                 }}
               />
             ) : (
@@ -374,6 +389,30 @@ export default function ProjectsPage() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Project Detail Modal */}
+        {projectDetailModal.project && (
+          <ProjectDetailModal
+            project={projectDetailModal.project}
+            users={users}
+            isOpen={projectDetailModal.isOpen}
+            onClose={() => setProjectDetailModal({ isOpen: false, project: null })}
+          />
+        )}
+
+        {/* User Profile Modal */}
+        {userProfileModal.user && (
+          <UserProfileModal
+            user={userProfileModal.user}
+            isOpen={userProfileModal.isOpen}
+            onClose={() => setUserProfileModal({ isOpen: false, user: null })}
+            onSave={async (profile) => {
+              if (userProfileModal.user) {
+                await saveUserProfile(userProfileModal.user.id, profile);
+              }
+            }}
+          />
         )}
       </div>
     </div>
