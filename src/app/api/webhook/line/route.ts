@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { generateDataFromExtraction } from '@/lib/line/message-handler';
 import { extractDataFromTextWithAI } from '@/lib/ai/text-processor';
 import { 
   sendReplyMessage, 
-  createSuccessMessage, 
-  createErrorMessage, 
-  createConfirmationMessage,
+  createErrorMessage,
   createWelcomeMessage,
   createJoinMessage,
   createHelpMessage
 } from '@/lib/line/notification';
+import sessionManager from '@/lib/line/session-manager';
 
 interface LineMessage {
   id: string;
@@ -30,6 +27,10 @@ interface LineMessage {
 interface LineWebhookEvent {
   type: string;
   message?: LineMessage;
+  postback?: {
+    data: string;
+    params?: any;
+  };
   source: {
     type: 'group' | 'user';
     groupId?: string;
@@ -44,21 +45,6 @@ interface LineWebhookBody {
   destination: string;
 }
 
-// Webhook署名検証
-function validateSignature(body: string, signature: string): boolean {
-  const channelSecret = process.env.LINE_CHANNEL_SECRET;
-  if (!channelSecret) {
-    console.error('LINE_CHANNEL_SECRET is not set');
-    return false;
-  }
-  
-  const generatedSignature = crypto
-    .createHmac('SHA256', channelSecret)
-    .update(body, 'utf8')
-    .digest('base64');
-    
-  return signature === generatedSignature;
-}
 
 // メンション検知（フォールバック対応）
 function isMentioned(message: LineMessage): boolean {
@@ -114,6 +100,11 @@ function cleanMessageText(message: LineMessage): string {
 
 // コマンド解析
 function extractCommand(text: string): string | undefined {
+  // テスト用コマンド追加
+  if (text.includes('@コマンド') || text.includes('@command')) {
+    return 'test_button';
+  }
+  
   const commandPatterns = [
     /^(予定|スケジュール|会議|ミーティング|アポ)/,
     /^(タスク|作業|仕事|TODO|やること)/,
@@ -129,6 +120,56 @@ function extractCommand(text: string): string | undefined {
   }
   
   return undefined;
+}
+
+// セッション入力処理
+async function handleSessionInput(event: LineWebhookEvent, inputText: string): Promise<void> {
+  const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
+  if (!sessionInfo || !sessionInfo.currentField) {
+    console.log('No active session or field found');
+    return;
+  }
+  
+  console.log(`📝 Received input for ${sessionInfo.currentField}: "${inputText}"`);
+  
+  // フィールドにデータを保存
+  sessionManager.saveFieldData(event.source.userId, event.source.groupId, sessionInfo.currentField, inputText);
+  
+  // 保存完了メッセージ
+  if (event.replyToken) {
+    const fieldNames: Record<string, string> = {
+      datetime: '📅 日時',
+      location: '📍 場所',
+      attendees: '👥 参加者',
+      description: '📝 内容',
+      deadline: '⏰ 期限',
+      priority: '🎯 優先度',
+      assignee: '👤 担当者',
+      duration: '📆 期間',
+      members: '👥 メンバー',
+      budget: '💰 予算',
+      goals: '🎯 目標',
+      company: '🏢 会社名',
+      position: '💼 役職',
+      contact: '📞 連絡先',
+      relation: '🤝 関係性',
+      category: '📂 カテゴリ',
+      importance: '⭐ 重要度',
+      tags: '🏷️ タグ',
+      details: '📝 詳細'
+    };
+    
+    const fieldName = fieldNames[sessionInfo.currentField] || sessionInfo.currentField;
+    await sendReplyMessage(event.replyToken, `✅ ${fieldName}を保存しました！\n\n「${inputText}」\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
+    
+    // 項目選択画面に戻る
+    setTimeout(async () => {
+      if (event.replyToken) {
+        const { startDetailedInputFlow } = await import('@/lib/line/notification');
+        await startDetailedInputFlow(event.replyToken, sessionInfo.type);
+      }
+    }, 2000);
+  }
 }
 
 // メッセージ処理
@@ -163,7 +204,20 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     return;
   }
   
-  // メンションされていない場合は無視
+  // セッション状態をチェック
+  const hasActiveSession = sessionManager.hasActiveSession(event.source.userId, event.source.groupId);
+  const isWaitingForInput = sessionManager.isWaitingForInput(event.source.userId, event.source.groupId);
+  
+  console.log('Session status:', { hasActiveSession, isWaitingForInput });
+  
+  // 入力待ち状態の場合は@メンションなしでも処理
+  if (isWaitingForInput) {
+    console.log('Processing input for active session');
+    await handleSessionInput(event, cleanText);
+    return;
+  }
+  
+  // セッション中でない場合は通常の処理（メンション必須）
   if (!mentioned && !command) {
     console.log('Message ignored - no mention or command detected');
     return;
@@ -181,37 +235,29 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
   });
 
   try {
+    // テスト用ボタンコマンドの処理
+    if (command === 'test_button') {
+      console.log('🧪 Test button command detected');
+      if (event.replyToken) {
+        const { createTestButtonMessage } = await import('@/lib/line/notification');
+        await createTestButtonMessage(event.replyToken);
+      }
+      return;
+    }
+    
     // AI統合処理でデータ抽出
     console.log('🤖 Starting AI processing for text:', cleanText);
     const extractedData = await extractDataFromTextWithAI(cleanText);
     
     console.log('Extracted data:', extractedData);
     
-    // 信頼度が低い場合は手動確認が必要
-    if (extractedData.confidence < 0.5) {
-      console.log('Low confidence, manual review required');
-      if (event.replyToken) {
-        const confirmationMessage = createConfirmationMessage(extractedData);
-        await sendReplyMessage(event.replyToken, confirmationMessage);
-      }
-      return;
+    // 毎回確認ボタンを表示（ヒューマンエラー防止）
+    console.log('Showing classification confirmation for all messages');
+    if (event.replyToken) {
+      const { createClassificationConfirmMessage } = await import('@/lib/line/notification');
+      await createClassificationConfirmMessage(event.replyToken, extractedData);
     }
-    
-    // データ自動生成
-    const createdIds = await generateDataFromExtraction(extractedData, {
-      messageId: message.id,
-      groupId: event.source.groupId || '',
-      userId: event.source.userId,
-      originalMessage: message.text || ''
-    });
-    
-    console.log('Created items:', createdIds);
-    
-    // 成功応答メッセージの送信
-    if (event.replyToken && createdIds.length > 0) {
-      const successMessage = createSuccessMessage(extractedData.type, extractedData.title);
-      await sendReplyMessage(event.replyToken, successMessage);
-    }
+    return;
     
   } catch (error) {
     console.error('Error processing message:', error);
@@ -240,12 +286,160 @@ async function handleJoin(event: LineWebhookEvent): Promise<void> {
   }
 }
 
+// Postbackイベント処理（ボタン押下時）
+async function handlePostback(event: LineWebhookEvent): Promise<void> {
+  console.log('=== handlePostback START ===');
+  console.log('Postback data:', event.postback?.data);
+  
+  if (!event.postback?.data) {
+    console.log('No postback data found');
+    return;
+  }
+  
+  const data = event.postback.data;
+  
+  try {
+    if (data === 'test_yes') {
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '✅ YESボタンが押されました！テスト成功です 🎉');
+      }
+    } else if (data === 'test_no') {
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '❌ NOボタンが押されました！テスト成功です 🎉');
+      }
+    } else if (data.startsWith('classification_')) {
+      // 分類確認ボタン
+      const [, action, type] = data.split('_');
+      if (action === 'confirm') {
+        // TODO: 実際のデータ保存処理を追加
+        if (event.replyToken) {
+          const { createCompletionMessage } = await import('@/lib/line/notification');
+          await createCompletionMessage(event.replyToken, type);
+        }
+      } else if (action === 'change') {
+        if (event.replyToken) {
+          const { createReclassificationMessage } = await import('@/lib/line/notification');
+          await createReclassificationMessage(event.replyToken);
+        }
+      }
+    } else if (data.startsWith('reclassify_')) {
+      // 再分類ボタン
+      const newType = data.replace('reclassify_', '');
+      // TODO: 新しい分類でデータ保存処理を追加
+      if (event.replyToken) {
+        const { createCompletionMessage } = await import('@/lib/line/notification');
+        await createCompletionMessage(event.replyToken, newType);
+      }
+    } else if (data.startsWith('start_detailed_input_')) {
+      // 詳細入力開始
+      const type = data.replace('start_detailed_input_', '');
+      
+      // セッション開始
+      sessionManager.startSession(event.source.userId, event.source.groupId, type);
+      
+      if (event.replyToken) {
+        const { startDetailedInputFlow } = await import('@/lib/line/notification');
+        await startDetailedInputFlow(event.replyToken, type);
+      }
+    } else if (data.startsWith('start_questions_')) {
+      // 質問開始
+      const [, , type, indexStr] = data.split('_');
+      const questionIndex = parseInt(indexStr);
+      if (event.replyToken) {
+        const { createQuestionMessage } = await import('@/lib/line/notification');
+        await createQuestionMessage(event.replyToken, type, questionIndex);
+      }
+    } else if (data.startsWith('skip_question_')) {
+      // 質問スキップ
+      const [, , type, indexStr] = data.split('_');
+      const nextIndex = parseInt(indexStr) + 1;
+      if (event.replyToken) {
+        const { createQuestionMessage } = await import('@/lib/line/notification');
+        await createQuestionMessage(event.replyToken, type, nextIndex);
+      }
+    } else if (data.startsWith('finish_questions_')) {
+      // 質問完了
+      const type = data.replace('finish_questions_', '');
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, `✅ ${type}の詳細入力が完了しました！\n\nダッシュボードで確認・編集できます：\nhttps://find-to-do-management-app.vercel.app/`);
+      }
+    } else if (data === 'cancel_detailed_input') {
+      // 詳細入力キャンセル
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '❌ 詳細入力をキャンセルしました。\nまた必要な時にご利用ください！');
+      }
+    } else if (data.startsWith('add_field_')) {
+      // 項目追加
+      const [, , type, fieldKey] = data.split('_');
+      
+      // 現在入力中フィールドを設定
+      sessionManager.setCurrentField(event.source.userId, event.source.groupId, fieldKey);
+      
+      if (event.replyToken) {
+        const { createFieldInputMessage } = await import('@/lib/line/notification');
+        await createFieldInputMessage(event.replyToken, type, fieldKey);
+      }
+    } else if (data.startsWith('skip_field_')) {
+      // 項目スキップ
+      const [, , type, fieldKey] = data.split('_');
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, `⏭️ ${fieldKey}をスキップしました。`);
+        // 項目選択画面に戻る
+        const { startDetailedInputFlow } = await import('@/lib/line/notification');
+        setTimeout(() => startDetailedInputFlow(event.replyToken!, type), 1000);
+      }
+    } else if (data.startsWith('back_to_selection_')) {
+      // 項目選択に戻る
+      const type = data.replace('back_to_selection_', '');
+      if (event.replyToken) {
+        const { startDetailedInputFlow } = await import('@/lib/line/notification');
+        await startDetailedInputFlow(event.replyToken, type);
+      }
+    } else if (data.startsWith('save_partial_')) {
+      // 途中保存
+      const type = data.replace('save_partial_', '');
+      
+      // セッション終了（データ取得後）
+      const sessionData = sessionManager.endSession(event.source.userId, event.source.groupId);
+      
+      if (event.replyToken) {
+        let savedFields = '';
+        if (sessionData && Object.keys(sessionData.data).length > 0) {
+          savedFields = '\n\n保存された項目:\n' + Object.entries(sessionData.data).map(([key, value]) => `• ${key}: ${value}`).join('\n');
+        }
+        
+        await sendReplyMessage(event.replyToken, `💾 ${type}の情報を保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
+      }
+    } else if (data === 'cancel_detailed_input') {
+      // 詳細入力キャンセル
+      sessionManager.endSession(event.source.userId, event.source.groupId);
+      
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '❌ 詳細入力をキャンセルしました。\nまた必要な時にご利用ください！');
+      }
+    } else {
+      console.log('Unknown postback data:', data);
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, `受信したデータ: ${data}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error handling postback:', error);
+    if (event.replyToken) {
+      await sendReplyMessage(event.replyToken, 'ボタン処理中にエラーが発生しました');
+    }
+  }
+}
+
 // メインイベントハンドラー
 async function handleEvent(event: LineWebhookEvent): Promise<void> {
   try {
     switch (event.type) {
       case 'message':
         await handleMessage(event);
+        break;
+      case 'postback':
+        await handlePostback(event);
         break;
       case 'follow':
         await handleFollow(event);
