@@ -187,10 +187,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   // イベント保存処理
   const handleEventSave = async (updatedEvent: CalendarEvent) => {
     try {
-      // TODO: API呼び出しで更新
-      console.log('Saving event:', updatedEvent);
-      
-      // イベントリストを更新
+      // イベントリストを更新（既にEventEditModalでAPI呼び出し済み）
       setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
       
       // モーダルを閉じる

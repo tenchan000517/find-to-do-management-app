@@ -53,13 +53,35 @@ export function EventEditModal({
         ...formData
       };
 
-      // TODO: API呼び出しで更新
-      console.log('Saving event:', updatedEvent);
+      // API呼び出しで更新
+      const response = await fetch(`/api/calendar/events/${event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          date: formData.date,
+          time: formData.time,
+          endTime: formData.endTime || null,
+          category: formData.category,
+          description: formData.description,
+          location: formData.location,
+          importance: formData.priority === 'A' ? 0.9 : formData.priority === 'B' ? 0.7 : formData.priority === 'C' ? 0.5 : 0.3
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const savedEvent = await response.json();
       
-      onSave?.(updatedEvent);
+      onSave?.(savedEvent);
       onClose();
     } catch (error) {
       console.error('Failed to save event:', error);
+      alert('イベントの保存に失敗しました。もう一度お試しください。');
     }
   };
 
