@@ -164,7 +164,8 @@ ${schedule.data.name}
 // 成功通知メッセージの作成
 export function createSuccessMessage(type: string, title: string): string {
   const typeMap: { [key: string]: string } = {
-    schedule: '📅 予定',
+    personal_schedule: '📅 予定',
+    schedule: '🎯 イベント',
     task: '📋 タスク',
     project: '📊 プロジェクト',
     contact: '👤 人脈',
@@ -329,7 +330,8 @@ export async function createTestButtonMessage(replyToken: string): Promise<boole
 // 分類確認ボタンメッセージ
 export async function createClassificationConfirmMessage(replyToken: string, extractedData: any): Promise<boolean> {
   const typeMap: { [key: string]: string } = {
-    schedule: '📅 予定',
+    personal_schedule: '📅 予定',
+    schedule: '🎯 イベント',
     task: '📋 タスク',
     project: '📊 プロジェクト',
     contact: '👤 人脈',
@@ -510,7 +512,7 @@ export async function createReclassificationMessage(replyToken: string): Promise
               action: {
                 type: 'postback',
                 label: '📅 予定',
-                data: 'reclassify_schedule'
+                data: 'reclassify_personal_schedule'
               }
             },
             {
@@ -519,8 +521,8 @@ export async function createReclassificationMessage(replyToken: string): Promise
               height: 'sm',
               action: {
                 type: 'postback',
-                label: '📋 タスク',
-                data: 'reclassify_task'
+                label: '🎯 イベント',
+                data: 'reclassify_schedule'
               }
             }
           ]
@@ -536,10 +538,27 @@ export async function createReclassificationMessage(replyToken: string): Promise
               height: 'sm',
               action: {
                 type: 'postback',
+                label: '📋 タスク',
+                data: 'reclassify_task'
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
                 label: '📊 プロジェクト',
                 data: 'reclassify_project'
               }
-            },
+            }
+          ]
+        },
+        {
+          type: 'box',
+          layout: 'horizontal',
+          spacing: 'xs',
+          contents: [
             {
               type: 'button',
               style: 'secondary',
@@ -549,18 +568,18 @@ export async function createReclassificationMessage(replyToken: string): Promise
                 label: '👤 人脈',
                 data: 'reclassify_contact'
               }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📝 メモ',
+                data: 'reclassify_memo'
+              }
             }
           ]
-        },
-        {
-          type: 'button',
-          style: 'secondary',
-          height: 'sm',
-          action: {
-            type: 'postback',
-            label: '📝 メモ・ナレッジ',
-            data: 'reclassify_memo'
-          }
         }
       ]
     }
@@ -572,7 +591,8 @@ export async function createReclassificationMessage(replyToken: string): Promise
 // 完了メッセージ（ダッシュボードリンク付き）
 export async function createCompletionMessage(replyToken: string, type: string): Promise<boolean> {
   const typeMap: { [key: string]: string } = {
-    schedule: '📅 予定',
+    personal_schedule: '📅 予定',
+    schedule: '🎯 イベント',
     task: '📋 タスク',
     project: '📊 プロジェクト',
     contact: '👤 人脈',

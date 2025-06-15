@@ -177,6 +177,81 @@ export const IMPORTANCE_COLORS = {
   LOW: '#10B981'      // 緑
 } as const;
 
+// 統合カレンダーイベント型
+export interface UnifiedCalendarEvent {
+  // 既存のCalendarEventフィールド
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  endTime?: string;
+  type: EventType;
+  category: EventCategory;
+  description?: string;
+  location?: string;
+  
+  // 新規フィールド
+  source: 'calendar_events' | 'personal_schedules' | 'tasks' | 'appointments';
+  isPersonal: boolean;
+  priority?: PriorityLevel;
+  
+  // ソース特定フィールド
+  userId?: string;
+  projectId?: string;
+  taskId?: string;
+  appointmentId?: string;
+  
+  // 関連データ
+  users?: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  
+  // 表示設定
+  colorCode?: string;
+  isAllDay?: boolean;
+  importance?: number;
+}
+
+export type EventSource = 'all' | 'personal' | 'public' | 'tasks' | 'appointments';
+
+// 統合カレンダーAPI
+export interface UnifiedCalendarQuery {
+  startDate: string;     // YYYY-MM-DD
+  endDate: string;       // YYYY-MM-DD
+  userId?: string;       // フィルター用
+  includePersonal?: boolean;  // デフォルト: true
+  includePublic?: boolean;    // デフォルト: true
+}
+
+export interface UnifiedCalendarResponse {
+  events: UnifiedCalendarEvent[];
+  totalCount: number;
+  sources: {
+    calendar_events: number;
+    personal_schedules: number;
+    tasks: number;
+    appointments: number;
+  };
+}
+
+// 個人予定用カラーパレット
+export const PERSONAL_SCHEDULE_COLORS = {
+  A: '#EF4444',    // 赤 - 最重要
+  B: '#F59E0B',    // オレンジ - 重要
+  C: '#3B82F6',    // 青 - 普通
+  D: '#10B981'     // 緑 - 低優先度
+} as const;
+
+// ソース別カラー
+export const SOURCE_COLORS = {
+  personal_schedules: '#3B82F6',  // 青
+  calendar_events: '#8B5CF6',     // 紫
+  tasks: '#F59E0B',               // オレンジ
+  appointments: '#10B981'         // 緑
+} as const;
+
 // フィルター型
 export interface CalendarFilters {
   startDate: string;
@@ -186,4 +261,5 @@ export interface CalendarFilters {
   category?: EventCategory;
   includeRecurring?: boolean;
   colorMode?: ColorMode;
+  source?: EventSource;
 }

@@ -76,7 +76,7 @@ export default function ProjectDetailModal({
   const teamMembers = users.filter(user => project.teamMembers.includes(user.id));
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gray-700/80 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
         {/* ヘッダー */}
         <div className="flex justify-between items-center p-6 border-b">

@@ -9,7 +9,23 @@ interface ParsedDateTime {
 
 export class DateTimeParser {
   private patterns = [
-    // 明日系
+    // 明日系（時刻なし）
+    { 
+      regex: /^明日(?:の)?(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        return {
+          date: tomorrow.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+    
+    // 明日系（時刻あり）
     { 
       regex: /明日(?:の)?(\d{1,2})(?:時|:(\d{2}))?/,
       handler: (match: RegExpMatchArray) => {
@@ -27,7 +43,22 @@ export class DateTimeParser {
       }
     },
     
-    // 今日系
+    // 今日系（時刻なし）
+    {
+      regex: /^今日(?:の)?(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const today = new Date();
+        
+        return {
+          date: today.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+    
+    // 今日系（時刻あり）
     {
       regex: /今日(?:の)?(\d{1,2})(?:時|:(\d{2}))?/,
       handler: (match: RegExpMatchArray) => {

@@ -196,6 +196,7 @@ model users {
   user_alerts           user_alerts[]
   project_phase_history project_phase_history[]
   calendar_events       calendar_events[]
+  personal_schedules    personal_schedules[]
 }
 
 enum appointment_status {
@@ -456,4 +457,22 @@ model recurring_rules {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   calendar_events calendar_events[]
+}
+
+model personal_schedules {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  time        String
+  endTime     String?
+  description String?  @default("")
+  location    String?
+  userId      String
+  priority    priority @default(C)
+  isAllDay    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("personal_schedules")
 }

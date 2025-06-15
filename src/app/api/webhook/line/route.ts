@@ -579,9 +579,9 @@ async function saveClassifiedData(
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
   
-  let systemUserId: string;
+  let systemUserId: string | undefined;
   let finalData: any;
-  let type: string;
+  let type: string | undefined;
   
   try {
     console.log('💾 Starting database save process');
@@ -604,17 +604,51 @@ async function saveClassifiedData(
       throw new Error('セッション情報が不正です');
     }
     
+    type = sessionInfo.type;
     finalData = {
       ...extractedData,
       ...sessionInfo.data,
     };
-    
-    type = sessionInfo.type;
     console.log(`📊 Processing ${type} with data:`, finalData);
     
     switch (type) {
+      case 'personal_schedule':
+        // 個人予定の処理
+        let personalParsedDate = finalData.date || new Date().toISOString().split('T')[0];
+        let personalParsedTime = finalData.time || '00:00';
+        
+        // datetimeフィールドがある場合はパース
+        if (finalData.datetime) {
+          const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+          const parsed = await dateTimeParser.parse(finalData.datetime);
+          
+          if (parsed.confidence >= 0.5) {
+            personalParsedDate = parsed.date;
+            personalParsedTime = parsed.time;
+            console.log(`📅 個人予定日時解析成功: "${finalData.datetime}" → ${personalParsedDate} ${personalParsedTime} (${parsed.method}, confidence: ${parsed.confidence})`);
+          } else {
+            console.warn(`⚠️ 個人予定日時解析信頼度低: "${finalData.datetime}" (confidence: ${parsed.confidence})`);
+          }
+        }
+        
+        await prisma.personal_schedules.create({
+          data: {
+            id: `ps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            title: finalData.title || finalData.summary || '新しい個人予定',
+            date: personalParsedDate,
+            time: personalParsedTime,
+            endTime: finalData.endTime || null,
+            description: finalData.description || '',
+            location: finalData.location || null,
+            userId: systemUserId,
+            priority: finalData.priority || 'C',
+            isAllDay: finalData.isAllDay || false,
+          },
+        });
+        break;
+        
       case 'schedule':
-        // 日時の解析処理
+        // パブリック予定の処理（既存）
         let parsedDate = finalData.date || new Date().toISOString().split('T')[0];
         let parsedTime = finalData.time || '00:00';
         

@@ -1,5 +1,5 @@
 export interface ExtractedData {
-  type: 'schedule' | 'task' | 'project' | 'contact' | 'memo';
+  type: 'personal_schedule' | 'schedule' | 'task' | 'project' | 'contact' | 'memo';
   title: string;
   description?: string;
   datetime?: string;
@@ -29,8 +29,18 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 
 メッセージ: "${text}"
 
+種類の判定基準:
+- personal_schedule: 「予定」と明示された個人的なスケジュール（例：明日の予定、個人的な用事）
+- schedule: 「イベント」と明示されたパブリックなイベント（例：チームイベント、会議、共有予定）
+- task: 作業タスク、TODO、完了すべき作業
+- project: プロジェクト管理、長期計画
+- contact: 人脈、連絡先情報
+- memo: メモ、記録、ナレッジ
+
+注意: メッセージで「予定」という言葉が使われたら personal_schedule、「イベント」という言葉が使われたら schedule として分類する
+
 抽出すべき情報:
-1. 種類 (schedule/task/project/contact/memo)
+1. 種類 (personal_schedule/schedule/task/project/contact/memo)
 2. タイトル
 3. 説明
 4. 日時 (ISO 8601形式)
@@ -43,7 +53,7 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 
 以下のJSON形式でのみ回答してください:
 {
-  "type": "schedule|task|project|contact|memo",
+  "type": "personal_schedule|schedule|task|project|contact|memo",
   "title": "string",
   "description": "string",
   "datetime": "YYYY-MM-DDTHH:mm:ss (任意)",
@@ -113,12 +123,15 @@ function extractDataFromTextSimple(text: string): ExtractedData {
   const priority = extractPriority(text);
   
   let type: ExtractedData['type'] = 'memo';
-  if (command) {
+  
+  // 予定/イベントの判定（優先度高）
+  if (/予定/.test(text)) {
+    type = 'personal_schedule';
+  } else if (/(イベント|会議|ミーティング|打ち合わせ)/.test(text)) {
+    type = 'schedule';
+  } else if (command) {
     switch (command) {
-      case '予定':
       case 'スケジュール':
-      case '会議':
-      case 'ミーティング':
       case 'アポ':
         type = 'schedule';
         break;
