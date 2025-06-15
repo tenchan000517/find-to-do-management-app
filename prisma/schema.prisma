@@ -8,18 +8,19 @@ datasource db {
 }
 
 model appointments {
-  id          String             @id
+  id          String              @id
   companyName String
   contactName String
   phone       String
   email       String
-  status      appointment_status @default(PENDING)
+  status      appointment_status  @default(PENDING)
   lastContact String?
   nextAction  String
-  notes       String             @default("")
-  priority    priority           @default(C)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime @updatedAt
+  notes       String              @default("")
+  priority    priority            @default(C)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  details     appointment_details?
 }
 
 model calendar_events {
@@ -322,4 +323,66 @@ model ai_call_logs {
   errorMessage String?
   userId       String?
   createdAt    DateTime @default(now())
+}
+
+model appointment_details {
+  id                 String                 @id @default(cuid())
+  appointmentId      String                 @unique
+  processingStatus   appointment_processing @default(PENDING)
+  relationshipStatus relationship_status    @default(FIRST_CONTACT)
+  phaseStatus        appointment_phase      @default(LEAD)
+  sourceType         appointment_source     @default(REFERRAL)
+  sourceDetails      String                 @default("")
+  importance         Float                  @default(0.0)
+  businessValue      Float                  @default(0.0)
+  followUpActions    String[]               @default([])
+  meetingHistory     Json[]                 @default([])
+  decisionMakers     String[]               @default([])
+  budgetInfo         String                 @default("")
+  timeline           String                 @default("")
+  competitors        String[]               @default([])
+  painPoints         String[]               @default([])
+  proposalStatus     String                 @default("")
+  contractValue      Float?
+  closingProbability Float                  @default(0.0)
+  nextMilestone      String                 @default("")
+  internalNotes      String                 @default("")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  appointments       appointments           @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+enum appointment_processing {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FOLLOW_UP
+  CLOSED
+}
+
+enum relationship_status {
+  FIRST_CONTACT
+  RAPPORT_BUILDING
+  TRUST_ESTABLISHED
+  STRATEGIC_PARTNER
+  LONG_TERM_CLIENT
+}
+
+enum appointment_phase {
+  LEAD
+  PROSPECT
+  PROPOSAL
+  NEGOTIATION
+  CLOSING
+  POST_SALE
+}
+
+enum appointment_source {
+  REFERRAL
+  COLD_OUTREACH
+  NETWORKING_EVENT
+  INBOUND_INQUIRY
+  SOCIAL_MEDIA
+  EXISTING_CLIENT
+  PARTNER_REFERRAL
 }

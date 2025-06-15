@@ -221,6 +221,35 @@ export class EnhancedCommandDetector {
       }
     }
 
+    // アポイントメント関連エンティティ
+    const appointmentPatterns = {
+      completion: /(アポ|面談|商談|ミーティング).*(終了|完了|終わった|済んだ)/,
+      follow_up: /(フォロー|追跡|連絡|次回)/,
+      outcome_positive: /(良かった|成功|上手く|順調|好感触|前向き)/,
+      outcome_negative: /(微妙|厳しい|難しい|興味なし|断られた)/,
+      should_save: /(繋がり|コネクション|関係|保存|記録)/
+    };
+
+    for (const [key, pattern] of Object.entries(appointmentPatterns)) {
+      if (pattern.test(message)) {
+        entities[key] = true;
+      }
+    }
+
+    // 会社名・人名の抽出
+    const companyPattern = /(株式会社|合同会社|有限会社|[A-Za-z]+)([\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\w]+)/g;
+    const companyMatches = Array.from(message.matchAll(companyPattern));
+    if (companyMatches.length > 0) {
+      entities.companies = companyMatches.map(m => m[0]);
+    }
+
+    // 評価・スコア表現
+    const scorePattern = /(\d+)([点点数スコア]|\/10)/;
+    const scoreMatch = message.match(scorePattern);
+    if (scoreMatch) {
+      entities.score = parseInt(scoreMatch[1]);
+    }
+
     return entities;
   }
 
@@ -246,6 +275,40 @@ export class EnhancedCommandDetector {
         actions.push({
           type: 'get_project_status',
           data: { include_alerts: true }
+        });
+        break;
+
+      case 'appointment_completion':
+        actions.push({
+          type: 'mark_appointment_complete',
+          data: { 
+            appointment_id: intent.entities.appointment_id,
+            outcome: intent.entities.outcome,
+            create_connection: intent.entities.should_save_connection
+          }
+        });
+        break;
+
+      case 'appointment_follow_up':
+        actions.push({
+          type: 'schedule_follow_up',
+          data: {
+            appointment_id: intent.entities.appointment_id,
+            follow_up_date: intent.entities.follow_up_date,
+            follow_up_action: intent.entities.follow_up_action
+          }
+        });
+        break;
+
+      case 'connection_update':
+        actions.push({
+          type: 'update_connection_strength',
+          data: {
+            connection_name: intent.entities.connection_name,
+            company: intent.entities.company,
+            relationship_strength: intent.entities.relationship_strength,
+            notes: intent.entities.notes
+          }
         });
         break;
 

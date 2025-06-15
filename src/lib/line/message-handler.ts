@@ -234,3 +234,93 @@ export async function generateDataFromExtraction(
     throw error;
   }
 }
+
+/**
+ * アポイントメント関連のアクション実行
+ */
+export async function executeAppointmentAction(action: { type: string; data: any }): Promise<string> {
+  switch (action.type) {
+    case 'mark_appointment_complete':
+      try {
+        const response = await fetch(`/api/appointments/${action.data.appointment_id}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            outcome: action.data.outcome || 'アポイントメント完了',
+            createConnection: action.data.create_connection || false,
+            connectionData: action.data.connection_data || {}
+          })
+        });
+        
+        if (response.ok) {
+          return 'アポイントメントを完了しました！結果が記録されました。';
+        } else {
+          return 'アポイントメントの完了処理でエラーが発生しました。';
+        }
+      } catch (error) {
+        return 'アポイントメント処理中にエラーが発生しました。';
+      }
+
+    case 'schedule_follow_up':
+      try {
+        // フォローアップアポイントメントの作成
+        const followUpData = {
+          companyName: action.data.company || '継続案件',
+          contactName: action.data.contact_name || '担当者',
+          phone: '',
+          email: '',
+          nextAction: action.data.follow_up_action || 'フォローアップミーティング',
+          notes: `前回からの継続。フォロー予定日: ${action.data.follow_up_date}`,
+          priority: 'B'
+        };
+
+        const response = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(followUpData)
+        });
+
+        if (response.ok) {
+          return `フォローアップが${action.data.follow_up_date}に設定されました。`;
+        } else {
+          return 'フォローアップの設定でエラーが発生しました。';
+        }
+      } catch (error) {
+        return 'フォローアップ設定中にエラーが発生しました。';
+      }
+
+    case 'update_connection_strength':
+      try {
+        // コネクション情報の更新
+        const connectionData = {
+          name: action.data.connection_name,
+          company: action.data.company,
+          position: '',
+          date: new Date().toISOString().split('T')[0],
+          location: 'アップデート',
+          description: `関係値更新: ${action.data.relationship_strength}`,
+          conversation: action.data.notes || 'LINE経由での関係値アップデート',
+          potential: `関係値: ${action.data.relationship_strength}/10`,
+          type: 'COMPANY',
+          updatedAt: new Date()
+        };
+
+        const response = await fetch('/api/connections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(connectionData)
+        });
+
+        if (response.ok) {
+          return `${action.data.connection_name}さんとの関係値を更新しました。`;
+        } else {
+          return 'コネクション更新でエラーが発生しました。';
+        }
+      } catch (error) {
+        return 'コネクション更新中にエラーが発生しました。';
+      }
+
+    default:
+      return '不明なアクションです。';
+  }
+}

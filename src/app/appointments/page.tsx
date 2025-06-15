@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAppointments } from '@/hooks/useAppointments';
 import { Appointment } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
+import AppointmentKanbanBoard from '@/components/AppointmentKanbanBoard';
 
 
 const getStatusStyle = (status: string) => {
@@ -57,6 +58,8 @@ const getPriorityStyle = (priority: string) => {
 
 export default function AppointmentsPage() {
   const { appointments, loading, addAppointment, updateAppointment, deleteAppointment } = useAppointments();
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [kanbanType, setKanbanType] = useState<'processing' | 'relationship' | 'phase' | 'source'>('processing');
   const [filter, setFilter] = useState<'all' | 'pending' | 'contacted' | 'interested' | 'not_interested' | 'scheduled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -102,6 +105,64 @@ export default function AppointmentsPage() {
     }
   };
 
+  const handleAppointmentMove = async (appointmentId: string, newStatus: string) => {
+    try {
+      // Update appointment details via API
+      await fetch(`/api/appointments/${appointmentId}/details`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          [kanbanType === 'processing' ? 'processingStatus' : 
+           kanbanType === 'relationship' ? 'relationshipStatus' :
+           kanbanType === 'phase' ? 'phaseStatus' : 'sourceType']: newStatus
+        })
+      });
+    } catch (error) {
+      console.error('Failed to move appointment:', error);
+    }
+  };
+
+  const handleAppointmentEdit = (appointment: any) => {
+    // Convert kanban appointment to appointment format
+    const mappedAppointment: Appointment = {
+      id: appointment.id,
+      companyName: appointment.companyName,
+      contactName: appointment.contactName,
+      phone: appointment.phone,
+      email: appointment.email,
+      status: appointment.status,
+      priority: appointment.priority,
+      notes: appointment.notes,
+      nextAction: appointment.nextAction || '',
+      lastContact: appointment.lastContact,
+      assignedToId: appointment.assignedToId || 'user1',
+      createdAt: appointment.createdAt || new Date().toISOString(),
+      updatedAt: appointment.updatedAt || new Date().toISOString()
+    };
+    setEditingAppointment(mappedAppointment);
+    setShowModal(true);
+  };
+
+  const handleAppointmentComplete = async (appointmentId: string) => {
+    try {
+      const result = await fetch(`/api/appointments/${appointmentId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          outcome: 'アポイントメント完了',
+          createConnection: true,
+          connectionData: {}
+        })
+      });
+      
+      if (result.ok) {
+        alert('アポイントメントが完了しました');
+      }
+    } catch (error) {
+      console.error('Failed to complete appointment:', error);
+    }
+  };
+
   const statusCounts = {
     all: appointments.length,
     pending: appointments.filter(a => a.status === 'pending').length,
@@ -120,12 +181,87 @@ export default function AppointmentsPage() {
       <div className="mx-auto px-4 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 md:mb-8 gap-4">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">アポイント</h1>
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-2 md:px-4 py-2 rounded-lg font-medium text-sm md:text-base"
-          >
-            新規追加
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowModal(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-2 md:px-4 py-2 rounded-lg font-medium text-sm md:text-base"
+            >
+              新規追加
+            </button>
+          </div>
+        </div>
+
+        {/* ビューモード切り替え */}
+        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  viewMode === 'list' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                リスト表示
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  viewMode === 'kanban' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                カンバン表示
+              </button>
+            </div>
+            
+            {viewMode === 'kanban' && (
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setKanbanType('processing')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                    kanbanType === 'processing' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  処理状況
+                </button>
+                <button
+                  onClick={() => setKanbanType('relationship')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                    kanbanType === 'relationship' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  関係性
+                </button>
+                <button
+                  onClick={() => setKanbanType('phase')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                    kanbanType === 'phase' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  営業フェーズ
+                </button>
+                <button
+                  onClick={() => setKanbanType('source')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                    kanbanType === 'source' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  流入経路
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 統計カード */}
@@ -156,65 +292,69 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        {/* 検索・フィルター */}
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="会社名、担当者名、メールアドレスで検索..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                すべて
-              </button>
-              <button
-                onClick={() => setFilter('pending')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'pending' 
-                    ? 'bg-gray-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                未接触
-              </button>
-              <button
-                onClick={() => setFilter('interested')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'interested' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                興味あり
-              </button>
-              <button
-                onClick={() => setFilter('scheduled')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'scheduled' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                アポ確定
-              </button>
+        {/* 検索・フィルター（リストビューのみ） */}
+        {viewMode === 'list' && (
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="会社名、担当者名、メールアドレスで検索..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'all' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  すべて
+                </button>
+                <button
+                  onClick={() => setFilter('pending')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'pending' 
+                      ? 'bg-gray-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  未接触
+                </button>
+                <button
+                  onClick={() => setFilter('interested')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'interested' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  興味あり
+                </button>
+                <button
+                  onClick={() => setFilter('scheduled')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'scheduled' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  アポ確定
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* アポリスト */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        {/* メインコンテンツ */}
+        {viewMode === 'list' ? (
+          /* アポリスト */
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -314,11 +454,22 @@ export default function AppointmentsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-
-        {filteredAppointments.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">該当するアポ情報がありません</div>
+          
+          {filteredAppointments.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-lg">該当するアポ情報がありません</div>
+            </div>
+          )}
+          </div>
+        ) : (
+          /* カンバンビュー */
+          <div className="bg-white rounded-lg shadow-lg p-4">
+            <AppointmentKanbanBoard
+              kanbanType={kanbanType}
+              onAppointmentMove={handleAppointmentMove}
+              onAppointmentEdit={handleAppointmentEdit}
+              onAppointmentComplete={handleAppointmentComplete}
+            />
           </div>
         )}
 
