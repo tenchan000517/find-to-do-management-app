@@ -1,15 +1,16 @@
 'use client';
 
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 
 interface WeekViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
+  colorMode: ColorMode;
 }
 
-export function WeekView({ currentDate, events, onDateSelect }: WeekViewProps) {
+export function WeekView({ currentDate, events, onDateSelect, colorMode }: WeekViewProps) {
   // 週の開始日（日曜日）と各日を取得
   const getWeekDays = () => {
     const startOfWeek = new Date(currentDate);
@@ -122,6 +123,7 @@ export function WeekView({ currentDate, events, onDateSelect }: WeekViewProps) {
                       event={event}
                       compact={true}
                       showTime={true}
+                      colorMode={colorMode}
                       onClick={(e) => {
                         e.stopPropagation();
                         // TODO: イベント詳細表示
@@ -157,6 +159,7 @@ export function WeekView({ currentDate, events, onDateSelect }: WeekViewProps) {
                     event={event}
                     compact={true}
                     showTime={false}
+                    colorMode={colorMode}
                     onClick={(e) => {
                       e.stopPropagation();
                       // TODO: イベント詳細表示

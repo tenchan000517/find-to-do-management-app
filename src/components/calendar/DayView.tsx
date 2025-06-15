@@ -1,14 +1,15 @@
 'use client';
 
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 
 interface DayViewProps {
   currentDate: Date;
   events: CalendarEvent[];
+  colorMode: ColorMode;
 }
 
-export function DayView({ currentDate, events }: DayViewProps) {
+export function DayView({ currentDate, events, colorMode }: DayViewProps) {
   // 時間スロット（6:00-24:00、30分間隔）
   const getTimeSlots = () => {
     const slots = [];
@@ -93,6 +94,7 @@ export function DayView({ currentDate, events }: DayViewProps) {
                 event={event}
                 compact={false}
                 showTime={false}
+                colorMode={colorMode}
                 onClick={() => {
                   // TODO: イベント詳細表示
                 }}
@@ -140,6 +142,7 @@ export function DayView({ currentDate, events }: DayViewProps) {
                         event={event}
                         compact={false}
                         showTime={true}
+                        colorMode={colorMode}
                         onClick={() => {
                           // TODO: イベント詳細表示
                         }}
@@ -178,6 +181,7 @@ export function DayView({ currentDate, events }: DayViewProps) {
                 event={event}
                 compact={true}
                 showTime={true}
+                colorMode={colorMode}
                 onClick={() => {
                   // TODO: イベント詳細表示
                 }}

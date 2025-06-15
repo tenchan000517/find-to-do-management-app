@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarEvent, ViewMode, CalendarFilters } from '@/types/calendar';
+import { CalendarEvent, ViewMode, ColorMode } from '@/types/calendar';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
+import { ColorTabs } from './ColorTabs';
 
 interface CalendarViewProps {
   className?: string;
@@ -15,6 +16,8 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const [colorMode, setColorMode] = useState<ColorMode>('category');
+  const [users, setUsers] = useState<Array<{ id: string; name: string; color: string }>>([]);
 
   // 表示期間を計算
   const getDateRange = () => {
@@ -69,6 +72,52 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     }
   };
 
+  // ユーザー情報取得
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) {
+        throw new Error('ユーザー情報の取得に失敗しました');
+      }
+      const data = await response.json();
+      setUsers(data.users || []);
+    } catch (error) {
+      console.error('Users fetch error:', error);
+      setUsers([]);
+    }
+  };
+
+  // 統計データ計算
+  const getColorStats = () => {
+    const userCounts: { [userId: string]: number } = {};
+    const categoryCounts: { [category: string]: number } = {};
+    const importanceCounts = { high: 0, medium: 0, low: 0 };
+
+    events.forEach(event => {
+      // ユーザー別カウント
+      userCounts[event.userId] = (userCounts[event.userId] || 0) + 1;
+      
+      // カテゴリ別カウント
+      categoryCounts[event.category] = (categoryCounts[event.category] || 0) + 1;
+      
+      // 重要度別カウント
+      if (event.importance >= 0.7) {
+        importanceCounts.high++;
+      } else if (event.importance >= 0.4) {
+        importanceCounts.medium++;
+      } else {
+        importanceCounts.low++;
+      }
+    });
+
+    return { userCounts, categoryCounts, importanceCounts };
+  };
+
+  // 初期化とデータ取得
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   // 日付変更時にイベント再取得
   useEffect(() => {
     fetchEvents();
@@ -118,8 +167,20 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     }
   };
 
+  const { userCounts, categoryCounts, importanceCounts } = getColorStats();
+
   return (
     <div className={`bg-white rounded-lg shadow-sm border ${className}`}>
+      {/* 色分けタブ */}
+      <ColorTabs
+        selectedMode={colorMode}
+        onModeChange={setColorMode}
+        userCounts={userCounts}
+        categoryCounts={categoryCounts}
+        importanceCounts={importanceCounts}
+        users={users}
+      />
+      
       {/* ヘッダー */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -196,6 +257,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
             currentDate={currentDate} 
             events={events} 
             onDateSelect={setCurrentDate}
+            colorMode={colorMode}
           />
         )}
         
@@ -204,6 +266,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
             currentDate={currentDate} 
             events={events}
             onDateSelect={setCurrentDate}
+            colorMode={colorMode}
           />
         )}
         
@@ -211,6 +274,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
           <DayView 
             currentDate={currentDate} 
             events={events}
+            colorMode={colorMode}
           />
         )}
       </div>

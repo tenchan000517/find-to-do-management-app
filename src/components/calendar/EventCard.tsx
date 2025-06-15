@@ -1,11 +1,12 @@
 'use client';
 
-import { CalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS } from '@/types/calendar';
+import { CalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, ColorMode } from '@/types/calendar';
 
 interface EventCardProps {
   event: CalendarEvent;
   compact?: boolean;
   showTime?: boolean;
+  colorMode?: ColorMode;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -13,17 +14,32 @@ export function EventCard({
   event, 
   compact = false, 
   showTime = true, 
+  colorMode = 'category',
   onClick 
 }: EventCardProps) {
   
-  // 色を決定（ユーザー色 → カテゴリ色 → デフォルト）
+  // 色を決定（色分けモードに基づく）
   const getEventColor = () => {
-    if (event.colorCode) {
-      return event.colorCode;
+    switch (colorMode) {
+      case 'user':
+        // ユーザー色（後でusersデータから取得）
+        return event.colorCode || '#6B7280';
+        
+      case 'category':
+        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.GENERAL;
+        
+      case 'importance':
+        if (event.importance >= 0.7) {
+          return IMPORTANCE_COLORS.HIGH;
+        } else if (event.importance >= 0.4) {
+          return IMPORTANCE_COLORS.MEDIUM;
+        } else {
+          return IMPORTANCE_COLORS.LOW;
+        }
+        
+      default:
+        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.GENERAL;
     }
-    
-    // カテゴリ別色
-    return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.GENERAL;
   };
 
   // 重要度に基づく表示スタイル

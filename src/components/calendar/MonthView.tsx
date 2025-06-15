@@ -1,15 +1,16 @@
 'use client';
 
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 
 interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
+  colorMode: ColorMode;
 }
 
-export function MonthView({ currentDate, events, onDateSelect }: MonthViewProps) {
+export function MonthView({ currentDate, events, onDateSelect, colorMode }: MonthViewProps) {
   // 月の開始日と終了日を取得
   const getMonthDays = () => {
     const year = currentDate.getFullYear();
@@ -123,6 +124,7 @@ export function MonthView({ currentDate, events, onDateSelect }: MonthViewProps)
                     key={event.id}
                     event={event}
                     compact={true}
+                    colorMode={colorMode}
                     onClick={(e) => {
                       e.stopPropagation();
                       // TODO: イベント詳細表示
