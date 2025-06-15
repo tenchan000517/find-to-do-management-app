@@ -1105,6 +1105,128 @@ class PrismaDataService {
     }
   }
 
+  async createProjectAlert(alert: {
+    id: string;
+    projectId: string;
+    alertType: string;
+    severity: string;
+    message: string;
+    isRead?: boolean;
+    isResolved?: boolean;
+    triggeredAt: string;
+    createdAt: string;
+  }): Promise<any> {
+    try {
+      const newAlert = await prisma.project_alerts.create({
+        data: {
+          id: alert.id,
+          projectId: alert.projectId,
+          alertType: alert.alertType,
+          severity: alert.severity,
+          message: alert.message,
+          isRead: alert.isRead || false,
+          isResolved: alert.isResolved || false,
+          triggeredAt: new Date(alert.triggeredAt),
+          createdAt: new Date(alert.createdAt)
+        }
+      });
+      
+      return newAlert;
+    } catch (error) {
+      console.error('Failed to create project alert:', error);
+      return null;
+    }
+  }
+
+  async updateProjectAlert(alertId: string, updates: {
+    isRead?: boolean;
+    isResolved?: boolean;
+    resolvedAt?: string;
+  }): Promise<any> {
+    try {
+      const updateData: any = {};
+      if (updates.isRead !== undefined) updateData.isRead = updates.isRead;
+      if (updates.isResolved !== undefined) updateData.isResolved = updates.isResolved;
+      if (updates.resolvedAt) updateData.resolvedAt = new Date(updates.resolvedAt);
+
+      const updatedAlert = await prisma.project_alerts.update({
+        where: { id: alertId },
+        data: updateData
+      });
+      
+      return updatedAlert;
+    } catch (error) {
+      console.error('Failed to update project alert:', error);
+      return null;
+    }
+  }
+
+  async getUserAlerts(userId: string): Promise<any[]> {
+    try {
+      const alerts = await prisma.user_alerts.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return alerts;
+    } catch (error) {
+      console.error('Failed to get user alerts:', error);
+      return [];
+    }
+  }
+
+  async createUserAlert(alert: {
+    id: string;
+    userId: string;
+    alertType: string;
+    severity: string;
+    message: string;
+    relatedEntityType?: string;
+    relatedEntityId?: string;
+    isRead?: boolean;
+    createdAt: string;
+  }): Promise<any> {
+    try {
+      const newAlert = await prisma.user_alerts.create({
+        data: {
+          id: alert.id,
+          userId: alert.userId,
+          alertType: alert.alertType,
+          severity: alert.severity,
+          message: alert.message,
+          relatedEntityType: alert.relatedEntityType,
+          relatedEntityId: alert.relatedEntityId,
+          isRead: alert.isRead || false,
+          createdAt: new Date(alert.createdAt)
+        }
+      });
+      
+      return newAlert;
+    } catch (error) {
+      console.error('Failed to create user alert:', error);
+      return null;
+    }
+  }
+
+  async updateUserAlert(alertId: string, updates: {
+    isRead?: boolean;
+  }): Promise<any> {
+    try {
+      const updateData: any = {};
+      if (updates.isRead !== undefined) updateData.isRead = updates.isRead;
+
+      const updatedAlert = await prisma.user_alerts.update({
+        where: { id: alertId },
+        data: updateData
+      });
+      
+      return updatedAlert;
+    } catch (error) {
+      console.error('Failed to update user alert:', error);
+      return null;
+    }
+  }
+
   // Project Phase History Methods
   async getProjectPhaseHistory(projectId: string): Promise<any[]> {
     try {
