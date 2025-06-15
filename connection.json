@@ -1,0 +1,532 @@
+{
+  "database_name": "人脈一覧表",
+  "description": "出会った人々を共有するための一覧表",
+  "contacts": [
+    {
+      "name": "高田政",
+      "category": "企業",
+      "company": "日本音楽検定",
+      "position": "理事長",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "鈴木敦",
+      "category": "企業", 
+      "company": "フジテレビジョン",
+      "position": "解説委員",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "浅野美映",
+      "category": "企業",
+      "company": "ミクオ産業",
+      "position": "営業部主任",
+      "connection": "ナゴヤブースト",
+      "date": "",
+      "notes": "",
+      "additional_info": "ナゴヤブーストの外部メンバー"
+    },
+    {
+      "name": "宮野好美", 
+      "category": "企業",
+      "company": "",
+      "position": "",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "稲西清",
+      "category": "企業",
+      "company": "トヨタモビリティ",
+      "position": "経営企画部長",
+      "connection": "ナゴヤブースト",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "金子幸也",
+      "category": "学生",
+      "company": "名城大学",
+      "position": "情報工学部",
+      "connection": "ナゴヤブースト",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "菅長明弘",
+      "category": "企業",
+      "company": "アイシン",
+      "position": "開発戦略グループ",
+      "connection": "ナゴヤブースト",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "戸嶋世平",
+      "category": "企業",
+      "company": "カテノテ・OICX",
+      "position": "人事・コミュニケ",
+      "connection": "OICX",
+      "date": "",
+      "notes": "HR系・VTユーバー",
+      "additional_info": "エアポートの運営している"
+    },
+    {
+      "name": "都内晴介",
+      "category": "企業",
+      "company": "Lirem",
+      "position": "代表取締役社長",
+      "connection": "サウナ",
+      "date": "",
+      "notes": "巻きふり加の若手CEO",
+      "additional_info": "火おこし、企業紹介"
+    },
+    {
+      "name": "原部賀三",
+      "category": "行政",
+      "company": "経済産業省 水素事業G",
+      "position": "主事",
+      "connection": "コネクト",
+      "date": "",
+      "notes": "やさしいおじさん",
+      "additional_info": ""
+    },
+    {
+      "name": "林裕田",
+      "category": "行政",
+      "company": "経済産業省 海外連携G",
+      "position": "主査",
+      "connection": "コネクト",
+      "date": "",
+      "notes": "小さいやさしいおじさん",
+      "additional_info": ""
+    },
+    {
+      "name": "伊藤嘉雄",
+      "category": "企業",
+      "company": "IKIGAI Lab",
+      "position": "代表",
+      "connection": "いろいろ",
+      "date": "",
+      "notes": "生成AI",
+      "additional_info": ""
+    },
+    {
+      "name": "須田・",
+      "category": "企業",
+      "company": "カノーワス",
+      "position": "",
+      "connection": "本社",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "上田まなぶ",
+      "category": "企業",
+      "company": "スタメン",
+      "position": "",
+      "connection": "本社",
+      "date": "",
+      "notes": "サハリハりょっとお話さん",
+      "additional_info": ""
+    },
+    {
+      "name": "足立優",
+      "category": "企業",
+      "company": "新明工業",
+      "position": "事業工主エバート",
+      "connection": "",
+      "date": "",
+      "notes": "教えている",
+      "additional_info": ""
+    },
+    {
+      "name": "山下貴章",
+      "category": "企業",
+      "company": "KANNON",
+      "position": "CEO",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "帰りみおっとり",
+      "additional_info": ""
+    },
+    {
+      "name": "土屋博美",
+      "category": "行政",
+      "company": "中部経済産業局",
+      "position": "イノベーション推進課長",
+      "connection": "",
+      "date": "",
+      "notes": "おそらくステディで繋った",
+      "additional_info": ""
+    },
+    {
+      "name": "神谷猛介",
+      "category": "学生",
+      "company": "NHK",
+      "position": "",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "高負荷試役？・SNS頑張ってる",
+      "additional_info": ""
+    },
+    {
+      "name": "高橋功晴",
+      "category": "企業",
+      "company": "イヤモバ機制",
+      "position": "",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "佐古康亮",
+      "category": "企業",
+      "company": "Spreads",
+      "position": "CEO",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "色々教えてくれた",
+      "additional_info": ""
+    },
+    {
+      "name": "野口雄二",
+      "category": "企業",
+      "company": "Spreads",
+      "position": "社員",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "松井詳斗",
+      "category": "企業",
+      "company": "カヤメヤ",
+      "position": "代表取締役",
+      "connection": "ラジオ",
+      "date": "",
+      "notes": "青春叶いマン・育年神",
+      "additional_info": "企業紹介・学生団体の運営（事前１）"
+    },
+    {
+      "name": "吉田和暉",
+      "category": "企業",
+      "company": "OnePile",
+      "position": "代表取締役",
+      "connection": "ボルテージ",
+      "date": "",
+      "notes": "学生起業家・ブライト高い採",
+      "additional_info": "開合"
+    },
+    {
+      "name": "寺田住享",
+      "category": "企業",
+      "company": "eiicon",
+      "position": "準備支社マネージャー",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "帝川岳治",
+      "category": "企業",
+      "company": "デンソー",
+      "position": "主席技術開発2室室長",
+      "connection": "名城",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "本村信幸",
+      "category": "企業", 
+      "company": "デンソー",
+      "position": "主席技術開発2室室長3課長",
+      "connection": "名城",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "山本蘭",
+      "category": "企業",
+      "company": "リンクコーポレイト・コミュニケ",
+      "position": "営業企画ユニット",
+      "connection": "ボルテージ",
+      "date": "",
+      "notes": "LINE繋がった",
+      "additional_info": ""
+    },
+    {
+      "name": "原本和正",
+      "category": "企業",
+      "company": "名古屋工芸",
+      "position": "事業開発PM",
+      "connection": "名城",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "吉村俊雄",
+      "category": "企業",
+      "company": "&m合同会社",
+      "position": "代表",
+      "connection": "いろいろ",
+      "date": "",
+      "notes": "人脈広い・リクルート系",
+      "additional_info": "感が面倒"
+    },
+    {
+      "name": "菊池昭",
+      "category": "企業",
+      "company": "CREA",
+      "position": "代表",
+      "connection": "いろいろ",
+      "date": "",
+      "notes": "不明問",
+      "additional_info": "たまに面白こうからのLINEきてなんかしてくれる"
+    },
+    {
+      "name": "田中啓介",
+      "category": "企業",
+      "company": "Given Back",
+      "position": "取締役",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "伊藤さんとにこきさんと3人で",
+      "additional_info": ""
+    },
+    {
+      "name": "井本康太",
+      "category": "企業",
+      "company": "名古屋青年会議所",
+      "position": "分室長",
+      "connection": "テックブラ",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "福田和来",
+      "category": "企業",
+      "company": "パーソルキャリア",
+      "position": "スタートアップ広報連携ソース",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "岡田商太郎",
+      "category": "企業",
+      "company": "パーソルキャリア",
+      "position": "スタートアップアシスタント",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "村上豊",
+      "category": "企業",
+      "company": "Gecs",
+      "position": "CEO",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "山内和夫",
+      "category": "企業",
+      "company": "eiicon",
+      "position": "人事部",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "村田亜一郎",
+      "category": "企業",
+      "company": "eiicon",
+      "position": "常務執行役員CHRO",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "長岑江五成子 連 黒く",
+      "category": "企業",
+      "company": "IMOM",
+      "position": "会山根点店",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "「街合過ります」",
+      "additional_info": ""
+    },
+    {
+      "name": "石黒春奈",
+      "category": "企業",
+      "company": "Cate",
+      "position": "医療機器事業部",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "守峰一怜",
+      "category": "企業",
+      "company": "Cate",
+      "position": "代表取締役",
+      "connection": "ステディインターン",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "原数況",
+      "category": "企業",
+      "company": "J-Startup CENTRAL",
+      "position": "COO",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "吉本毅宏",
+      "category": "学生",
+      "company": "大阪大学・ONETRIP",
+      "position": "個人事業主",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "ステディとコネクトでマインダー",
+      "additional_info": ""
+    },
+    {
+      "name": "小林亮輝",
+      "category": "学生",
+      "company": "名古大学院農学研究科",
+      "position": "個人事業主",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "小松美子",
+      "category": "学生",
+      "company": "名古教育学部",
+      "position": "",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "いろいろやる・ミライコンやって",
+      "additional_info": ""
+    },
+    {
+      "name": "堀統仁朗",
+      "category": "学生",
+      "company": "三重大医学部",
+      "position": "",
+      "connection": "西日市イベント",
+      "date": "",
+      "notes": "バー「バースカ」運営している",
+      "additional_info": ""
+    },
+    {
+      "name": "河合詳",
+      "category": "学生",
+      "company": "リーキン",
+      "position": "",
+      "connection": "ステディ",
+      "date": "",
+      "notes": "関数生",
+      "additional_info": ""
+    },
+    {
+      "name": "長坂充",
+      "category": "企業",
+      "company": "新城商会",
+      "position": "理事長",
+      "connection": "介護フード",
+      "date": "",
+      "notes": "おじいちゃん",
+      "additional_info": ""
+    },
+    {
+      "name": "渡辺沢具 回2",
+      "category": "企業",
+      "company": "CBCテレビ",
+      "position": "アナウンス部",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "佐藤具学",
+      "category": "企業",
+      "company": "Deer",
+      "position": "CEO",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "入野勝太",
+      "category": "企業",
+      "company": "製薬会",
+      "position": "事務長",
+      "connection": "",
+      "date": "",
+      "notes": "",
+      "additional_info": ""
+    },
+    {
+      "name": "戸保明良",
+      "category": "企業",
+      "company": "NPO法人ふわりり",
+      "position": "理事長",
+      "connection": "",
+      "date": "",
+      "notes": "外国は特権のおじちゃん",
+      "additional_info": ""
+    }
+  ],
+  "summary": {
+    "total_contacts": 49,
+    "categories": {
+      "企業": 38,
+      "学生": 7,
+      "行政": 4
+    },
+    "major_connections": [
+      "ステディ",
+      "ステディインターン",
+      "ナゴヤブースト",
+      "コネクト",
+      "OICX",
+      "いろいろ"
+    ]
+  }
+}

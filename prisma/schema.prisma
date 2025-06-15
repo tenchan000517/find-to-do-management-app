@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model appointments {
+  id          String             @id
+  companyName String
+  contactName String
+  phone       String
+  email       String
+  status      appointment_status @default(PENDING)
+  lastContact String?
+  nextAction  String
+  notes       String             @default("")
+  priority    priority           @default(C)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime
+}
+
+model calendar_events {
+  id           String     @id
+  title        String
+  date         String
+  time         String
+  type         event_type @default(MEETING)
+  description  String     @default("")
+  participants String[]   @default([])
+  location     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime
+}
+
+model connections {
+  id           String          @id
+  date         String
+  location     String
+  company      String
+  name         String
+  position     String
+  type         connection_type @default(COMPANY)
+  description  String
+  conversation String
+  potential    String
+  businessCard String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime
+}
+
+model knowledge_items {
+  id        String             @id
+  title     String
+  category  knowledge_category @default(BUSINESS)
+  content   String
+  author    String
+  tags      String[]           @default([])
+  likes     Int                @default(0)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime
+}
+
+model line_integration_logs {
+  id               String            @id
+  messageId        String
+  groupId          String
+  userId           String
+  originalMessage  String
+  processedMessage String
+  extractedData    Json?
+  processingStatus processing_status @default(PENDING)
+  confidence       Float             @default(0.0)
+  createdItems     Json              @default("[]")
+  userConfirmation Boolean?
+  errorMessage     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+}
+
+model projects {
+  id          String         @id
+  name        String
+  description String         @default("")
+  status      project_status @default(PLANNING)
+  progress    Int            @default(0)
+  startDate   String
+  endDate     String?
+  teamMembers String[]       @default([])
+  priority    priority       @default(C)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime
+  tasks       tasks[]
+}
+
+model task_archives {
+  id             String        @id
+  originalTaskId String        @unique
+  taskData       Json
+  archiveLevel   archive_level @default(SOFT)
+  archivedAt     DateTime      @default(now())
+}
+
+model task_collaborators {
+  id        String   @id
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+  tasks     tasks    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+}
+
+model tasks {
+  id                 String               @id
+  title              String
+  description        String               @default("")
+  projectId          String?
+  userId             String
+  status             task_status          @default(IDEA)
+  priority           priority             @default(C)
+  dueDate            String?
+  isArchived         Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  task_collaborators task_collaborators[]
+  projects           projects?            @relation(fields: [projectId], references: [id])
+  users              users                @relation(fields: [userId], references: [id])
+}
+
+model users {
+  id                 String               @id
+  name               String
+  email              String?              @unique
+  lineUserId         String?              @unique
+  discordId          String?              @unique
+  color              String
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  task_collaborators task_collaborators[]
+  tasks              tasks[]
+}
+
+enum appointment_status {
+  PENDING
+  CONTACTED
+  INTERESTED
+  NOT_INTERESTED
+  SCHEDULED
+}
+
+enum archive_level {
+  SOFT
+  PERMANENT
+}
+
+enum connection_type {
+  STUDENT
+  COMPANY
+}
+
+enum event_type {
+  MEETING
+  EVENT
+  DEADLINE
+}
+
+enum knowledge_category {
+  INDUSTRY
+  SALES
+  TECHNICAL
+  BUSINESS
+}
+
+enum priority {
+  A
+  B
+  C
+  D
+}
+
+enum processing_status {
+  PENDING
+  PROCESSED
+  FAILED
+  MANUAL_REVIEW
+}
+
+enum project_status {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum task_status {
+  IDEA
+  PLAN
+  DO
+  CHECK
+  COMPLETE
+  KNOWLEDGE
+  DELETE
+}
+
+model discord_metrics {
+  id                    String   @id @default(cuid())
+  date                  DateTime @db.Date @unique
+  memberCount           Int      @map("member_count")
+  onlineCount           Int      @map("online_count")
+  dailyMessages         Int      @map("daily_messages")
+  dailyUserMessages     Int      @default(0) @map("daily_user_messages")
+  dailyStaffMessages    Int      @default(0) @map("daily_staff_messages")
+  activeUsers           Int      @map("active_users")
+  engagementScore       Float    @map("engagement_score")
+  channelMessageStats   Json     @default("{}") @map("channel_message_stats")
+  staffChannelStats     Json     @default("{}") @map("staff_channel_stats")
+  roleCounts            Json     @default("{}") @map("role_counts")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("discord_metrics")
+}
