@@ -98,7 +98,7 @@ export class AICallManager {
           if (attempt === maxRetries) break;
           
           // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          await new Promise<void>(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
       }
 
@@ -136,7 +136,7 @@ export class AICallManager {
     const apiCall = model.generateContent(prompt);
     
     const result = await Promise.race([apiCall, timeoutPromise]);
-    const response = await result.response;
+    const response = result.response;
     const text = response.text();
 
     return {
@@ -260,13 +260,13 @@ export class AICallManager {
     });
 
     const totalCalls = logs.length;
-    const successfulCalls = logs.filter(log => log.status === "success").length;
-    const errorCalls = logs.filter(log => log.status === "error").length;
-    const totalTokens = logs.reduce((sum, log) => sum + log.tokenUsed, 0);
-    const avgDuration = totalCalls > 0 ? logs.reduce((sum, log) => sum + log.duration, 0) / totalCalls : 0;
+    const successfulCalls = logs.filter((log: { status: string }) => log.status === "success").length;
+    const errorCalls = logs.filter((log: { status: string }) => log.status === "error").length;
+    const totalTokens = logs.reduce((sum: number, log: { tokenUsed: number }) => sum + log.tokenUsed, 0);
+    const avgDuration = totalCalls > 0 ? logs.reduce((sum: number, log: { duration: number }) => sum + log.duration, 0) / totalCalls : 0;
     
     const callsByType: Record<string, number> = {};
-    logs.forEach(log => {
+    logs.forEach((log: { callType: string }) => {
       callsByType[log.callType] = (callsByType[log.callType] || 0) + 1;
     });
 
