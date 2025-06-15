@@ -59,12 +59,12 @@ class SessionManager {
   }
   
   // データ保存
-  saveFieldData(userId: string, groupId: string | undefined, fieldKey: string, value: string): void {
+  saveFieldData(userId: string, groupId: string | undefined, fieldKey: string, value: string | string[]): void {
     const session = this.getSession(userId, groupId);
     if (session) {
       session.data[fieldKey] = value;
       session.currentField = undefined; // フィールド入力完了
-      console.log(`💾 Data saved for ${this.getSessionKey(userId, groupId)}: ${fieldKey} = ${value}`);
+      console.log(`💾 Data saved for ${this.getSessionKey(userId, groupId)}: ${fieldKey} = ${JSON.stringify(value)}`);
     }
   }
   

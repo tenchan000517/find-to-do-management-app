@@ -251,6 +251,24 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     
     console.log('Extracted data:', extractedData);
     
+    // 🔧 FIX: セッションを作成して抽出データを保存
+    console.log('📝 Creating session with extracted data');
+    sessionManager.startSession(event.source.userId, event.source.groupId, extractedData.type);
+    
+    // 抽出されたデータをセッションに保存
+    const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
+    if (sessionInfo) {
+      // 全てのAI抽出データをセッションに保存
+      Object.entries(extractedData).forEach(([key, value]) => {
+        if (key !== 'type' && value !== undefined) {
+          // 配列データと文字列データを適切に処理
+          const processedValue = Array.isArray(value) ? value : String(value);
+          sessionManager.saveFieldData(event.source.userId, event.source.groupId, key, processedValue);
+        }
+      });
+      console.log('✅ Extracted data saved to session:', sessionInfo.data);
+    }
+    
     // 毎回確認ボタンを表示（ヒューマンエラー防止）
     console.log('Showing classification confirmation for all messages');
     if (event.replyToken) {
@@ -316,12 +334,22 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         // セッションからデータ取得して保存
         const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
         if (sessionInfo) {
+          console.log('🔄 Saving classified data with session info:', sessionInfo);
           await saveClassifiedData(null, sessionInfo, userId);
-        }
-        
-        if (event.replyToken) {
-          const { createCompletionMessage } = await import('@/lib/line/notification');
-          await createCompletionMessage(event.replyToken, type);
+          
+          // セッションを終了
+          sessionManager.endSession(userId, groupId);
+          console.log('🏁 Session ended after successful save');
+          
+          if (event.replyToken) {
+            const { createCompletionMessage } = await import('@/lib/line/notification');
+            await createCompletionMessage(event.replyToken, type);
+          }
+        } else {
+          console.error('❌ No session found for classification confirmation');
+          if (event.replyToken) {
+            await sendReplyMessage(event.replyToken, '❌ データの保存に失敗しました。セッション情報が見つかりません。');
+          }
         }
       } else if (action === 'change') {
         if (event.replyToken) {
@@ -338,12 +366,22 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       if (sessionInfo) {
         // セッションの分類を新しいタイプに変更
         sessionInfo.type = newType;
+        console.log('🔄 Reclassifying data as:', newType);
         await saveClassifiedData(null, sessionInfo, userId);
-      }
-      
-      if (event.replyToken) {
-        const { createCompletionMessage } = await import('@/lib/line/notification');
-        await createCompletionMessage(event.replyToken, newType);
+        
+        // セッションを終了
+        sessionManager.endSession(userId, groupId);
+        console.log('🏁 Session ended after successful reclassification save');
+        
+        if (event.replyToken) {
+          const { createCompletionMessage } = await import('@/lib/line/notification');
+          await createCompletionMessage(event.replyToken, newType);
+        }
+      } else {
+        console.error('❌ No session found for reclassification');
+        if (event.replyToken) {
+          await sendReplyMessage(event.replyToken, '❌ データの再分類に失敗しました。セッション情報が見つかりません。');
+        }
       }
     } else if (data.startsWith('start_detailed_input_')) {
       // 詳細入力開始
@@ -541,7 +579,14 @@ async function saveClassifiedData(
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
   
+  let systemUserId: string;
+  let finalData: any;
+  let type: string;
+  
   try {
+    console.log('💾 Starting database save process');
+    console.log('📋 Input data:', { extractedData, sessionInfo, userId });
+    
     // LINEユーザーIDから システムユーザーIDを取得
     const systemUser = await prisma.users.findFirst({
       where: { lineUserId: userId }
@@ -551,15 +596,21 @@ async function saveClassifiedData(
       throw new Error(`LINEユーザーID ${userId} に対応するシステムユーザーが見つかりません`);
     }
     
-    const systemUserId = systemUser.id;
+    systemUserId = systemUser.id;
     console.log(`✅ ユーザーマッピング: ${userId} -> ${systemUserId}`);
     
-    const finalData = {
+    // セッション情報の検証
+    if (!sessionInfo || !sessionInfo.type) {
+      throw new Error('セッション情報が不正です');
+    }
+    
+    finalData = {
       ...extractedData,
-      ...sessionInfo?.data,
+      ...sessionInfo.data,
     };
     
-    const type = sessionInfo?.type || extractedData?.type;
+    type = sessionInfo.type;
+    console.log(`📊 Processing ${type} with data:`, finalData);
     
     switch (type) {
       case 'schedule':
@@ -665,10 +716,17 @@ async function saveClassifiedData(
         throw new Error(`未対応のデータタイプ: ${type}`);
     }
     
-    console.log(`✅ データ保存完了: ${type}`);
+    console.log(`✅ データ保存完了: ${type}`, finalData);
     
   } catch (error) {
-    console.error('データ保存エラー:', error);
+    console.error('❌ データ保存エラー:', error);
+    console.error('❌ エラー詳細:', {
+      type,
+      finalData,
+      userId,
+      systemUserId: systemUserId,
+      sessionInfo
+    });
     throw error;
   } finally {
     await prisma.$disconnect();
