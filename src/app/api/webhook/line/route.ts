@@ -297,6 +297,8 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
   }
   
   const data = event.postback.data;
+  const userId = event.source.userId || '';
+  const groupId = event.source.groupId;
   
   try {
     if (data === 'test_yes') {
@@ -311,7 +313,12 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       // 分類確認ボタン
       const [, action, type] = data.split('_');
       if (action === 'confirm') {
-        // TODO: 実際のデータ保存処理を追加
+        // セッションからデータ取得して保存
+        const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
+        if (sessionInfo) {
+          await saveClassifiedData(null, sessionInfo, userId);
+        }
+        
         if (event.replyToken) {
           const { createCompletionMessage } = await import('@/lib/line/notification');
           await createCompletionMessage(event.replyToken, type);
@@ -325,7 +332,15 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
     } else if (data.startsWith('reclassify_')) {
       // 再分類ボタン
       const newType = data.replace('reclassify_', '');
-      // TODO: 新しい分類でデータ保存処理を追加
+      
+      // 新しい分類でデータ保存処理
+      const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
+      if (sessionInfo) {
+        // セッションの分類を新しいタイプに変更
+        sessionInfo.type = newType;
+        await saveClassifiedData(null, sessionInfo, userId);
+      }
+      
       if (event.replyToken) {
         const { createCompletionMessage } = await import('@/lib/line/notification');
         await createCompletionMessage(event.replyToken, newType);
@@ -402,13 +417,23 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       // セッション終了（データ取得後）
       const sessionData = sessionManager.endSession(event.source.userId, event.source.groupId);
       
+      // データベースに保存
+      if (sessionData) {
+        try {
+          await saveClassifiedData(null, sessionData, userId);
+          console.log('✅ セッションデータを保存しました:', sessionData);
+        } catch (error) {
+          console.error('❌ セッションデータ保存エラー:', error);
+        }
+      }
+      
       if (event.replyToken) {
         let savedFields = '';
         if (sessionData && Object.keys(sessionData.data).length > 0) {
           savedFields = '\n\n保存された項目:\n' + Object.entries(sessionData.data).map(([key, value]) => `• ${key}: ${value}`).join('\n');
         }
         
-        await sendReplyMessage(event.replyToken, `💾 ${type}の情報を保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
+        await sendReplyMessage(event.replyToken, `💾 ${type}の情報をデータベースに保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
       }
     } else if (data === 'cancel_detailed_input') {
       // 詳細入力キャンセル
@@ -504,6 +529,149 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' }, 
       { status: 500 }
     );
+  }
+}
+
+// データベース保存処理
+async function saveClassifiedData(
+  extractedData: any,
+  sessionInfo: { type: string; data: Record<string, any> } | null,
+  userId: string
+): Promise<void> {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  
+  try {
+    // LINEユーザーIDから システムユーザーIDを取得
+    const systemUser = await prisma.users.findFirst({
+      where: { lineUserId: userId }
+    });
+    
+    if (!systemUser) {
+      throw new Error(`LINEユーザーID ${userId} に対応するシステムユーザーが見つかりません`);
+    }
+    
+    const systemUserId = systemUser.id;
+    console.log(`✅ ユーザーマッピング: ${userId} -> ${systemUserId}`);
+    
+    const finalData = {
+      ...extractedData,
+      ...sessionInfo?.data,
+    };
+    
+    const type = sessionInfo?.type || extractedData?.type;
+    
+    switch (type) {
+      case 'schedule':
+        // 日時の解析処理
+        let parsedDate = finalData.date || new Date().toISOString().split('T')[0];
+        let parsedTime = finalData.time || '00:00';
+        
+        // datetimeフィールドがある場合はパース
+        if (finalData.datetime) {
+          const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+          const parsed = await dateTimeParser.parse(finalData.datetime);
+          
+          if (parsed.confidence >= 0.5) {
+            parsedDate = parsed.date;
+            parsedTime = parsed.time;
+            console.log(`📅 日時解析成功: "${finalData.datetime}" → ${parsedDate} ${parsedTime} (${parsed.method}, confidence: ${parsed.confidence})`);
+          } else {
+            console.warn(`⚠️ 日時解析信頼度低: "${finalData.datetime}" (confidence: ${parsed.confidence})`);
+          }
+        }
+        
+        await prisma.calendar_events.create({
+          data: {
+            id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            title: finalData.title || finalData.summary || '新しい予定',
+            date: parsedDate,
+            time: parsedTime,
+            type: finalData.eventType || 'MEETING',
+            description: finalData.description || '',
+            participants: finalData.participants || [],
+            location: finalData.location || null,
+          },
+        });
+        break;
+        
+      case 'task':
+        await prisma.tasks.create({
+          data: {
+            id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            title: finalData.title || finalData.summary || '新しいタスク',
+            description: finalData.description || '',
+            projectId: finalData.projectId || null,
+            userId: systemUserId,
+            status: 'IDEA',
+            priority: finalData.priority || 'C',
+            dueDate: finalData.dueDate || null,
+            estimatedHours: finalData.estimatedHours || 0,
+            resourceWeight: finalData.resourceWeight || 0.5,
+            aiIssueLevel: finalData.issueLevel || 'MEDIUM',
+          },
+        });
+        break;
+        
+      case 'project':
+        await prisma.projects.create({
+          data: {
+            id: `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: finalData.title || finalData.name || '新しいプロジェクト',
+            description: finalData.description || '',
+            status: 'PLANNING',
+            startDate: finalData.startDate || new Date().toISOString().split('T')[0],
+            endDate: finalData.endDate || null,
+            priority: finalData.priority || 'C',
+            teamMembers: finalData.teamMembers || [],
+          },
+        });
+        break;
+        
+      case 'contact':
+        await prisma.connections.create({
+          data: {
+            id: `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: finalData.name || finalData.title || '新しい人脈',
+            date: finalData.date || new Date().toISOString().split('T')[0],
+            location: finalData.location || '',
+            company: finalData.company || '',
+            position: finalData.position || '',
+            type: finalData.type || 'COMPANY',
+            description: finalData.description || '',
+            conversation: finalData.conversation || '',
+            potential: finalData.potential || '',
+            businessCard: finalData.businessCard || null,
+            updatedAt: new Date(),
+          },
+        });
+        break;
+        
+      case 'memo':
+        await prisma.knowledge_items.create({
+          data: {
+            id: `know_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            title: finalData.title || finalData.summary || '新しいナレッジ',
+            category: finalData.category || 'BUSINESS',
+            content: finalData.content || finalData.description || '',
+            author: systemUserId,
+            tags: finalData.tags || [],
+            updatedAt: new Date(),
+          },
+        });
+        break;
+        
+      default:
+        throw new Error(`未対応のデータタイプ: ${type}`);
+    }
+    
+    console.log(`✅ データ保存完了: ${type}`);
+    
+  } catch (error) {
+    console.error('データ保存エラー:', error);
+    throw error;
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

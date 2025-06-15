@@ -681,6 +681,8 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
       title: '📅 予定の詳細入力',
       description: '追加したい項目を選択してください',
       fields: [
+        { key: 'title', name: '📋 タイトル', description: '予定のタイトル' },
+        { key: 'eventType', name: '📝 種類', description: '予定の種類（会議/イベント/締切）' },
         { key: 'datetime', name: '📅 日時', description: '会議や予定の日時' },
         { key: 'location', name: '📍 場所', description: '開催場所や会議室' },
         { key: 'attendees', name: '👥 参加者', description: '参加メンバー' },
@@ -691,9 +693,12 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
       title: '📋 タスクの詳細入力',
       description: '追加したい項目を選択してください',
       fields: [
+        { key: 'title', name: '📋 タイトル', description: 'タスクのタイトル' },
+        { key: 'projectId', name: '📊 プロジェクト', description: '所属プロジェクト' },
         { key: 'deadline', name: '⏰ 期限', description: '完了期限' },
         { key: 'priority', name: '🎯 優先度', description: '重要度レベル' },
         { key: 'assignee', name: '👤 担当者', description: '責任者や担当者' },
+        { key: 'estimatedHours', name: '⏱️ 工数', description: '予想作業時間' },
         { key: 'description', name: '📄 詳細', description: '具体的な作業内容' }
       ]
     },
@@ -701,9 +706,12 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
       title: '📊 プロジェクトの詳細入力',
       description: '追加したい項目を選択してください',
       fields: [
-        { key: 'duration', name: '📆 期間', description: 'プロジェクト期間' },
+        { key: 'title', name: '📋 タイトル', description: 'プロジェクトのタイトル' },
+        { key: 'startDate', name: '📅 開始日', description: 'プロジェクト開始日' },
+        { key: 'endDate', name: '📅 終了日', description: 'プロジェクト終了日' },
+        { key: 'priority', name: '🎯 優先度', description: '重要度レベル' },
+        { key: 'status', name: '📊 ステータス', description: 'プロジェクト状況' },
         { key: 'members', name: '👥 メンバー', description: 'チーム構成' },
-        { key: 'budget', name: '💰 予算', description: '予算規模' },
         { key: 'goals', name: '🎯 目標', description: '目標や成果物' }
       ]
     },
@@ -711,6 +719,11 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
       title: '👤 人脈の詳細入力',
       description: '追加したい項目を選択してください',
       fields: [
+        { key: 'title', name: '📋 タイトル', description: '人脈のタイトル' },
+        { key: 'name', name: '👤 氏名', description: '相手の名前' },
+        { key: 'date', name: '📅 日付', description: 'いつ出会ったか' },
+        { key: 'location', name: '📍 場所', description: 'どこで出会ったか' },
+        { key: 'type', name: '🏷️ 種類', description: '人脈の種類' },
         { key: 'company', name: '🏢 会社名', description: '所属会社' },
         { key: 'position', name: '💼 役職', description: '部署や役職' },
         { key: 'contact', name: '📞 連絡先', description: 'メールや電話' },
@@ -721,10 +734,11 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
       title: '📝 メモの詳細入力',
       description: '追加したい項目を選択してください',
       fields: [
+        { key: 'title', name: '📋 タイトル', description: 'メモのタイトル' },
         { key: 'category', name: '📂 カテゴリ', description: 'メモの分類' },
-        { key: 'importance', name: '⭐ 重要度', description: '重要度レベル' },
-        { key: 'tags', name: '🏷️ タグ', description: '検索用タグ' },
-        { key: 'details', name: '📝 詳細', description: '詳しい内容' }
+        { key: 'content', name: '📝 内容', description: '詳しい内容' },
+        { key: 'author', name: '✍️ 著者', description: '作成者' },
+        { key: 'tags', name: '🏷️ タグ', description: '検索用タグ' }
       ]
     }
   };
@@ -820,7 +834,14 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
     }
   };
 
-  return await sendFlexMessage(replyToken, '詳細入力', flexContent);
+  try {
+    return await sendFlexMessage(replyToken, '詳細入力', flexContent);
+  } catch (error) {
+    console.error('Flex message failed, sending simple message:', error);
+    // フォールバック: シンプルなテキストメッセージ
+    await sendReplyMessage(replyToken, `📝 ${config.title}\n\n追加したい項目があれば、詳細を入力してください。\n\n完了したら「保存」と送信してください。`);
+    return true;
+  }
 }
 
 // 質問フロー用のメッセージ
