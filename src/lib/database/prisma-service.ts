@@ -798,6 +798,261 @@ class PrismaDataService {
       return false;
     }
   }
+
+  // AI evaluation methods
+  async getProjectById(id: string): Promise<any | null> {
+    try {
+      const project = await prisma.projects.findUnique({
+        where: { id }
+      });
+      
+      if (!project) return null;
+      
+      return {
+        ...project,
+        status: reverseProjectStatusMap[project.status] || 'planning',
+        priority: reversePriorityMap[project.priority] || 'C',
+        startDate: project.startDate,
+        endDate: project.endDate || undefined,
+        createdAt: project.createdAt.toISOString(),
+        updatedAt: project.updatedAt.toISOString(),
+        lastActivityDate: project.lastActivityDate?.toISOString(),
+        phaseChangeDate: project.phaseChangeDate?.toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to get project by ID:', error);
+      return null;
+    }
+  }
+
+  async getTaskById(id: string): Promise<Task | null> {
+    try {
+      const task = await prisma.tasks.findUnique({
+        where: { id },
+        include: {
+          projects: true,
+          users: true,
+          task_collaborators: {
+            include: {
+              users: true
+            }
+          }
+        }
+      });
+      
+      if (!task) return null;
+      
+      const taskWithRelations = task as any;
+      return {
+        id: taskWithRelations.id,
+        title: taskWithRelations.title,
+        description: taskWithRelations.description,
+        status: PRISMA_TO_TASK_STATUS[taskWithRelations.status as keyof typeof PRISMA_TO_TASK_STATUS] || 'IDEA',
+        priority: reversePriorityMap[taskWithRelations.priority] || 'C',
+        projectId: taskWithRelations.projectId || undefined,
+        project: taskWithRelations.projects || undefined,
+        userId: taskWithRelations.userId,
+        user: taskWithRelations.users || undefined,
+        collaborators: (taskWithRelations.task_collaborators || []).map((c: any) => ({
+          id: c.id,
+          taskId: c.taskId,
+          userId: c.userId,
+          user: c.users,
+          createdAt: c.createdAt.toISOString()
+        })),
+        dueDate: taskWithRelations.dueDate || undefined,
+        isArchived: taskWithRelations.isArchived,
+        createdAt: taskWithRelations.createdAt.toISOString(),
+        updatedAt: taskWithRelations.updatedAt.toISOString(),
+        estimatedHours: taskWithRelations.estimatedHours || undefined,
+        actualHours: taskWithRelations.actualHours || undefined,
+        difficultyScore: taskWithRelations.difficultyScore || undefined,
+        aiIssueLevel: taskWithRelations.aiIssueLevel || undefined,
+        resourceWeight: taskWithRelations.resourceWeight || undefined
+      };
+    } catch (error) {
+      console.error('Failed to get task by ID:', error);
+      return null;
+    }
+  }
+
+  async getTasksByUserId(userId: string): Promise<Task[]> {
+    try {
+      const tasks = await prisma.tasks.findMany({
+        where: {
+          userId,
+          isArchived: false
+        },
+        include: {
+          projects: true,
+          users: true,
+          task_collaborators: {
+            include: {
+              users: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+      
+      return tasks.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        status: PRISMA_TO_TASK_STATUS[t.status as keyof typeof PRISMA_TO_TASK_STATUS] || 'IDEA',
+        priority: reversePriorityMap[t.priority] || 'C',
+        projectId: t.projectId || undefined,
+        project: t.projects || undefined,
+        userId: t.userId,
+        user: t.users || undefined,
+        collaborators: t.task_collaborators.map((c: any) => ({
+          id: c.id,
+          taskId: c.taskId,
+          userId: c.userId,
+          user: c.users,
+          createdAt: c.createdAt.toISOString()
+        })),
+        dueDate: t.dueDate || undefined,
+        isArchived: t.isArchived,
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+        estimatedHours: t.estimatedHours || undefined,
+        actualHours: t.actualHours || undefined,
+        difficultyScore: t.difficultyScore || undefined,
+        aiIssueLevel: t.aiIssueLevel || undefined,
+        resourceWeight: t.resourceWeight || undefined
+      }));
+    } catch (error) {
+      console.error('Failed to get tasks by user ID:', error);
+      return [];
+    }
+  }
+
+  async getTasksByProjectId(projectId: string): Promise<Task[]> {
+    try {
+      const tasks = await prisma.tasks.findMany({
+        where: {
+          projectId,
+          isArchived: false
+        },
+        include: {
+          projects: true,
+          users: true,
+          task_collaborators: {
+            include: {
+              users: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+      
+      return tasks.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        status: PRISMA_TO_TASK_STATUS[t.status as keyof typeof PRISMA_TO_TASK_STATUS] || 'IDEA',
+        priority: reversePriorityMap[t.priority] || 'C',
+        projectId: t.projectId || undefined,
+        project: t.projects || undefined,
+        userId: t.userId,
+        user: t.users || undefined,
+        collaborators: t.task_collaborators.map((c: any) => ({
+          id: c.id,
+          taskId: c.taskId,
+          userId: c.userId,
+          user: c.users,
+          createdAt: c.createdAt.toISOString()
+        })),
+        dueDate: t.dueDate || undefined,
+        isArchived: t.isArchived,
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+        estimatedHours: t.estimatedHours || undefined,
+        actualHours: t.actualHours || undefined,
+        difficultyScore: t.difficultyScore || undefined,
+        aiIssueLevel: t.aiIssueLevel || undefined,
+        resourceWeight: t.resourceWeight || undefined
+      }));
+    } catch (error) {
+      console.error('Failed to get tasks by project ID:', error);
+      return [];
+    }
+  }
+
+  async getAllTasks(): Promise<Task[]> {
+    try {
+      const tasks = await prisma.tasks.findMany({
+        where: {
+          isArchived: false
+        },
+        include: {
+          projects: true,
+          users: true,
+          task_collaborators: {
+            include: {
+              users: true
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+      
+      return tasks.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        status: PRISMA_TO_TASK_STATUS[t.status as keyof typeof PRISMA_TO_TASK_STATUS] || 'IDEA',
+        priority: reversePriorityMap[t.priority] || 'C',
+        projectId: t.projectId || undefined,
+        project: t.projects || undefined,
+        userId: t.userId,
+        user: t.users || undefined,
+        collaborators: t.task_collaborators.map((c: any) => ({
+          id: c.id,
+          taskId: c.taskId,
+          userId: c.userId,
+          user: c.users,
+          createdAt: c.createdAt.toISOString()
+        })),
+        dueDate: t.dueDate || undefined,
+        isArchived: t.isArchived,
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+        estimatedHours: t.estimatedHours || undefined,
+        actualHours: t.actualHours || undefined,
+        difficultyScore: t.difficultyScore || undefined,
+        aiIssueLevel: t.aiIssueLevel || undefined,
+        resourceWeight: t.resourceWeight || undefined
+      }));
+    } catch (error) {
+      console.error('Failed to get all tasks:', error);
+      return [];
+    }
+  }
+
+  async createAIEvaluation(evaluation: {
+    entityType: string;
+    entityId: string;
+    evaluationType: string;
+    score: number;
+    reasoning: string;
+    confidence: number;
+  }): Promise<any> {
+    try {
+      const newEvaluation = await prisma.ai_evaluations.create({
+        data: {
+          id: `eval_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          ...evaluation
+        }
+      });
+      
+      return newEvaluation;
+    } catch (error) {
+      console.error('Failed to create AI evaluation:', error);
+      return null;
+    }
+  }
 }
 
 export const prismaDataService = new PrismaDataService();

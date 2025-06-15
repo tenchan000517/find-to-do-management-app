@@ -19,7 +19,7 @@ model appointments {
   notes       String             @default("")
   priority    priority           @default(C)
   createdAt   DateTime           @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
 }
 
 model calendar_events {
@@ -32,7 +32,7 @@ model calendar_events {
   participants String[]   @default([])
   location     String?
   createdAt    DateTime   @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime @updatedAt
 }
 
 model connections {
@@ -77,7 +77,7 @@ model line_integration_logs {
   userConfirmation Boolean?
   errorMessage     String?
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime @updatedAt
 }
 
 model projects {
@@ -91,7 +91,7 @@ model projects {
   teamMembers           String[]                @default([])
   priority              priority                @default(C)
   createdAt             DateTime                @default(now())
-  updatedAt             DateTime
+  updatedAt             DateTime                @updatedAt
   phase                 String                  @default("concept")
   kgi                   String                  @default("")
   successProbability    Float                   @default(0.0)
@@ -135,7 +135,7 @@ model tasks {
   dueDate            String?
   isArchived         Boolean              @default(false)
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime
+  updatedAt          DateTime @updatedAt
   estimatedHours     Float                @default(0)
   actualHours        Float                @default(0)
   difficultyScore    Int                  @default(3)
@@ -155,7 +155,7 @@ model users {
   color                 String
   isActive              Boolean                 @default(true)
   createdAt             DateTime                @default(now())
-  updatedAt             DateTime
+  updatedAt             DateTime                @updatedAt
   skills                Json                    @default("{}")
   preferences           Json                    @default("{}")
   workStyle             Json                    @default("{}")
@@ -269,6 +269,7 @@ model ai_evaluations {
   confidence     Float    @default(0.0)
   modelVersion   String   @default("gemini-1.5")
   createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model project_alerts {
