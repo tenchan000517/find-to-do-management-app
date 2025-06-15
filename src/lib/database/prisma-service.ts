@@ -1053,6 +1053,113 @@ class PrismaDataService {
       return null;
     }
   }
+
+  // Project Relationships Methods
+  async createProjectRelationship(relationship: {
+    projectId: string;
+    relatedType: string;
+    relatedId: string;
+    relationshipStrength: number;
+  }): Promise<any> {
+    try {
+      const newRelationship = await prisma.project_relationships.create({
+        data: {
+          id: `rel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          ...relationship
+        }
+      });
+      
+      return newRelationship;
+    } catch (error) {
+      console.error('Failed to create project relationship:', error);
+      return null;
+    }
+  }
+
+  async getProjectRelationships(projectId: string): Promise<any[]> {
+    try {
+      const relationships = await prisma.project_relationships.findMany({
+        where: { projectId },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return relationships;
+    } catch (error) {
+      console.error('Failed to get project relationships:', error);
+      return [];
+    }
+  }
+
+  // Project Alerts Methods
+  async getProjectAlerts(projectId: string): Promise<any[]> {
+    try {
+      const alerts = await prisma.project_alerts.findMany({
+        where: { projectId },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return alerts;
+    } catch (error) {
+      console.error('Failed to get project alerts:', error);
+      return [];
+    }
+  }
+
+  // Project Phase History Methods
+  async getProjectPhaseHistory(projectId: string): Promise<any[]> {
+    try {
+      const history = await prisma.project_phase_history.findMany({
+        where: { projectId },
+        include: { users: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return history;
+    } catch (error) {
+      console.error('Failed to get project phase history:', error);
+      return [];
+    }
+  }
+
+  // Additional entity getters needed by RelationshipService
+  async getAppointmentById(id: string): Promise<any> {
+    try {
+      const appointment = await prisma.appointments.findUnique({
+        where: { id }
+      });
+      
+      return appointment;
+    } catch (error) {
+      console.error('Failed to get appointment by ID:', error);
+      return null;
+    }
+  }
+
+  async getCalendarEventById(id: string): Promise<any> {
+    try {
+      const event = await prisma.calendar_events.findUnique({
+        where: { id }
+      });
+      
+      return event;
+    } catch (error) {
+      console.error('Failed to get calendar event by ID:', error);
+      return null;
+    }
+  }
+
+  async getConnectionById(id: string): Promise<any> {
+    try {
+      const connection = await prisma.connections.findUnique({
+        where: { id }
+      });
+      
+      return connection;
+    } catch (error) {
+      console.error('Failed to get connection by ID:', error);
+      return null;
+    }
+  }
 }
 
 export const prismaDataService = new PrismaDataService();
