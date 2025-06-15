@@ -7,12 +7,13 @@ export interface CalendarEvent {
   time: string;      // HH:mm
   endTime?: string;  // HH:mm
   type: EventType;
-  userId: string;
+  userId?: string;
   projectId?: string;
   taskId?: string;
   appointmentId?: string;
   category: EventCategory;
-  importance: number; // 0.0-1.0
+  importance: number; // 0.0-1.0 (legacy)
+  priority?: PriorityLevel; // A/B/C/D system
   isRecurring: boolean;
   recurringPattern?: string;
   colorCode?: string;
@@ -20,6 +21,29 @@ export interface CalendarEvent {
   description?: string;
   participants?: string[];
   location?: string;
+  // リレーションデータ
+  users?: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  projects?: {
+    id: string;
+    name: string;
+    priority?: PriorityLevel;
+  };
+  tasks?: {
+    id: string;
+    title: string;
+    status: string;
+    priority?: PriorityLevel;
+  };
+  appointments?: {
+    id: string;
+    companyName: string;
+    contactName: string;
+    priority?: PriorityLevel;
+  };
 }
 
 export interface RecurringRule {
@@ -38,13 +62,10 @@ export interface RecurringRule {
 }
 
 export type EventCategory = 
-  | 'GENERAL'
-  | 'MEETING'
   | 'APPOINTMENT'
   | 'TASK_DUE'
   | 'PROJECT'
-  | 'PERSONAL'
-  | 'TEAM';
+  | 'EVENT';
 
 export type EventType =
   | 'MEETING'
@@ -59,7 +80,7 @@ export interface PrismaCalendarEvent {
   time: string;
   endTime: string | null;
   type: string;
-  userId: string;
+  userId: string | null;
   projectId: string | null;
   taskId: string | null;
   appointmentId: string | null;
@@ -72,27 +93,31 @@ export interface PrismaCalendarEvent {
   description: string;
   participants: string[];
   location: string | null;
-  users?: {
+  users: {
     id: string;
     name: string;
     color: string;
-  };
-  projects?: {
+  } | null;
+  projects: {
     id: string;
     name: string;
   } | null;
-  tasks?: {
+  tasks: {
     id: string;
     title: string;
     status: string;
+    priority?: string;
   } | null;
-  appointments?: {
+  appointments: {
     id: string;
     companyName: string;
     contactName: string;
+    priority?: string;
   } | null;
   recurring_rules?: any | null;
 }
+
+export type PriorityLevel = 'A' | 'B' | 'C' | 'D';
 
 export type RecurrenceType =
   | 'DAILY'
@@ -121,6 +146,7 @@ export interface CreateEventRequest {
   description?: string;
   participants?: string[];
   location?: string;
+  userId?: string;
   projectId?: string;
   taskId?: string;
   appointmentId?: string;
@@ -132,13 +158,17 @@ export interface UpdateEventRequest extends Partial<CreateEventRequest> {
 
 // カラーマップ
 export const CATEGORY_COLORS = {
-  GENERAL: '#6B7280',      // グレー
-  MEETING: '#3B82F6',      // 青
-  APPOINTMENT: '#10B981',  // 緑
-  TASK_DUE: '#F59E0B',     // オレンジ
-  PROJECT: '#8B5CF6',      // 紫
-  PERSONAL: '#EC4899',     // ピンク
-  TEAM: '#06B6D4'         // シアン
+  APPOINTMENT: '#10B981',  // 緑 - アポイントメント
+  TASK_DUE: '#F59E0B',     // オレンジ - タスク期限
+  PROJECT: '#8B5CF6',      // 紫 - プロジェクト
+  EVENT: '#3B82F6'         // 青 - イベント
+} as const;
+
+export const PRIORITY_COLORS = {
+  A: '#EF4444',    // 赤 - 緊急
+  B: '#F59E0B',    // オレンジ - 重要
+  C: '#3B82F6',    // 青 - 最優先
+  D: '#10B981'     // 緑 - 要検討
 } as const;
 
 export const IMPORTANCE_COLORS = {

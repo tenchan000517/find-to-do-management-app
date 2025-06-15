@@ -6,6 +6,9 @@ import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
 import { ColorTabs } from './ColorTabs';
+import { WeeklyPreview } from './WeeklyPreview';
+import { DayEventsModal } from './DayEventsModal';
+import { EventEditModal } from './EventEditModal';
 
 interface CalendarViewProps {
   className?: string;
@@ -16,8 +19,14 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
-  const [colorMode, setColorMode] = useState<ColorMode>('category');
+  const [colorMode, setColorMode] = useState<ColorMode>('user');
   const [users, setUsers] = useState<Array<{ id: string; name: string; color: string }>>([]);
+  const [showWeeklyPreview, setShowWeeklyPreview] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDayModal, setShowDayModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   // 表示期間を計算
   const getDateRange = () => {
@@ -80,7 +89,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         throw new Error('ユーザー情報の取得に失敗しました');
       }
       const data = await response.json();
-      setUsers(data.users || []);
+      setUsers(data || []);
     } catch (error) {
       console.error('Users fetch error:', error);
       setUsers([]);
@@ -91,16 +100,25 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const getColorStats = () => {
     const userCounts: { [userId: string]: number } = {};
     const categoryCounts: { [category: string]: number } = {};
+    const priorityCounts = { A: 0, B: 0, C: 0, D: 0 };
     const importanceCounts = { high: 0, medium: 0, low: 0 };
 
     events.forEach(event => {
       // ユーザー別カウント
-      userCounts[event.userId] = (userCounts[event.userId] || 0) + 1;
+      if (event.userId) {
+        userCounts[event.userId] = (userCounts[event.userId] || 0) + 1;
+      }
       
       // カテゴリ別カウント
       categoryCounts[event.category] = (categoryCounts[event.category] || 0) + 1;
       
-      // 重要度別カウント
+      // A/B/C/D優先度別カウント
+      const priority = event.priority || 'C';
+      if (priority in priorityCounts) {
+        priorityCounts[priority as keyof typeof priorityCounts]++;
+      }
+      
+      // 重要度別カウント（レガシーサポート）
       if (event.importance >= 0.7) {
         importanceCounts.high++;
       } else if (event.importance >= 0.4) {
@@ -110,7 +128,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       }
     });
 
-    return { userCounts, categoryCounts, importanceCounts };
+    return { userCounts, categoryCounts, priorityCounts, importanceCounts };
   };
 
   // 初期化とデータ取得
@@ -147,99 +165,83 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     setCurrentDate(new Date());
   };
 
-  // 日付フォーマット
-  const formatDate = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-    
-    switch (viewMode) {
-      case 'month':
-        return `${year}年${month}月`;
-      case 'week':
-        const weekStart = new Date(currentDate);
-        const dayOfWeek = weekStart.getDay();
-        weekStart.setDate(weekStart.getDate() - dayOfWeek);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        return `${weekStart.getMonth() + 1}/${weekStart.getDate()} - ${weekEnd.getMonth() + 1}/${weekEnd.getDate()}, ${year}`;
-      case 'day':
-        return `${year}年${month}月${currentDate.getDate()}日`;
+  // 日付クリック処理
+  const handleDayClick = (date: Date) => {
+    setSelectedDate(date);
+    setShowDayModal(true);
+  };
+
+  // 選択日のイベント取得
+  const getEventsForSelectedDate = () => {
+    if (!selectedDate) return [];
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    return filteredEvents.filter(event => event.date === dateStr);
+  };
+
+  // イベント編集処理
+  const handleEventEdit = (event: CalendarEvent) => {
+    setEditingEvent(event);
+    setShowEditModal(true);
+  };
+
+  // イベント保存処理
+  const handleEventSave = async (updatedEvent: CalendarEvent) => {
+    try {
+      // TODO: API呼び出しで更新
+      console.log('Saving event:', updatedEvent);
+      
+      // イベントリストを更新
+      setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+      
+      // モーダルを閉じる
+      setShowEditModal(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Failed to save event:', error);
     }
   };
 
-  const { userCounts, categoryCounts, importanceCounts } = getColorStats();
+
+  const { userCounts, categoryCounts, priorityCounts, importanceCounts } = getColorStats();
+
+  // フィルタリングされたイベント
+  const filteredEvents = events.filter(event => {
+    if (!selectedFilter) return true;
+
+    switch (colorMode) {
+      case 'user':
+        return event.userId === selectedFilter;
+      case 'category':
+        return event.category === selectedFilter;
+      case 'importance':
+        const priority = event.priority || event.tasks?.priority || event.appointments?.priority || 'C';
+        return priority === selectedFilter;
+      default:
+        return true;
+    }
+  });
 
   return (
     <div className={`bg-white rounded-lg shadow-sm border ${className}`}>
-      {/* 色分けタブ */}
+      {/* 統合ヘッダー: 色分けタブ + 日付ナビ + 表示モード */}
       <ColorTabs
         selectedMode={colorMode}
         onModeChange={setColorMode}
         userCounts={userCounts}
         categoryCounts={categoryCounts}
+        priorityCounts={priorityCounts}
         importanceCounts={importanceCounts}
         users={users}
+        currentDate={currentDate}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onDateNavigate={navigateDate}
+        onTodayClick={goToToday}
+        onWeeklyPreviewClick={() => setShowWeeklyPreview(true)}
+        loading={loading}
+        selectedFilter={selectedFilter}
+        onFilterChange={setSelectedFilter}
       />
-      
-      {/* ヘッダー */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          {/* 左側: 日付ナビゲーション */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigateDate('prev')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                disabled={loading}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              
-              <h2 className="text-lg font-semibold text-gray-900 min-w-[200px] text-center">
-                {formatDate()}
-              </h2>
-              
-              <button
-                onClick={() => navigateDate('next')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                disabled={loading}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            
-            <button
-              onClick={goToToday}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              disabled={loading}
-            >
-              今日
-            </button>
-          </div>
-
-          {/* 右側: 表示モード切り替え */}
-          <div className="flex items-center space-x-2">
-            {(['month', 'week', 'day'] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  viewMode === mode
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                disabled={loading}
-              >
-                {mode === 'month' ? '月' : mode === 'week' ? '週' : '日'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* カレンダー本体 */}
       <div className="relative">
@@ -255,16 +257,17 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         {viewMode === 'month' && (
           <MonthView 
             currentDate={currentDate} 
-            events={events} 
-            onDateSelect={setCurrentDate}
+            events={filteredEvents} 
+            onDateSelect={handleDayClick}
             colorMode={colorMode}
+            onEventEdit={handleEventEdit}
           />
         )}
         
         {viewMode === 'week' && (
           <WeekView 
             currentDate={currentDate} 
-            events={events}
+            events={filteredEvents}
             onDateSelect={setCurrentDate}
             colorMode={colorMode}
           />
@@ -273,11 +276,40 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         {viewMode === 'day' && (
           <DayView 
             currentDate={currentDate} 
-            events={events}
+            events={filteredEvents}
             colorMode={colorMode}
           />
         )}
       </div>
+
+      {/* 今後一週間サイドバー */}
+      <WeeklyPreview
+        isOpen={showWeeklyPreview}
+        onClose={() => setShowWeeklyPreview(false)}
+        colorMode={colorMode}
+        onEventEdit={handleEventEdit}
+      />
+
+      {/* 日別イベントモーダル */}
+      <DayEventsModal
+        isOpen={showDayModal}
+        onClose={() => setShowDayModal(false)}
+        date={selectedDate || new Date()}
+        events={getEventsForSelectedDate()}
+        colorMode={colorMode}
+        onEventEdit={handleEventEdit}
+      />
+
+      {/* イベント編集モーダル */}
+      <EventEditModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingEvent(null);
+        }}
+        event={editingEvent}
+        onSave={handleEventSave}
+      />
     </div>
   );
 }

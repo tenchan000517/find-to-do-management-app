@@ -36,13 +36,13 @@ model calendar_events {
   location     String?
 
   // 新規追加フィールド
-  userId        String           @default("user_kawashima")
+  userId        String?
   projectId     String?
   taskId        String?
   appointmentId String?
 
   // カテゴリ・重要度
-  category   event_category @default(GENERAL)
+  category   event_category @default(EVENT)
   importance Float          @default(0.5)
 
   // 繰り返し設定
@@ -58,7 +58,7 @@ model calendar_events {
   updatedAt DateTime @updatedAt
 
   // リレーション
-  users           users            @relation(fields: [userId], references: [id])
+  users           users?           @relation(fields: [userId], references: [id])
   projects        projects?        @relation(fields: [projectId], references: [id])
   tasks           tasks?           @relation(fields: [taskId], references: [id])
   appointments    appointments?    @relation(fields: [appointmentId], references: [id])
@@ -428,6 +428,7 @@ enum event_category {
   PROJECT
   PERSONAL
   TEAM
+  EVENT
 }
 
 enum recurrence_type {

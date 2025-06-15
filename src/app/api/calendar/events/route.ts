@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { CalendarEvent, CreateEventRequest, CalendarFilters, PrismaCalendarEvent, EventCategory, EventType } from '@/types/calendar';
+import { CalendarEvent, CreateEventRequest, CalendarFilters, PrismaCalendarEvent, EventCategory, EventType, PriorityLevel } from '@/types/calendar';
 
 const prisma = new PrismaClient();
 
@@ -64,14 +64,16 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             title: true,
-            status: true
+            status: true,
+            priority: true
           }
         },
         appointments: {
           select: {
             id: true,
             companyName: true,
-            contactName: true
+            contactName: true,
+            priority: true
           }
         },
         recurring_rules: true
@@ -82,6 +84,59 @@ export async function GET(request: NextRequest) {
       ]
     });
 
+    // タスクをcalendar_eventsとして取得
+    const tasks = await prisma.tasks.findMany({
+      where: {
+        dueDate: { 
+          not: null,
+          gte: filters.startDate, 
+          lte: filters.endDate 
+        },
+        isArchived: false,
+        ...(filters.userId && { userId: filters.userId })
+      },
+      include: { 
+        users: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        }, 
+        projects: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    // アポをcalendar_eventsとして取得
+    const appointments = await prisma.appointments.findMany({
+      where: {
+        calendar_events: {
+          some: {
+            date: { gte: filters.startDate, lte: filters.endDate },
+            ...(filters.userId && { userId: filters.userId })
+          }
+        }
+      },
+      include: { 
+        calendar_events: {
+          include: {
+            users: {
+              select: {
+                id: true,
+                name: true,
+                color: true
+              }
+            }
+          }
+        }
+      }
+    });
+
     // レスポンス用にフォーマット
     const formattedEvents: CalendarEvent[] = events.map((event: PrismaCalendarEvent) => ({
       id: event.id,
@@ -90,24 +145,119 @@ export async function GET(request: NextRequest) {
       time: event.time,
       endTime: event.endTime || undefined,
       type: event.type as EventType,
-      userId: event.userId,
+      userId: event.userId || undefined,
       projectId: event.projectId || undefined,
       taskId: event.taskId || undefined,
       appointmentId: event.appointmentId || undefined,
-      category: event.category as EventCategory,
+      category: 'EVENT' as EventCategory,
       importance: event.importance,
+      priority: undefined, // 後でタスクやアポから取得
       isRecurring: event.isRecurring,
       recurringPattern: event.recurringPattern || undefined,
       colorCode: event.colorCode || undefined,
       isAllDay: event.isAllDay,
       description: event.description,
       participants: event.participants,
-      location: event.location || undefined
+      location: event.location || undefined,
+      // リレーションデータを含める
+      users: event.users ? {
+        id: event.users.id,
+        name: event.users.name,
+        color: event.users.color
+      } : undefined,
+      projects: event.projects ? {
+        id: event.projects.id,
+        name: event.projects.name,
+        priority: undefined
+      } : undefined,
+      tasks: event.tasks ? {
+        id: event.tasks.id,
+        title: event.tasks.title,
+        status: event.tasks.status,
+        priority: event.tasks.priority as PriorityLevel | undefined
+      } : undefined,
+      appointments: event.appointments ? {
+        id: event.appointments.id,
+        companyName: event.appointments.companyName,
+        contactName: event.appointments.contactName,
+        priority: event.appointments.priority as PriorityLevel | undefined
+      } : undefined
     }));
 
+    // タスクをイベントに変換
+    const taskEvents: CalendarEvent[] = tasks.map(task => ({
+      id: `task_${task.id}`,
+      title: task.title,
+      date: task.dueDate || new Date().toISOString().split('T')[0],
+      time: '23:59', // デフォルト時刻
+      type: 'DEADLINE' as EventType,
+      userId: task.userId,
+      projectId: task.projectId || undefined,
+      taskId: task.id,
+      category: 'TASK_DUE' as EventCategory,
+      importance: 0.8, // タスクは高重要度として扱う
+      priority: task.priority as PriorityLevel | undefined,
+      isRecurring: false,
+      isAllDay: false,
+      description: task.description || '',
+      participants: [],
+      users: task.users ? {
+        id: task.users.id,
+        name: task.users.name,
+        color: task.users.color
+      } : undefined,
+      projects: task.projects ? {
+        id: task.projects.id,
+        name: task.projects.name,
+        priority: undefined
+      } : undefined,
+      tasks: {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        priority: task.priority as PriorityLevel | undefined
+      }
+    }));
+
+    // アポをイベントに変換
+    const appointmentEvents: CalendarEvent[] = appointments.flatMap(apt => 
+      apt.calendar_events.map(ce => ({
+        id: `apt_${apt.id}_${ce.id}`,
+        title: `${apt.companyName} - ${apt.contactName}`,
+        date: ce.date,
+        time: ce.time,
+        endTime: ce.endTime || undefined,
+        type: 'MEETING' as EventType,
+        userId: ce.userId || undefined,
+        appointmentId: apt.id,
+        category: 'APPOINTMENT' as EventCategory,
+        importance: 0.7, // アポは高重要度として扱う
+        priority: apt.priority as PriorityLevel | undefined,
+        isRecurring: ce.isRecurring,
+        isAllDay: ce.isAllDay,
+        description: ce.description,
+        participants: ce.participants,
+        location: ce.location || undefined,
+        users: ce.users ? {
+          id: ce.users.id,
+          name: ce.users.name,
+          color: ce.users.color
+        } : undefined,
+        appointments: {
+          id: apt.id,
+          companyName: apt.companyName,
+          contactName: apt.contactName,
+          priority: apt.priority as PriorityLevel | undefined
+        }
+      }))
+    );
+
+    // 全イベントを統合
+    const allEvents = [...formattedEvents, ...taskEvents, ...appointmentEvents];
+
     return NextResponse.json({
-      events: formattedEvents,
-      totalCount: formattedEvents.length
+      events: allEvents,
+      totalCount: allEvents.length
     });
 
   } catch (error) {
@@ -134,26 +284,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // デフォルトユーザーID設定（後でJWT認証に変更予定）
-    const userId = 'user_kawashima';
+    // ユーザーIDはリクエストから取得（未指定の場合は全員向けイベント）
+    const userId = body.userId || undefined;
+
+    // カテゴリの自動判定
+    let autoCategory: EventCategory = body.category;
+    let eventType: string = 'EVENT';
+    
+    if (body.taskId) {
+      autoCategory = 'TASK_DUE';
+      eventType = 'DEADLINE';
+    } else if (body.appointmentId) {
+      autoCategory = 'APPOINTMENT';
+      eventType = 'MEETING';
+    } else if (body.projectId) {
+      autoCategory = 'PROJECT';
+      eventType = 'EVENT';
+    }
 
     // イベント作成
     const event = await prisma.calendar_events.create({
       data: {
-        id: `cal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `cal_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         title: body.title,
         date: body.date,
         time: body.time,
         endTime: body.endTime || null,
-        type: 'EVENT', // デフォルト
+        type: eventType as any,
         description: body.description || '',
         participants: body.participants || [],
         location: body.location || null,
-        userId: userId,
+        userId: userId || null,
         projectId: body.projectId || null,
         taskId: body.taskId || null,
         appointmentId: body.appointmentId || null,
-        category: body.category,
+        category: autoCategory,
         importance: body.importance || 0.5,
         isRecurring: !!body.recurringRule,
         recurringPattern: null, // 繰り返しは後のフェーズで実装
@@ -178,7 +343,7 @@ export async function POST(request: NextRequest) {
       time: event.time,
       endTime: event.endTime || undefined,
       type: event.type as EventType,
-      userId: event.userId,
+      userId: event.userId || undefined,
       projectId: event.projectId || undefined,
       taskId: event.taskId || undefined,
       appointmentId: event.appointmentId || undefined,

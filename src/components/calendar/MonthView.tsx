@@ -8,9 +8,10 @@ interface MonthViewProps {
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
   colorMode: ColorMode;
+  onEventEdit?: (event: CalendarEvent) => void;
 }
 
-export function MonthView({ currentDate, events, onDateSelect, colorMode }: MonthViewProps) {
+export function MonthView({ currentDate, events, onDateSelect, colorMode, onEventEdit }: MonthViewProps) {
   // 月の開始日と終了日を取得
   const getMonthDays = () => {
     const year = currentDate.getFullYear();
@@ -125,10 +126,7 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode }: Mont
                     event={event}
                     compact={true}
                     colorMode={colorMode}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // TODO: イベント詳細表示
-                    }}
+                    onEventEdit={onEventEdit}
                   />
                 ))}
                 

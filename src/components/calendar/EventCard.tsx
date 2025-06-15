@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, ColorMode } from '@/types/calendar';
+import { CalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, ColorMode, PriorityLevel } from '@/types/calendar';
 
 interface EventCardProps {
   event: CalendarEvent;
@@ -8,6 +8,7 @@ interface EventCardProps {
   showTime?: boolean;
   colorMode?: ColorMode;
   onClick?: (e: React.MouseEvent) => void;
+  onEventEdit?: (event: CalendarEvent) => void;
 }
 
 export function EventCard({ 
@@ -15,20 +16,27 @@ export function EventCard({
   compact = false, 
   showTime = true, 
   colorMode = 'category',
-  onClick 
+  onClick,
+  onEventEdit
 }: EventCardProps) {
   
   // 色を決定（色分けモードに基づく）
   const getEventColor = () => {
     switch (colorMode) {
       case 'user':
-        // ユーザー色（後でusersデータから取得）
-        return event.colorCode || '#6B7280';
+        // ユーザー色をusersリレーションから取得
+        return event.users?.color || event.colorCode || '#FF9F40';
         
       case 'category':
-        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.GENERAL;
+        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.EVENT;
         
       case 'importance':
+        // Use priority (A/B/C/D) system if available, fallback to importance numbers
+        const priority = event.priority || event.tasks?.priority || event.appointments?.priority;
+        if (priority) {
+          return PRIORITY_COLORS[priority] || PRIORITY_COLORS.C;
+        }
+        // Fallback to legacy importance system
         if (event.importance >= 0.7) {
           return IMPORTANCE_COLORS.HIGH;
         } else if (event.importance >= 0.4) {
@@ -38,20 +46,13 @@ export function EventCard({
         }
         
       default:
-        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.GENERAL;
+        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.EVENT;
     }
   };
 
-  // 重要度に基づく表示スタイル
-  const getImportanceStyle = () => {
-    if (event.importance >= 0.8) {
-      return 'border-l-4 border-red-500 font-semibold';
-    } else if (event.importance >= 0.6) {
-      return 'border-l-4 border-orange-500 font-medium';
-    } else if (event.importance >= 0.4) {
-      return 'border-l-4 border-green-500';
-    }
-    return 'border-l-2 border-gray-300';
+  // Get priority level for display
+  const getPriorityLevel = (): PriorityLevel => {
+    return event.priority || event.tasks?.priority || event.appointments?.priority || 'C';
   };
 
   // ラベル生成（「誰」「カテゴリ」「重要度」）
@@ -59,40 +60,51 @@ export function EventCard({
     const labels = [];
     
     // 誰（ユーザー名の頭文字）
-    if (event.userId) {
-      // TODO: ユーザー名を取得してイニシャル表示
+    if (event.users?.name) {
+      const initial = event.users.name.charAt(0);
       labels.push({
-        text: 'K', // 川島さんの'K'など
+        text: initial,
         color: 'bg-blue-100 text-blue-800'
+      });
+    } else if (event.userId) {
+      // フォールバック：userIdから推測
+      labels.push({
+        text: '?',
+        color: 'bg-gray-100 text-gray-800'
       });
     }
     
     // カテゴリ
     const categoryLabels = {
-      GENERAL: 'G',
-      MEETING: 'M',
-      APPOINTMENT: 'A',
-      TASK_DUE: 'T',
-      PROJECT: 'P',
-      PERSONAL: 'Pe',
-      TEAM: 'Te'
+      APPOINTMENT: 'ア',
+      TASK_DUE: 'タ',
+      PROJECT: 'プ',
+      EVENT: 'イ'
     };
     
     labels.push({
-      text: categoryLabels[event.category] || 'G',
+      text: categoryLabels[event.category] || 'イ',
       color: 'bg-gray-100 text-gray-800'
     });
     
-    // 重要度
-    const importanceLabel = event.importance >= 0.8 ? 'H' : 
-                          event.importance >= 0.6 ? 'M' : 'L';
-    const importanceColor = event.importance >= 0.8 ? 'bg-red-100 text-red-800' :
-                           event.importance >= 0.6 ? 'bg-orange-100 text-orange-800' :
-                           'bg-green-100 text-green-800';
+    // 重要度 (A/B/C/D)
+    const priorityLevel = getPriorityLevel();
+    const priorityLabels = {
+      A: '最',  // 最優先
+      B: '重',  // 重要
+      C: '緊',  // 緊急
+      D: '検'   // 要検討
+    };
+    const priorityColor = {
+      A: 'bg-red-100 text-red-800',
+      B: 'bg-orange-100 text-orange-800', 
+      C: 'bg-blue-100 text-blue-800',
+      D: 'bg-green-100 text-green-800'
+    }[priorityLevel];
     
     labels.push({
-      text: importanceLabel,
-      color: importanceColor
+      text: priorityLabels[priorityLevel],
+      color: priorityColor
     });
     
     return labels;
@@ -106,80 +118,75 @@ export function EventCard({
   };
 
   const eventColor = getEventColor();
-  const importanceStyle = getImportanceStyle();
   const labels = getLabels();
+  
+  // 背景色に基づいてテキスト色を決定
+  const getTextColor = (bgColor: string) => {
+    // bgColorがundefinedまたは空の場合のデフォルト処理
+    if (!bgColor || typeof bgColor !== 'string') {
+      return '#000000'; // デフォルトは黒
+    }
+    
+    // HEXカラーからRGBへ変換
+    const hex = bgColor.replace('#', '');
+    if (hex.length !== 6) {
+      return '#000000'; // 無効なカラーコードの場合は黒
+    }
+    
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // NaNチェック
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return '#000000';
+    }
+    
+    // 明度を計算 (0.299*R + 0.587*G + 0.114*B)
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    
+    // 明度が155以上の場合は黒テキスト、それ以外は白テキスト
+    return brightness > 155 ? '#000000' : '#FFFFFF';
+  };
+  
+  const textColor = getTextColor(eventColor);
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onClick) {
+      onClick(e);
+    } else if (onEventEdit) {
+      onEventEdit(event);
+    }
+  };
 
   return (
     <div
-      className={`rounded-md border transition-all duration-200 cursor-pointer hover:shadow-md ${
-        compact ? 'p-2 text-xs' : 'p-3 text-sm'
-      } ${importanceStyle}`}
+      className={`rounded-md cursor-pointer transition-all duration-200 hover:shadow-md font-medium ${
+        compact ? 'p-1 text-xs h-6' : 'p-2 text-sm h-8'
+      }`}
       style={{ 
-        backgroundColor: `${eventColor}15`,
-        borderColor: eventColor
+        backgroundColor: eventColor,
+        color: '#FFFFFF'
       }}
-      onClick={onClick}
+      onClick={handleClick}
     >
-      <div className="flex items-start justify-between">
-        {/* メイン情報 */}
-        <div className="flex-1 min-w-0">
-          {/* 時間表示 */}
-          {showTime && event.time && (
-            <div className="text-xs text-gray-600 mb-1">
-              {event.time}
-              {event.endTime && ` - ${event.endTime}`}
-            </div>
-          )}
-          
-          {/* タイトル */}
-          <div className={`text-gray-900 ${compact ? 'font-medium' : 'font-semibold'}`}>
-            {getTruncatedTitle()}
-          </div>
-          
-          {/* 説明（非compactモードのみ） */}
-          {!compact && event.description && (
-            <div className="text-gray-600 mt-1 text-xs">
-              {event.description.length > 100 
-                ? event.description.slice(0, 100) + '...'
-                : event.description
-              }
-            </div>
-          )}
-          
-          {/* 場所（非compactモードのみ） */}
-          {!compact && event.location && (
-            <div className="text-gray-500 mt-1 text-xs flex items-center">
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {event.location}
-            </div>
-          )}
-        </div>
-        
-        {/* ラベル */}
-        <div className="flex items-center space-x-1 ml-2">
+      <div className="flex items-center justify-between truncate">
+        <span className="truncate flex-1">
+          {showTime && event.time && `${event.time} `}
+          {getTruncatedTitle()}
+        </span>
+        <div className="flex items-center space-x-1 ml-1 flex-shrink-0">
           {labels.map((label, index) => (
             <span
               key={index}
-              className={`inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full ${label.color}`}
+              className={`inline-flex items-center justify-center w-4 h-4 text-xs font-medium rounded-full ${label.color}`}
             >
               {label.text}
             </span>
           ))}
         </div>
       </div>
-      
-      {/* 繰り返しアイコン */}
-      {event.isRecurring && (
-        <div className="mt-2 flex items-center text-xs text-gray-500">
-          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          繰り返し
-        </div>
-      )}
     </div>
   );
 }
