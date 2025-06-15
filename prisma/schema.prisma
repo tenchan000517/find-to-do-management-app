@@ -8,19 +8,20 @@ datasource db {
 }
 
 model appointments {
-  id          String              @id
-  companyName String
-  contactName String
-  phone       String
-  email       String
-  status      appointment_status  @default(PENDING)
-  lastContact String?
-  nextAction  String
-  notes       String              @default("")
-  priority    priority            @default(C)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  details     appointment_details?
+  id              String               @id
+  companyName     String
+  contactName     String
+  phone           String
+  email           String
+  status          appointment_status   @default(PENDING)
+  lastContact     String?
+  nextAction      String
+  notes           String               @default("")
+  priority        priority             @default(C)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  details         appointment_details?
+  calendar_events calendar_events[]
 }
 
 model calendar_events {
@@ -28,12 +29,40 @@ model calendar_events {
   title        String
   date         String
   time         String
+  endTime      String?
   type         event_type @default(MEETING)
   description  String     @default("")
   participants String[]   @default([])
   location     String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime @updatedAt
+
+  // 新規追加フィールド
+  userId        String           @default("user_kawashima")
+  projectId     String?
+  taskId        String?
+  appointmentId String?
+
+  // カテゴリ・重要度
+  category   event_category @default(GENERAL)
+  importance Float          @default(0.5)
+
+  // 繰り返し設定
+  isRecurring      Boolean @default(false)
+  recurringPattern String?
+  recurringEnd     String?
+
+  // 表示設定
+  colorCode String?
+  isAllDay  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // リレーション
+  users           users            @relation(fields: [userId], references: [id])
+  projects        projects?        @relation(fields: [projectId], references: [id])
+  tasks           tasks?           @relation(fields: [taskId], references: [id])
+  appointments    appointments?    @relation(fields: [appointmentId], references: [id])
+  recurring_rules recurring_rules? @relation(fields: [recurringPattern], references: [id])
 }
 
 model connections {
@@ -78,7 +107,7 @@ model line_integration_logs {
   userConfirmation Boolean?
   errorMessage     String?
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime          @updatedAt
 }
 
 model projects {
@@ -104,6 +133,7 @@ model projects {
   project_relationships project_relationships[]
   project_alerts        project_alerts[]
   project_phase_history project_phase_history[]
+  calendar_events       calendar_events[]
 }
 
 model task_archives {
@@ -136,7 +166,7 @@ model tasks {
   dueDate            String?
   isArchived         Boolean              @default(false)
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime @updatedAt
+  updatedAt          DateTime             @updatedAt
   estimatedHours     Float                @default(0)
   actualHours        Float                @default(0)
   difficultyScore    Int                  @default(3)
@@ -145,6 +175,7 @@ model tasks {
   task_collaborators task_collaborators[]
   projects           projects?            @relation(fields: [projectId], references: [id])
   users              users                @relation(fields: [userId], references: [id])
+  calendar_events    calendar_events[]
 }
 
 model users {
@@ -164,6 +195,7 @@ model users {
   tasks                 tasks[]
   user_alerts           user_alerts[]
   project_phase_history project_phase_history[]
+  calendar_events       calendar_events[]
 }
 
 enum appointment_status {
@@ -229,20 +261,20 @@ enum task_status {
 }
 
 model discord_metrics {
-  id                    String   @id @default(cuid())
-  date                  DateTime @db.Date @unique
-  memberCount           Int      @map("member_count")
-  onlineCount           Int      @map("online_count")
-  dailyMessages         Int      @map("daily_messages")
-  dailyUserMessages     Int      @default(0) @map("daily_user_messages")
-  dailyStaffMessages    Int      @default(0) @map("daily_staff_messages")
-  activeUsers           Int      @map("active_users")
-  engagementScore       Float    @map("engagement_score")
-  channelMessageStats   Json     @default("{}") @map("channel_message_stats")
-  staffChannelStats     Json     @default("{}") @map("staff_channel_stats")
-  roleCounts            Json     @default("{}") @map("role_counts")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(cuid())
+  date                DateTime @unique @db.Date
+  memberCount         Int      @map("member_count")
+  onlineCount         Int      @map("online_count")
+  dailyMessages       Int      @map("daily_messages")
+  dailyUserMessages   Int      @default(0) @map("daily_user_messages")
+  dailyStaffMessages  Int      @default(0) @map("daily_staff_messages")
+  activeUsers         Int      @map("active_users")
+  engagementScore     Float    @map("engagement_score")
+  channelMessageStats Json     @default("{}") @map("channel_message_stats")
+  staffChannelStats   Json     @default("{}") @map("staff_channel_stats")
+  roleCounts          Json     @default("{}") @map("role_counts")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   @@map("discord_metrics")
 }
@@ -385,4 +417,42 @@ enum appointment_source {
   SOCIAL_MEDIA
   EXISTING_CLIENT
   PARTNER_REFERRAL
+}
+
+// カレンダー機能用の新規enum
+enum event_category {
+  GENERAL
+  MEETING
+  APPOINTMENT
+  TASK_DUE
+  PROJECT
+  PERSONAL
+  TEAM
+}
+
+enum recurrence_type {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+// 繰り返しルールテーブル
+model recurring_rules {
+  id              String            @id @default(cuid())
+  ruleName        String
+  recurrenceType  recurrence_type
+  weekdays        Int[]             @default([])
+  monthDay        Int?
+  monthWeek       Int?
+  monthWeekday    Int?
+  interval        Int               @default(1)
+  startDate       String
+  endDate         String?
+  maxOccurrences  Int?
+  excludeDates    String[]          @default([])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  calendar_events calendar_events[]
 }
