@@ -42,12 +42,12 @@ export function DayEventsModal({
     <>
       {/* オーバーレイ */}
       <div
-        className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+        className="fixed inset-0 bg-gray-700 opacity-80 flex items-center justify-center p-4"
         onClick={onClose}
       >
         {/* モーダル */}
         <div
-          className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden relative z-[71]"
+          className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden relative z-[99]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* ヘッダー */}
