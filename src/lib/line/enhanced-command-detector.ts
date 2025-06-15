@@ -1,4 +1,5 @@
 import { prismaDataService } from '@/lib/database/prisma-service';
+import { getAICallManager } from '@/lib/ai/call-manager';
 
 interface CommandDetectionResult {
   intent: string;
@@ -13,6 +14,7 @@ interface CommandDetectionResult {
 }
 
 export class EnhancedCommandDetector {
+  private aiCallManager = getAICallManager();
   
   /**
    * 高度なユーザーインテント検知

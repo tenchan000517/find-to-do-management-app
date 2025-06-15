@@ -310,3 +310,16 @@ model project_phase_history {
   projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
   users     users?   @relation(fields: [changedBy], references: [id])
 }
+
+model ai_call_logs {
+  id           String   @id @default(cuid())
+  callType     String
+  prompt       String
+  response     String?
+  tokenUsed    Int      @default(0)
+  duration     Int      @default(0)
+  status       String
+  errorMessage String?
+  userId       String?
+  createdAt    DateTime @default(now())
+}

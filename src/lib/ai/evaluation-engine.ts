@@ -1,6 +1,9 @@
 import { User, Task, UserSkills } from '@/lib/types';
+import { getAICallManager } from './call-manager';
 
 export class AIEvaluationEngine {
+  private aiCallManager = getAICallManager();
+  
   constructor(private geminiApiKey?: string) {}
 
   /**
@@ -113,7 +116,7 @@ export class AIEvaluationEngine {
   }
 
   /**
-   * タスクのISSUE度を自動判定
+   * タスクのISSUE度を自動判定（AI強化版）
    */
   async evaluateIssueLevel(
     task: Task,
@@ -121,6 +124,7 @@ export class AIEvaluationEngine {
     userWorkload?: number
   ): Promise<{ level: 'A' | 'B' | 'C' | 'D'; confidence: number; reasoning: string }> {
     try {
+      // 従来のロジック計算
       let score = 5; // 基準点（C判定）
       const factors = [];
 
@@ -166,6 +170,22 @@ export class AIEvaluationEngine {
         factors.push('最優先タスク');
       }
 
+      // AI による追加分析（複雑なケースのみ）
+      if (factors.length >= 3 || (task.description && task.description.length > 100)) {
+        try {
+          const aiAnalysis = await this.getAIIssueAnalysis(task, project, factors);
+          if (aiAnalysis.success && aiAnalysis.content) {
+            const aiData = JSON.parse(aiAnalysis.content);
+            if (aiData.adjustmentScore !== undefined) {
+              score += aiData.adjustmentScore;
+              factors.push(`AI分析: ${aiData.reasoning}`);
+            }
+          }
+        } catch (aiError) {
+          console.warn('AI analysis failed, using rule-based result:', aiError);
+        }
+      }
+
       const level = score >= 9 ? 'A' : score >= 7 ? 'B' : score >= 5 ? 'C' : 'D';
       
       return {
@@ -181,6 +201,49 @@ export class AIEvaluationEngine {
         reasoning: 'エラーによりデフォルト評価'
       };
     }
+  }
+
+  /**
+   * AI による詳細 ISSUE 分析
+   */
+  private async getAIIssueAnalysis(task: Task, project?: any, factors: string[] = []) {
+    const prompt = `
+タスクの緊急度・重要度を分析してください。
+
+タスク情報:
+- タイトル: ${task.title}
+- 説明: ${task.description || '記載なし'}
+- 優先度: ${task.priority}
+- 期限: ${task.dueDate || '未設定'}
+
+プロジェクト情報:
+${project ? `
+- 名前: ${project.name}
+- フェーズ: ${project.phase}
+- 優先度: ${project.priority}
+- 成功確率: ${project.successProbability}
+` : '関連プロジェクトなし'}
+
+既存の評価要素: ${factors.join(', ')}
+
+以下の形式のJSONで回答してください:
+{
+  "adjustmentScore": -2から+2の範囲で調整値,
+  "reasoning": "調整理由の簡潔な説明"
+}
+
+特に注目すべき点:
+- ビジネスインパクト
+- 他タスクへの依存関係
+- リスクの大きさ
+- 緊急性と重要性のバランス
+`;
+
+    return await this.aiCallManager.callGemini(
+      prompt,
+      'issue_level_analysis',
+      { useCache: true, cacheKey: `issue_${task.id}_${JSON.stringify(factors)}` }
+    );
   }
 
   // ===== プライベートメソッド =====

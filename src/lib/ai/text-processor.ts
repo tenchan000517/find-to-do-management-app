@@ -11,7 +11,9 @@ export interface ExtractedData {
   confidence: number;
 }
 
-// Gemini AIを使用した高精度抽出（環境変数が設定されている場合のみ）
+import { getAICallManager } from './call-manager';
+
+// Gemini AIを使用した高精度抽出（AI Call Manager経由）
 export async function extractDataFromTextWithAI(text: string): Promise<ExtractedData> {
   // Gemini APIキーが設定されていない場合は簡易抽出にフォールバック
   if (!process.env.GEMINI_API_KEY) {
@@ -20,12 +22,8 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
   }
 
   try {
-    // 動的インポートでGemini AIクライアントを読み込み
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const aiCallManager = getAICallManager();
     
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const prompt = `
 以下のLINEメッセージから、プロジェクト管理に必要な情報を抽出してください。
 
@@ -60,16 +58,22 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 重要: JSON以外の文字は含めず、純粋なJSONオブジェクトのみを返してください。
 `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const content = response.text();
+    const result = await aiCallManager.callGemini(
+      prompt,
+      'text_extraction',
+      { 
+        useCache: true, 
+        cacheKey: `text_extract_${text.substring(0, 50)}`,
+        timeout: 15000
+      }
+    );
 
-    if (!content) {
-      throw new Error('No response from Gemini AI');
+    if (!result.success || !result.content) {
+      throw new Error(result.error || 'No response from Gemini AI');
     }
 
     // JSONパースを試行（Markdownコードブロックが含まれている場合は除去）
-    let jsonContent = content.trim();
+    let jsonContent = result.content.trim();
     if (jsonContent.startsWith('```json')) {
       jsonContent = jsonContent.replace(/```json\n?/, '').replace(/\n?```$/, '');
     } else if (jsonContent.startsWith('```')) {
