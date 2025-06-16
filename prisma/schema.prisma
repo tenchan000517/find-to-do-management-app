@@ -528,6 +528,204 @@ model google_docs_sources {
   @@map("google_docs_sources")
 }
 
+// 高度コンテンツ処理・AI分析システム用テーブル
+
+// AI分析結果テーブル - コンテンツから抽出された構造化データ
+model ai_content_analysis {
+  id                 String                      @id @default(cuid())
+  source_document_id String                      // google_docs_sources.document_id
+  content_section    String                      // 分析対象のコンテンツセクション
+  analysis_type      ai_analysis_type            @default(COMPREHENSIVE)
+  
+  // 抽出されたエンティティ
+  extracted_tasks    Json                        @default("[]")
+  extracted_events   Json                        @default("[]")
+  extracted_projects Json                        @default("[]")
+  extracted_contacts Json                        @default("[]")
+  extracted_dates    Json                        @default("[]")
+  
+  // AI信頼度スコア
+  confidence_score   Float                       @default(0.0)
+  model_version      String                      @default("gemini-1.5")
+  processing_time    Int                         @default(0) // ミリ秒
+  
+  // 分析メタデータ
+  keywords           String[]                    @default([])
+  sentiment_score    Float?                      // センチメント分析
+  urgency_level      urgency_level               @default(MEDIUM)
+  business_value     Float                       @default(0.0)
+  
+  // レコメンデーション
+  recommendations    Json                        @default("[]")
+  auto_suggestions   Json                        @default("[]")
+  
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  
+  @@index([source_document_id], name: "idx_ai_analysis_source")
+  @@index([analysis_type], name: "idx_ai_analysis_type")
+  @@index([confidence_score], name: "idx_ai_analysis_confidence")
+  @@index([urgency_level], name: "idx_ai_analysis_urgency")
+  @@map("ai_content_analysis")
+}
+
+// レコメンデーション管理テーブル
+model content_recommendations {
+  id                   String                 @id @default(cuid())
+  analysis_id          String                 // ai_content_analysis.id
+  recommendation_type  recommendation_type    @default(TASK_CREATION)
+  
+  // レコメンド内容
+  title                String
+  description          String
+  suggested_data       Json                   @default("{}")
+  target_entity_type   String                 // 'task', 'project', 'appointment', 'event'
+  
+  // ユーザー操作
+  status               recommendation_status  @default(PENDING)
+  user_feedback        String?
+  accepted_at          DateTime?
+  rejected_at          DateTime?
+  created_entity_id    String?                // 作成されたエンティティのID
+  
+  // システム評価
+  relevance_score      Float                  @default(0.0)
+  priority_score       Float                  @default(0.0)
+  implementation_ease  Float                  @default(0.0)
+  
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  
+  @@index([analysis_id], name: "idx_recommendation_analysis")
+  @@index([recommendation_type], name: "idx_recommendation_type")
+  @@index([status], name: "idx_recommendation_status")
+  @@index([relevance_score], name: "idx_recommendation_relevance")
+  @@map("content_recommendations")
+}
+
+// コンテンツ処理ログテーブル - 処理監視用
+model content_processing_logs {
+  id                String                    @id @default(cuid())
+  source_document_id String
+  processing_step   processing_step            @default(CONTENT_EXTRACTION)
+  
+  // 処理詳細
+  step_status       processing_step_status     @default(IN_PROGRESS)
+  input_data        Json?                      @default("{}")
+  output_data       Json?                      @default("{}")
+  processing_time   Int                        @default(0)
+  
+  // エラー情報
+  error_message     String?
+  retry_count       Int                        @default(0)
+  max_retries       Int                        @default(3)
+  
+  // システム情報
+  worker_id         String?                    // 処理したワーカーID
+  gas_version       String?                    // GASバージョン
+  system_version    String                     @default("2.0")
+  
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  
+  @@index([source_document_id], name: "idx_processing_logs_source")
+  @@index([processing_step], name: "idx_processing_logs_step")
+  @@index([step_status], name: "idx_processing_logs_status")
+  @@index([createdAt], name: "idx_processing_logs_created")
+  @@map("content_processing_logs")
+}
+
+// リアルタイム監視用メトリクステーブル
+model gas_sync_metrics {
+  id                    String   @id @default(cuid())
+  metric_date           DateTime @unique @db.Date
+  
+  // 同期統計
+  total_syncs           Int      @default(0)
+  successful_syncs      Int      @default(0)
+  failed_syncs          Int      @default(0)
+  
+  // トリガー別統計
+  manual_triggers       Int      @default(0)
+  edit_triggers         Int      @default(0)
+  scheduled_triggers    Int      @default(0)
+  
+  // パフォーマンス統計
+  avg_processing_time   Float    @default(0.0)
+  max_processing_time   Int      @default(0)
+  min_processing_time   Int      @default(0)
+  
+  // AI分析統計
+  ai_analyses_performed Int      @default(0)
+  avg_confidence_score  Float    @default(0.0)
+  recommendations_made  Int      @default(0)
+  recommendations_accepted Int   @default(0)
+  
+  // コンテンツ統計
+  total_knowledge_items Int      @default(0)
+  avg_content_length    Float    @default(0.0)
+  unique_documents      Int      @default(0)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([metric_date], name: "idx_gas_metrics_date")
+  @@map("gas_sync_metrics")
+}
+
+// AI分析・コンテンツ処理用のEnum定義
+enum ai_analysis_type {
+  COMPREHENSIVE      // 全体的な分析
+  TASK_FOCUSED      // タスク抽出に特化
+  EVENT_FOCUSED     // イベント抽出に特化
+  PROJECT_FOCUSED   // プロジェクト抽出に特化
+  SENTIMENT_ONLY    // センチメント分析のみ
+}
+
+enum urgency_level {
+  VERY_LOW
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum recommendation_type {
+  TASK_CREATION
+  PROJECT_CREATION
+  EVENT_SCHEDULING
+  APPOINTMENT_BOOKING
+  CONTACT_ADDITION
+  KNOWLEDGE_TAGGING
+  PRIORITY_ADJUSTMENT
+}
+
+enum recommendation_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  IMPLEMENTED
+}
+
+enum processing_step {
+  CONTENT_EXTRACTION
+  SECTION_SPLITTING
+  AI_ANALYSIS
+  ENTITY_EXTRACTION
+  RECOMMENDATION_GENERATION
+  KNOWLEDGE_CREATION
+  CLEANUP
+}
+
+enum processing_step_status {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
 enum google_docs_sync_status {
   PENDING
   SYNCING

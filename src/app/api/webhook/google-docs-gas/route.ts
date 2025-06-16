@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { createAdvancedContentAnalyzer } from '@/lib/ai/advanced-content-analyzer';
+import { createRecommendationEngine } from '@/lib/ai/recommendation-engine';
 
 const prisma = new PrismaClient();
+const advancedAnalyzer = createAdvancedContentAnalyzer();
+const recommendationEngine = createRecommendationEngine();
 
 // 環境設定
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const processingTime = Date.now() - startTime;
     
     console.error('❌ GAS Webhook処理エラー:', error);
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
     // エラーレスポンス
     return NextResponse.json(
       { 
-        error: error.message || 'Webhook処理に失敗しました',
+        error: (error as Error).message || 'Webhook処理に失敗しました',
         processingTime,
         timestamp: new Date().toISOString()
       },
@@ -198,7 +202,20 @@ async function processGASWebhook(payload: any) {
       url
     );
 
-    // 4. ソース情報更新（完了状態）
+    // 4. AI分析実行（新機能）
+    const aiAnalysisResult = await performAdvancedAIAnalysis(
+      documentId,
+      content,
+      title
+    );
+
+    // 5. レコメンデーション生成（新機能）
+    const recommendations = await generateRecommendations(
+      aiAnalysisResult,
+      documentId
+    );
+
+    // 6. ソース情報更新（完了状態）
     await prisma.google_docs_sources.update({
       where: { document_id: documentId },
       data: {
@@ -208,25 +225,32 @@ async function processGASWebhook(payload: any) {
       }
     });
 
-    console.log(`✅ 処理完了: ${title} - ${knowledgeItems.length}件のナレッジを作成`);
+    console.log(`✅ 処理完了: ${title} - ${knowledgeItems.length}件のナレッジ、${recommendations.length}件のレコメンド作成`);
 
     return {
       documentId,
       title,
       knowledgeItemsCreated: knowledgeItems.length,
       deletedItems: deletedCount.count,
+      aiAnalysisPerformed: !!aiAnalysisResult,
+      recommendationsGenerated: recommendations.length,
+      topRecommendations: recommendations.slice(0, 3).map(r => ({
+        type: r.type,
+        title: r.title,
+        relevanceScore: r.relevanceScore
+      })),
       triggerType,
       wordCount: content.length,
       gasVersion
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラー状態を記録
     await prisma.google_docs_sources.update({
       where: { document_id: documentId },
       data: {
         sync_status: 'ERROR',
-        last_error: error.message
+        last_error: (error as Error).message
       }
     });
     
@@ -398,4 +422,163 @@ function extractTags(content: string): string[] {
   if (/(?:決定|承認|合意|確定)/.test(content)) tags.add('決定事項');
   
   return Array.from(tags).slice(0, 6);
+}
+
+// Phase 12: 高度AI分析実行
+async function performAdvancedAIAnalysis(
+  documentId: string,
+  content: string,
+  title: string
+): Promise<any> {
+  try {
+    console.log(`🧠 AI分析開始: ${title}`);
+
+    // 処理ログ記録開始
+    const logId = await prisma.content_processing_logs.create({
+      data: {
+        source_document_id: documentId,
+        processing_step: 'AI_ANALYSIS',
+        step_status: 'IN_PROGRESS',
+        input_data: { contentLength: content.length, title },
+        system_version: '2.0'
+      }
+    });
+
+    // 高精度AI分析実行
+    const analysisResult = await advancedAnalyzer.analyzeContent(content, title);
+
+    // AI分析結果をデータベースに保存
+    const aiAnalysis = await prisma.ai_content_analysis.create({
+      data: {
+        source_document_id: documentId,
+        content_section: content.length > 5000 ? content.substring(0, 5000) + '...' : content,
+        analysis_type: 'COMPREHENSIVE',
+        extracted_tasks: JSON.stringify(analysisResult.highConfidenceEntities.tasks),
+        extracted_events: JSON.stringify(analysisResult.highConfidenceEntities.events),
+        extracted_projects: JSON.stringify(analysisResult.projectCandidates),
+        extracted_contacts: JSON.stringify(analysisResult.highConfidenceEntities.connections),
+        extracted_dates: JSON.stringify([]),
+        confidence_score: analysisResult.overallInsights.confidence,
+        model_version: 'gemini-2.0-flash',
+        keywords: analysisResult.overallInsights.keyTopics,
+        sentiment_score: 0,
+        urgency_level: analysisResult.overallInsights.urgencyLevel,
+        business_value: analysisResult.overallInsights.businessValue,
+        recommendations: JSON.stringify([]),
+        auto_suggestions: JSON.stringify(analysisResult.sections.map(s => s.topics).flat())
+      }
+    });
+
+    // 処理ログ更新（成功）
+    await prisma.content_processing_logs.update({
+      where: { id: logId.id },
+      data: {
+        step_status: 'COMPLETED',
+        output_data: {
+          analysisId: aiAnalysis.id,
+          tasksFound: analysisResult.highConfidenceEntities.tasks.length,
+          eventsFound: analysisResult.highConfidenceEntities.events.length,
+          projectsFound: analysisResult.projectCandidates.length,
+          contactsFound: analysisResult.highConfidenceEntities.connections.length,
+          confidence: analysisResult.overallInsights.confidence,
+          sectionsAnalyzed: analysisResult.sections.length,
+          clustersFormed: analysisResult.clusters.length
+        },
+        processing_time: Date.now() - new Date(logId.createdAt).getTime()
+      }
+    });
+
+    console.log(`✅ AI分析完了: 信頼度=${analysisResult.overallInsights.confidence}, ID=${aiAnalysis.id}`);
+    
+    return {
+      ...analysisResult,
+      analysisId: aiAnalysis.id
+    };
+
+  } catch (error) {
+    console.error('❌ AI分析エラー:', error);
+    
+    // エラーログ記録
+    await prisma.content_processing_logs.create({
+      data: {
+        source_document_id: documentId,
+        processing_step: 'AI_ANALYSIS',
+        step_status: 'FAILED',
+        error_message: (error as Error).message,
+        input_data: { contentLength: content.length, title }
+      }
+    });
+
+    return null;
+  }
+}
+
+// Phase 12: レコメンデーション生成
+async function generateRecommendations(
+  aiAnalysisResult: any,
+  documentId: string
+): Promise<any[]> {
+  if (!aiAnalysisResult) {
+    console.log('⏭️ AI分析結果がないため、レコメンド生成をスキップ');
+    return [];
+  }
+
+  try {
+    console.log(`💡 レコメンド生成開始: 分析ID=${aiAnalysisResult.analysisId}`);
+
+    // 処理ログ記録開始
+    const logId = await prisma.content_processing_logs.create({
+      data: {
+        source_document_id: documentId,
+        processing_step: 'RECOMMENDATION_GENERATION',
+        step_status: 'IN_PROGRESS',
+        input_data: {
+          analysisId: aiAnalysisResult.analysisId,
+          tasksFound: aiAnalysisResult.highConfidenceEntities.tasks.length,
+          eventsFound: aiAnalysisResult.highConfidenceEntities.events.length,
+          projectsFound: aiAnalysisResult.projectCandidates.length
+        }
+      }
+    });
+
+    // レコメンド生成実行
+    const recommendations = await recommendationEngine.generateRecommendations(
+      aiAnalysisResult,
+      documentId,
+      aiAnalysisResult.analysisId
+    );
+
+    // 処理ログ更新（成功）
+    await prisma.content_processing_logs.update({
+      where: { id: logId.id },
+      data: {
+        step_status: 'COMPLETED',
+        output_data: {
+          recommendationsGenerated: recommendations.length,
+          highPriorityCount: recommendations.filter(r => r.priorityScore > 0.7).length,
+          avgRelevanceScore: recommendations.reduce((sum, r) => sum + r.relevanceScore, 0) / recommendations.length || 0
+        },
+        processing_time: Date.now() - new Date(logId.createdAt).getTime()
+      }
+    });
+
+    console.log(`✅ レコメンド生成完了: ${recommendations.length}件`);
+    return recommendations;
+
+  } catch (error) {
+    console.error('❌ レコメンド生成エラー:', error);
+    
+    // エラーログ記録
+    await prisma.content_processing_logs.create({
+      data: {
+        source_document_id: documentId,
+        processing_step: 'RECOMMENDATION_GENERATION',
+        step_status: 'FAILED',
+        error_message: (error as Error).message,
+        input_data: { analysisId: aiAnalysisResult?.analysisId }
+      }
+    });
+
+    return [];
+  }
 }
