@@ -91,7 +91,7 @@ function isMentioned(message: LineMessage): boolean {
   
   // フォールバック: テキストにBot名が含まれている場合
   const text = message.text || '';
-  const botNames = ['@FIND to DO', '@find_todo', 'FIND to DO'];
+  const botNames = ['@FIND to DO', '@find_todo', '@FIND'];
   const matchedName = botNames.find(name => text.includes(name));
   
   if (matchedName) {

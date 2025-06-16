@@ -91,18 +91,25 @@ model connections {
 }
 
 model knowledge_items {
-  id        String             @id
-  title     String
-  category  knowledge_category @default(BUSINESS)
-  content   String
-  author    String
-  tags      String[]           @default([])
-  likes     Int                @default(0)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime
+  id                  String             @id
+  title               String
+  category            knowledge_category @default(BUSINESS)
+  content             String
+  author              String
+  tags                String[]           @default([])
+  likes               Int                @default(0)
+  source_type         String?
+  source_document_id  String?
+  source_page_number  Int?
+  source_url          String?
+  auto_generated      Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([category], name: "idx_knowledge_category")
   @@index([createdAt], name: "idx_knowledge_created")
+  @@index([source_document_id], name: "idx_knowledge_source")
+  @@index([auto_generated], name: "idx_knowledge_auto")
 }
 
 model line_integration_logs {
@@ -494,4 +501,37 @@ model personal_schedules {
   @@index([date], name: "idx_personal_date")
   @@index([userId, date], name: "idx_personal_user_date")
   @@map("personal_schedules")
+}
+
+model google_docs_sources {
+  id             String                   @id @default(cuid())
+  document_id    String                   @unique
+  document_url   String
+  title          String
+  last_modified  DateTime
+  sync_status    google_docs_sync_status  @default(PENDING)
+  trigger_type   String                   @default("manual")
+  word_count     Int                      @default(0)
+  gas_version    String                   @default("2.0")
+  content_hash   String?
+  last_error     String?
+  page_count     Int                      @default(0)
+  error_message  String?
+  last_synced    DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@index([trigger_type], name: "idx_trigger_type")
+  @@index([content_hash], name: "idx_content_hash")
+  @@index([sync_status], name: "idx_sync_status")
+  @@index([document_id], name: "idx_document_id")
+  @@map("google_docs_sources")
+}
+
+enum google_docs_sync_status {
+  PENDING
+  SYNCING
+  COMPLETED
+  ERROR
+  FAILED
 }
