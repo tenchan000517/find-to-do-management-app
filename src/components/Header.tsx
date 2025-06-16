@@ -19,6 +19,7 @@ export default function Header() {
     { href: '/appointments', label: 'アポイント', icon: '📞' },
     { href: '/knowledge', label: 'ナレッジ', icon: '📚' },
     { href: '/meeting-notes', label: '議事録', icon: '📝' },
+    { href: '/google-docs-dashboard', label: 'AI レコメンド', icon: '🤖' },
   ];
 
   return (

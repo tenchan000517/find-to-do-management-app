@@ -1,6 +1,7 @@
 // 高精度AI分析エンジン - 品質重視・高閾値設計
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@prisma/client';
+import { AIJsonParser } from '../utils/ai-json-parser';
 
 const prisma = new PrismaClient();
 
@@ -592,20 +593,17 @@ ${sections.map((s, i) => `
 
   // ユーティリティ関数群
   private parseJSONResponse(responseText: string): any {
-    try {
-      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || 
-                       responseText.match(/\{[\s\S]*\}/);
-      
-      if (!jsonMatch) {
-        throw new Error('JSON形式のレスポンスが見つかりません');
-      }
-
-      const jsonString = jsonMatch[1] || jsonMatch[0];
-      return JSON.parse(jsonString);
-    } catch (error) {
-      console.warn('JSON解析失敗:', error);
-      return { sections: [], clusters: [] };
-    }
+    const defaultValue = { 
+      sections: [], 
+      clusters: [], 
+      tasks: [], 
+      appointments: [], 
+      connections: [], 
+      events: [], 
+      personalSchedules: [] 
+    };
+    
+    return AIJsonParser.parseFromAIResponse(responseText, defaultValue);
   }
 
   private fallbackSectionSplit(content: string): ContentSection[] {

@@ -131,6 +131,35 @@ export default function GoogleDocsDashboard() {
     }
   };
 
+  // レコメンデーション削除
+  const deleteRecommendation = async (recommendationId: string) => {
+    if (!confirm('このレコメンデーションを削除しますか？')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/google-docs/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject',
+          recommendationId,
+          params: { feedback: 'ユーザーによる削除' }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        fetchRecommendations(); // リストを更新
+      } else {
+        alert(`❌ 削除失敗: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ エラー: ${error}`);
+    }
+  };
+
   // ステータス色の取得
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -274,47 +303,89 @@ export default function GoogleDocsDashboard() {
 
       {/* レコメンデーション一覧 */}
       <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">🤖 AI レコメンデーション (上位10件)</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">🤖 AI レコメンデーション (上位10件)</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">総件数: {recommendations.length}件</span>
+            <button
+              onClick={fetchRecommendations}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              更新
+            </button>
+          </div>
+        </div>
         
         {recommendations.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            現在、実行可能なレコメンデーションはありません
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div className="text-gray-400 text-lg mb-2">現在、実行可能なレコメンデーションはありません</div>
+            <div className="text-gray-500 text-sm">新しい議事録をAI分析すると、自動的にレコメンデーションが生成されます</div>
           </div>
         ) : (
           <div className="space-y-4">
-            {recommendations.map((rec) => (
-              <div key={rec.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-semibold text-lg">{rec.title}</h3>
-                    <p className="text-gray-600 text-sm mt-1">{rec.description}</p>
+            {recommendations.map((rec, index) => (
+              <div key={rec.id} className="border border-gray-200 rounded-lg p-6 hover:bg-gray-50 hover:shadow-md transition-all duration-200">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1 mr-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        #{index + 1}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getImpactColor(rec.estimatedImpact)}`}>
+                        {rec.estimatedImpact === 'HIGH' ? '高インパクト' : rec.estimatedImpact === 'MEDIUM' ? '中インパクト' : '低インパクト'}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">{rec.title}</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">{rec.description}</p>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getImpactColor(rec.estimatedImpact)}`}>
-                      {rec.estimatedImpact}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      関連性: {Math.round(rec.relevance_score * 100)}%
-                    </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500 mb-1">関連性</div>
+                      <div className="text-lg font-bold text-blue-600">{Math.round(rec.relevance_score * 100)}%</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500 mb-1">実行容易度</div>
+                      <div className="text-lg font-bold text-green-600">{Math.round(rec.executabilityScore * 100)}%</div>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex justify-between items-center mt-3">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-500">
-                      タイプ: {rec.recommendation_type.replace('_', ' ')}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      実行容易度: {Math.round(rec.executabilityScore * 100)}%
-                    </span>
+                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">タイプ: <span className="font-medium">{rec.recommendation_type.replace('_', ' ')}</span></span>
+                    <span className="text-gray-600">優先度スコア: <span className="font-medium">{Math.round(rec.priority_score * 100)}</span></span>
                   </div>
-                  
+                </div>
+                
+                <div className="flex justify-end items-center gap-3">
+                  <button
+                    onClick={() => deleteRecommendation(rec.id)}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
+                    title="このレコメンデーションを削除"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    削除
+                  </button>
                   <button
                     onClick={() => executeRecommendation(rec.id)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium"
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
+                    title="このレコメンデーションを実行"
                   >
-                    🚀 ワンクリック実行
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    ワンクリック実行
                   </button>
                 </div>
               </div>

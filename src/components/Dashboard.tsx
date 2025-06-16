@@ -90,6 +90,10 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   const [discordMetrics, setDiscordMetrics] = useState<DiscordMetric[]>([]);
   const [discordLoading, setDiscordLoading] = useState(true);
   
+  // レコメンデーション関連のstate
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
+  
   const [stats, setStats] = useState<DashboardStats>({
     projects: { total: 0, active: 0, completed: 0, onHold: 0 },
     tasks: { total: 0, completed: 0, inProgress: 0, overdue: 0 },
@@ -110,7 +114,8 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           refreshConnections(),
           reloadAppointments(),
           refreshEvents(),
-          fetchDiscordMetrics()
+          fetchDiscordMetrics(),
+          fetchRecommendations()
         ]);
       }
     } catch (error) {
@@ -134,8 +139,25 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     }
   };
 
+  // レコメンデーションを取得
+  const fetchRecommendations = async () => {
+    try {
+      setRecommendationsLoading(true);
+      const response = await fetch('/api/google-docs/recommendations?status=PENDING&limit=5&minRelevance=0.6');
+      if (response.ok) {
+        const data = await response.json();
+        setRecommendations(data.data?.recommendations || []);
+      }
+    } catch (error) {
+      console.error('Recommendations fetch error:', error);
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchDiscordMetrics();
+    fetchRecommendations();
   }, []);
 
   // データから統計を計算
@@ -286,6 +308,32 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     
     const diffInDays = Math.floor(diffInHours / 24);
     return `${diffInDays}日前`;
+  };
+
+  // レコメンデーション実行
+  const executeRecommendation = async (recommendationId: string) => {
+    try {
+      const response = await fetch('/api/google-docs/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          recommendationId,
+          params: { userId: 'current-user' }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ ${data.result.message}`);
+        fetchRecommendations(); // リストを更新
+      } else {
+        alert(`❌ 実行失敗: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ エラー: ${error}`);
+    }
   };
 
   const StatCard = ({ title, value, subtitle, color, icon }: {
@@ -657,7 +705,79 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {/* AIレコメンデーション機能サマリー */}
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-2">
+                🤖 AIレコメンデーション
+              </h2>
+              <Link href="/google-docs-dashboard" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                詳細を見る
+              </Link>
+            </div>
+            
+            {recommendationsLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-sm text-gray-600">読み込み中...</span>
+              </div>
+            ) : recommendations.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="text-gray-400 mb-2">
+                  <svg className="mx-auto h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="text-sm text-gray-500">実行可能なレコメンデーションはありません</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recommendations.slice(0, 3).map((rec, index) => (
+                  <div key={rec.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 mr-2">
+                        <h4 className="text-sm font-medium text-gray-900 truncate">{rec.title}</h4>
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{rec.description}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          rec.estimatedImpact === 'HIGH' ? 'bg-red-100 text-red-700' :
+                          rec.estimatedImpact === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {rec.estimatedImpact === 'HIGH' ? '高' : rec.estimatedImpact === 'MEDIUM' ? '中' : '低'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span>関連性: {Math.round(rec.relevance_score * 100)}%</span>
+                        <span>実行性: {Math.round(rec.executabilityScore * 100)}%</span>
+                      </div>
+                      <button
+                        onClick={() => executeRecommendation(rec.id)}
+                        className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors"
+                      >
+                        実行
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {recommendations.length > 3 && (
+                  <div className="text-center py-2">
+                    <Link 
+                      href="/google-docs-dashboard"
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    >
+                      他{recommendations.length - 3}件のレコメンデーションを見る →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* 進行中のプロジェクト */}
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
             <div className="flex justify-between items-center mb-4">
@@ -687,6 +807,9 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 lg:gap-8 mt-8">
 
           {/* 最近のアクティビティ */}
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
