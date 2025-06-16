@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface MeetingNote {
   id: string;
   title: string;
   date: string;
+  extractedDate?: string; // タイトルから抽出した日付
+  category: 'meeting' | 'information'; // 議事録 or 情報
   participants: string[];
   agenda: string;
   notes: string;
@@ -15,6 +16,88 @@ interface MeetingNote {
   author: string;
   createdAt: string;
   updatedAt: string;
+  documentUrl?: string;
+  sourceDocumentId?: string;
+}
+
+// 日付抽出とカテゴリ分けのヘルパー関数
+function extractDateFromTitle(title: string, documentId?: string): { extractedDate: string | null; category: 'meeting' | 'information' } {
+  const normalizedTitle = title.toLowerCase();
+  
+  // タブ番号から年を決定 (tab_1-8: 2024年, tab_9+: 2025年)
+  let defaultYear = 2024;
+  if (documentId && documentId.includes('_tab_')) {
+    const tabNumber = parseInt(documentId.split('_tab_')[1]);
+    if (tabNumber >= 9) {
+      defaultYear = 2025;
+    }
+  }
+  
+  const datePatterns = [
+    /(\d{1,2})\/(\d{1,2})/,           // 6/13, 10/20
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})/,  // 6/13/2024
+    /(\d{4})\/(\d{1,2})\/(\d{1,2})/,  // 2024/6/13
+    /(\d{1,2})-(\d{1,2})/,           // 6-13
+    /(\d{1,2})\.(\d{1,2})/,          // 6.13
+    /(\d{1,2})_(\d{1,2})/,           // 6_13
+    /(\d{1,2})月(\d{1,2})日?/,        // 6月13日
+    /(\d{1,2})がつ(\d{1,2})にち?/,    // 6がつ13にち
+    /(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\-_]*(\d{1,2})/,
+    /(\d{1,2})[\s\-_]*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/,
+    /(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})/,
+    /(\d{2,4})\D+(\d{1,2})\D+(\d{1,2})/
+  ];
+
+  const monthMap: {[key: string]: string} = {
+    'jan': '01', 'january': '01', 'feb': '02', 'february': '02', 
+    'mar': '03', 'march': '03', 'apr': '04', 'april': '04',
+    'may': '05', 'jun': '06', 'june': '06', 'jul': '07', 'july': '07',
+    'aug': '08', 'august': '08', 'sep': '09', 'september': '09',
+    'oct': '10', 'october': '10', 'nov': '11', 'november': '11',
+    'dec': '12', 'december': '12'
+  };
+
+  for (const pattern of datePatterns) {
+    const match = normalizedTitle.match(pattern);
+    if (match) {
+      let extractedDate = '';
+      
+      try {
+        if (pattern.source.includes('月')) {
+          const month = match[1].padStart(2, '0');
+          const day = match[2].padStart(2, '0');
+          extractedDate = `${defaultYear}-${month}-${day}`;
+        } else if (pattern.source.includes('jan|feb')) {
+          const monthName = match[1] || match[2];
+          const day = match[2] || match[1];
+          const monthNum = monthMap[monthName.toLowerCase()];
+          if (monthNum) {
+            extractedDate = `${defaultYear}-${monthNum}-${day.padStart(2, '0')}`;
+          }
+        } else if (match[3]) {
+          let year = match[3];
+          if (year.length === 2) year = '20' + year;
+          const month = match[1].padStart(2, '0');
+          const day = match[2].padStart(2, '0');
+          extractedDate = `${year}-${month}-${day}`;
+        } else {
+          const month = match[1].padStart(2, '0');
+          const day = match[2].padStart(2, '0');
+          extractedDate = `${defaultYear}-${month}-${day}`;
+        }
+        
+        const testDate = new Date(extractedDate);
+        if (!isNaN(testDate.getTime())) {
+          return { extractedDate, category: 'meeting' };
+        }
+        
+      } catch (error) {
+        continue;
+      }
+    }
+  }
+  
+  return { extractedDate: null, category: 'information' };
 }
 
 export default function MeetingNotesPage() {
@@ -23,6 +106,8 @@ export default function MeetingNotesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'finalized'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'meeting' | 'information'>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'title' | 'createdAt'>('date');
 
   const [selectedNote, setSelectedNote] = useState<MeetingNote | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,14 +120,25 @@ export default function MeetingNotesPage() {
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/ai-content-analysis');
-      if (!response.ok) {
+      
+      // AI分析データとGoogle Docsソースを並行取得
+      const [analysisResponse, sourcesResponse] = await Promise.all([
+        fetch('/api/ai-content-analysis'),
+        fetch('/api/google-docs/sources')
+      ]);
+      
+      if (!analysisResponse.ok || !sourcesResponse.ok) {
         throw new Error('Failed to fetch meeting notes');
       }
-      const data = await response.json();
+      
+      const analysisData = await analysisResponse.json();
+      const sourcesData = await sourcesResponse.json();
+      
+      // Google Docsソースをマップに変換（高速検索用）
+      const sourcesMap = new Map(sourcesData.map((source: any) => [source.document_id, source]));
       
       // AI分析データをMeetingNote形式に変換
-      const formattedNotes: MeetingNote[] = data.map((analysis: any) => {
+      const formattedNotes: MeetingNote[] = analysisData.map((analysis: any) => {
         // extracted_tasksからアクションアイテムを抽出（AIJsonParserを使用）
         let actionItems: string[] = [];
         try {
@@ -53,18 +149,29 @@ export default function MeetingNotesPage() {
           actionItems = [];
         }
 
+        // Google Docsソース情報を取得
+        const sourceDoc = sourcesMap.get(analysis.source_document_id) as any;
+        const originalTitle = sourceDoc?.title || analysis.title || 'タイトル不明';
+        
+        // タイトルから日付抽出とカテゴリ分け
+        const { extractedDate, category } = extractDateFromTitle(originalTitle, analysis.source_document_id);
+
         return {
           id: analysis.id,
-          title: analysis.source_document_id.split('_tab_')[0] + ` (タブ${analysis.source_document_id.split('_tab_')[1] || '1'})`,
+          title: originalTitle,
           date: new Date(analysis.createdAt).toISOString().split('T')[0],
+          extractedDate: extractedDate,
+          category: category,
           participants: [], // AI分析からは取得困難
-          agenda: analysis.content_section.substring(0, 200) + (analysis.content_section.length > 200 ? '...' : ''),
-          notes: analysis.content_section,
+          agenda: analysis.summary || analysis.content_section?.substring(0, 200) + (analysis.content_section?.length > 200 ? '...' : ''),
+          notes: analysis.summary || 'サマリー未生成',
           actionItems: actionItems,
           status: 'finalized' as const,
           author: 'AI分析システム',
           createdAt: analysis.createdAt,
-          updatedAt: analysis.updatedAt
+          updatedAt: analysis.updatedAt,
+          documentUrl: sourceDoc?.document_url,
+          sourceDocumentId: analysis.source_document_id
         };
       });
       
@@ -215,37 +322,111 @@ export default function MeetingNotesPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  statusFilter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                すべて
-              </button>
-              <button
-                onClick={() => setStatusFilter('finalized')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  statusFilter === 'finalized' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                確定済み
-              </button>
-              <button
-                onClick={() => setStatusFilter('draft')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  statusFilter === 'draft' 
-                    ? 'bg-yellow-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                下書き
-              </button>
+            <div className="flex gap-4 flex-wrap">
+              {/* ステータスフィルター */}
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 px-2 py-2">ステータス:</span>
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    statusFilter === 'all' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  すべて
+                </button>
+                <button
+                  onClick={() => setStatusFilter('finalized')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    statusFilter === 'finalized' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  確定済み
+                </button>
+                <button
+                  onClick={() => setStatusFilter('draft')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    statusFilter === 'draft' 
+                      ? 'bg-yellow-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  下書き
+                </button>
+              </div>
+
+              {/* カテゴリフィルター */}
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 px-2 py-2">カテゴリ:</span>
+                <button
+                  onClick={() => setCategoryFilter('all')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    categoryFilter === 'all' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  すべて
+                </button>
+                <button
+                  onClick={() => setCategoryFilter('meeting')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    categoryFilter === 'meeting' 
+                      ? 'bg-orange-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📅 議事録
+                </button>
+                <button
+                  onClick={() => setCategoryFilter('information')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    categoryFilter === 'information' 
+                      ? 'bg-teal-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📋 情報
+                </button>
+              </div>
+
+              {/* ソート */}
+              <div className="flex gap-2 flex-wrap">
+                <span className="text-sm font-medium text-gray-700 px-2 py-2">並び順:</span>
+                <button
+                  onClick={() => setSortBy('date')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    sortBy === 'date' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📅 日付順
+                </button>
+                <button
+                  onClick={() => setSortBy('title')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    sortBy === 'title' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🔤 タイトル順
+                </button>
+                <button
+                  onClick={() => setSortBy('createdAt')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    sortBy === 'createdAt' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🕒 作成順
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -288,9 +469,18 @@ export default function MeetingNotesPage() {
                   note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   note.notes.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesStatus = statusFilter === 'all' || note.status === statusFilter;
-                return matchesSearch && matchesStatus;
+                const matchesCategory = categoryFilter === 'all' || note.category === categoryFilter;
+                return matchesSearch && matchesStatus && matchesCategory;
               })
-              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              .sort((a, b) => {
+                if (sortBy === 'date' && a.extractedDate && b.extractedDate) {
+                  return new Date(b.extractedDate).getTime() - new Date(a.extractedDate).getTime();
+                } else if (sortBy === 'title') {
+                  return a.title.localeCompare(b.title);
+                } else {
+                  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+                }
+              })
               .map((note) => (
             <div key={note.id} className="bg-white rounded-lg shadow-lg p-4 md:p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border border-gray-100">
               <div className="flex items-start justify-between mb-4">
@@ -321,6 +511,19 @@ export default function MeetingNotesPage() {
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
+                  {note.documentUrl && (
+                    <a
+                      href={note.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-600 hover:text-green-800 text-xs md:text-sm font-medium transition-colors p-1 rounded hover:bg-green-50"
+                      title="Google Docsで開く"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
                   <button
                     onClick={() => openModal(note)}
                     className="text-blue-600 hover:text-blue-800 text-xs md:text-sm font-medium transition-colors p-1 rounded hover:bg-blue-50"

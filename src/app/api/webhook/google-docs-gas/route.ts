@@ -325,7 +325,8 @@ async function performAdvancedAIAnalysis(
     const aiAnalysis = await prisma.ai_content_analysis.create({
       data: {
         source_document_id: documentId,
-        content_section: content.length > 5000 ? content.substring(0, 5000) + '...' : content,
+        title: title, // Google Docsのタイトルをそのまま使用
+        summary: analysisResult.overallInsights.summary || '要約未生成',
         analysis_type: 'COMPREHENSIVE',
         extracted_tasks: JSON.stringify(analysisResult.highConfidenceEntities.tasks),
         extracted_events: JSON.stringify(analysisResult.highConfidenceEntities.events),

@@ -534,7 +534,8 @@ model google_docs_sources {
 model ai_content_analysis {
   id                 String                      @id @default(cuid())
   source_document_id String                      // google_docs_sources.document_id
-  content_section    String                      // 分析対象のコンテンツセクション
+  title              String                      @default("") // AIが生成した議事録タイトル
+  summary            String                      @default("") // AIが生成した要約
   analysis_type      ai_analysis_type            @default(COMPREHENSIVE)
   
   // 抽出されたエンティティ

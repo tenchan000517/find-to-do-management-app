@@ -133,6 +133,8 @@ export interface OverallInsights {
   actionItemsCount: number;
   projectPotentialCount: number;
   confidence: number;
+  title: string;
+  summary: string;
 }
 
 export interface EntityMention {
@@ -574,11 +576,14 @@ ${sections.map((s, i) => `
   // 全体洞察生成
   private async generateOverallInsights(
     content: string,
-    _title: string,
+    documentTitle: string,
     entities: HighConfidenceEntities,
     projectCandidates: ProjectCandidate[]
   ): Promise<OverallInsights> {
     const totalActionItems = entities.tasks.length + entities.appointments.length + entities.events.length;
+    
+    // 要約のみを生成（タイトルはGoogle Docsから使用）
+    const summary = await this.generateSummary(content, entities);
     
     return {
       documentType: this.detectDocumentType(content),
@@ -587,7 +592,9 @@ ${sections.map((s, i) => `
       keyTopics: this.extractKeyTopics(content),
       actionItemsCount: totalActionItems,
       projectPotentialCount: projectCandidates.length,
-      confidence: totalActionItems > 0 ? 0.8 : 0.3
+      confidence: totalActionItems > 0 ? 0.8 : 0.3,
+      title: documentTitle, // Google Docsのタイトルをそのまま使用
+      summary
     };
   }
 
@@ -662,6 +669,95 @@ ${sections.map((s, i) => `
       .map(([word]) => word);
   }
 
+  // 要約のみを生成（タイトルはGoogle Docsから取得）
+  private async generateSummary(content: string, entities: HighConfidenceEntities): Promise<string> {
+    const totalEntities = entities.tasks.length + entities.events.length + 
+                         entities.appointments.length + entities.connections.length;
+    
+    // コンテンツが短い場合（500文字以下）は原文をそのまま返す
+    if (content.trim().length <= 500) {
+      console.log(`📄 短いコンテンツ(${content.trim().length}文字) - 原文保存`);
+      return content.trim();
+    }
+    
+    // エンティティが抽出されていない場合は原文から直接要約を生成
+    if (totalEntities === 0) {
+      console.log('🔄 エンティティ未検出 - 原文から直接要約生成');
+      return await this.generateSummaryFromRawContent(content);
+    }
+    
+    // エンティティが抽出されている場合は従来の方法で要約生成
+    return await this.generateSummaryFromEntities(content, entities);
+  }
+
+  // 原文から直接要約を生成（エンティティが検出されなかった場合）
+  private async generateSummaryFromRawContent(content: string): Promise<string> {
+    const prompt = `
+以下のドキュメント内容から、適切な要約を生成してください。
+具体的なタスクやイベントが検出されなかった場合でも、ドキュメントの主要な内容を要約してください。
+
+**ドキュメント内容:**
+${content.substring(0, 3000)}${content.length > 3000 ? '...' : ''}
+
+**回答形式 (JSON):**
+{
+  "summary": "ドキュメントの主要な内容・議論・決定事項・次のアクションを含む要約（400文字程度）"
+}
+
+**重要:**
+- 明確なタスクやイベントが見つからない場合でも、議論内容や方向性を要約してください
+- 連絡先情報のみの場合は「○○に関する連絡先情報が記録されている」旨を記載
+- 要約は文章形式で記述してください
+`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const parsed = this.parseJSONResponse(responseText);
+      
+      return parsed.summary || '要約を生成できませんでした';
+    } catch (error) {
+      console.warn('原文要約生成エラー:', error);
+      return '要約を生成できませんでした';
+    }
+  }
+
+  // エンティティベースの要約生成（従来の方法）
+  private async generateSummaryFromEntities(content: string, entities: HighConfidenceEntities): Promise<string> {
+    const prompt = `
+以下の議事録・ドキュメントから、適切な要約を生成してください。
+
+**ドキュメント内容（抜粋）:**
+${content.substring(0, 2000)}...
+
+**抽出されたエンティティ情報:**
+- タスク: ${entities.tasks.length}件
+- イベント: ${entities.events.length}件
+- アポイントメント: ${entities.appointments.length}件
+- 主な話題: ${entities.tasks.slice(0, 3).map(t => t.title).join(', ')}
+
+**回答形式 (JSON):**
+{
+  "summary": "主要な議論内容・決定事項・次のアクションを含む要約（500文字程度）"
+}
+
+**重要:**
+- 要約は箇条書きではなく、文章形式で記述してください
+- 議論の要点、決定事項、次のアクションを含めてください
+`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const parsed = this.parseJSONResponse(responseText);
+      
+      return parsed.summary || '要約を生成できませんでした';
+    } catch (error) {
+      console.warn('エンティティ要約生成エラー:', error);
+      return '要約を生成できませんでした';
+    }
+  }
+
   private createEmptyResult(): AdvancedAnalysisResult {
     return {
       sections: [],
@@ -681,7 +777,9 @@ ${sections.map((s, i) => `
         keyTopics: [],
         actionItemsCount: 0,
         projectPotentialCount: 0,
-        confidence: 0
+        confidence: 0,
+        title: 'ドキュメントタイトル未設定',
+        summary: '要約を生成できませんでした'
       }
     };
   }
