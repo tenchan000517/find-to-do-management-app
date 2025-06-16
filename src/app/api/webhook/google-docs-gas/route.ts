@@ -14,7 +14,10 @@ const WEBHOOK_CONFIG = {
   apiKey: process.env.GAS_WEBHOOK_API_KEY,
   enableRateLimit: false, // GASは信頼できるソースなので制限なし
   maxContentLength: 100000,
-  enableLogging: true
+  enableLogging: true,
+  // 🛡️ 安全テストモード設定
+  enableSafeMode: true, // テストモード（データベース保存なし）
+  enableDryRun: true    // ドライラン（分析のみ実行）
 };
 
 export async function POST(request: NextRequest) {
@@ -153,6 +156,12 @@ async function processGASWebhook(payload: any) {
     contentHash,
     gasVersion 
   } = payload;
+
+  // 🛡️ 安全テストモード判定
+  if (WEBHOOK_CONFIG.enableSafeMode) {
+    console.log('🛡️ 安全テストモード: データベース保存をスキップ');
+    return await processSafeMode(payload);
+  }
 
   try {
     // 1. Google Docsソース情報更新/作成
@@ -579,6 +588,101 @@ async function generateRecommendations(
       }
     });
 
+    return [];
+  }
+}
+
+// 🛡️ 安全テストモード処理（データベース保存なし）
+async function processSafeMode(payload: any) {
+  const { documentId, title, content, triggerType, wordCount } = payload;
+  
+  console.log('🛡️ ===== 安全テストモード実行中 =====');
+  console.log(`📄 ドキュメント: ${title}`);
+  console.log(`📊 文字数: ${wordCount || content.length}文字`);
+  console.log(`🔄 トリガー: ${triggerType}`);
+  
+  try {
+    // AI分析のみ実行（データベース保存なし）
+    const aiAnalysisResult = await performAIAnalysisOnly(content, title);
+    
+    // レコメンド生成のみ実行（データベース保存なし）
+    const recommendations = await generateRecommendationsOnly(aiAnalysisResult, documentId);
+    
+    console.log('🔍 ===== AI分析結果（プレビュー） =====');
+    if (aiAnalysisResult) {
+      console.log(`🧠 信頼度: ${aiAnalysisResult.overallInsights?.confidence || 0}`);
+      console.log(`📋 検出タスク: ${aiAnalysisResult.highConfidenceEntities?.tasks?.length || 0}件`);
+      console.log(`📅 検出イベント: ${aiAnalysisResult.highConfidenceEntities?.events?.length || 0}件`);
+      console.log(`🎯 プロジェクト候補: ${aiAnalysisResult.projectCandidates?.length || 0}件`);
+    }
+    
+    console.log('💡 ===== レコメンド結果（プレビュー） =====');
+    console.log(`📝 生成レコメンド: ${recommendations.length}件`);
+    
+    recommendations.slice(0, 3).forEach((rec, i) => {
+      console.log(`${i + 1}. ${rec.type}: ${rec.title} (関連性: ${rec.relevanceScore})`);
+    });
+    
+    console.log('🛡️ ===== 安全テストモード完了 =====');
+    console.log('💾 データベースには何も保存されていません');
+    
+    return {
+      safeMode: true,
+      documentId,
+      title,
+      aiAnalysisPreview: aiAnalysisResult ? {
+        confidence: aiAnalysisResult.overallInsights?.confidence || 0,
+        tasksDetected: aiAnalysisResult.highConfidenceEntities?.tasks?.length || 0,
+        eventsDetected: aiAnalysisResult.highConfidenceEntities?.events?.length || 0,
+        projectCandidates: aiAnalysisResult.projectCandidates?.length || 0
+      } : null,
+      recommendationsPreview: recommendations.slice(0, 5).map(r => ({
+        type: r.type,
+        title: r.title,
+        relevanceScore: r.relevanceScore
+      })),
+      totalRecommendations: recommendations.length,
+      message: 'データベースには保存されていません（安全テストモード）'
+    };
+    
+  } catch (error) {
+    console.error('❌ 安全テストモードエラー:', error);
+    return {
+      safeMode: true,
+      error: (error as Error).message,
+      message: 'テストモードでもエラーが発生しました'
+    };
+  }
+}
+
+// AI分析のみ実行（データベース保存なし）
+async function performAIAnalysisOnly(content: string, title: string) {
+  try {
+    console.log('🧠 AI分析開始（テストモード）');
+    const analysisResult = await advancedAnalyzer.analyzeContent(content, title);
+    console.log('✅ AI分析完了（テストモード）');
+    return analysisResult;
+  } catch (error) {
+    console.error('❌ AI分析エラー（テストモード）:', error);
+    return null;
+  }
+}
+
+// レコメンド生成のみ実行（データベース保存なし）
+async function generateRecommendationsOnly(aiAnalysisResult: any, documentId: string) {
+  if (!aiAnalysisResult) return [];
+  
+  try {
+    console.log('💡 レコメンド生成開始（テストモード）');
+    const recommendations = await recommendationEngine.generateRecommendations(
+      aiAnalysisResult,
+      documentId,
+      'test-analysis-id-' + Date.now()
+    );
+    console.log(`✅ レコメンド生成完了（テストモード）: ${recommendations.length}件`);
+    return recommendations;
+  } catch (error) {
+    console.error('❌ レコメンド生成エラー（テストモード）:', error);
     return [];
   }
 }
