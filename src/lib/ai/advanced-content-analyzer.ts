@@ -159,7 +159,7 @@ export class AdvancedContentAnalyzer {
     PROJECT_MONETIZATION: 0.7,
     PROJECT_EXECUTABILITY: 0.8,
     MIN_CLUSTER_ENTITIES: 4,
-    MIN_CONTENT_LENGTH: 500, // 短すぎるコンテンツは分析しない
+    MIN_CONTENT_LENGTH: 800, // 短すぎるコンテンツは分析しない（原文保存を促進）
   };
 
   static getInstance(): AdvancedContentAnalyzer {
@@ -175,8 +175,8 @@ export class AdvancedContentAnalyzer {
 
     // 最小長チェック
     if (content.length < AdvancedContentAnalyzer.THRESHOLDS.MIN_CONTENT_LENGTH) {
-      console.log('⏭️ コンテンツが短すぎるため分析をスキップ');
-      return this.createEmptyResult();
+      console.log(`⏭️ コンテンツが短すぎるため分析をスキップ - 原文保存 (${content.length}文字)`);
+      return this.createEmptyResultWithOriginalContent(content.trim(), documentTitle);
     }
 
     try {
@@ -320,46 +320,46 @@ ${sections.map((s, i) => `
     }
   }
 
-  // 高精度エンティティ抽出
+  // 高精度エンティティ抽出（統合処理版）
   private async extractHighConfidenceEntities(sections: ContentSection[]): Promise<HighConfidenceEntities> {
-    const entities: HighConfidenceEntities = {
-      tasks: [],
-      appointments: [],
-      connections: [],
-      events: [],
-      personalSchedules: []
-    };
-
-    for (const section of sections) {
-      // セクション別にエンティティ抽出
-      const sectionEntities = await this.extractEntitiesFromSection(section);
-      
-      // 高精度フィルタリング
-      entities.tasks.push(...sectionEntities.tasks.filter(t => t.confidence >= AdvancedContentAnalyzer.THRESHOLDS.TASK_CONFIDENCE));
-      entities.appointments.push(...sectionEntities.appointments.filter(a => a.confidence >= AdvancedContentAnalyzer.THRESHOLDS.APPOINTMENT_CONFIDENCE));
-      entities.connections.push(...sectionEntities.connections.filter(c => c.confidence >= AdvancedContentAnalyzer.THRESHOLDS.CONNECTION_CONFIDENCE));
-      entities.events.push(...sectionEntities.events.filter(e => e.confidence >= AdvancedContentAnalyzer.THRESHOLDS.EVENT_CONFIDENCE));
-      entities.personalSchedules.push(...sectionEntities.personalSchedules.filter(p => p.confidence >= AdvancedContentAnalyzer.THRESHOLDS.PERSONAL_SCHEDULE_CONFIDENCE));
+    if (sections.length === 0) {
+      return {
+        tasks: [],
+        appointments: [],
+        connections: [],
+        events: [],
+        personalSchedules: []
+      };
     }
+
+    console.log(`📊 統合エンティティ抽出開始: ${sections.length}セクション統合処理`);
+
+    // 全セクションを統合して1回のAPI呼び出しで処理
+    const allSectionsContent = sections.map((section, index) => {
+      return `=== セクション${index + 1}: ${section.title || '無題'} ===\n${section.content}`;
+    }).join('\n\n');
+
+    // API呼び出し前に遅延（Rate Limit対策）
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const entities = await this.extractEntitiesFromAllSections(allSectionsContent, sections);
 
     // 既存データとの照合
     await this.crossReferenceExistingData(entities);
 
-    console.log(`高精度エンティティ: タスク${entities.tasks.length}件, アポ${entities.appointments.length}件, 連絡先${entities.connections.length}件`);
+    console.log(`✅ 統合エンティティ抽出完了: タスク${entities.tasks.length}件, アポ${entities.appointments.length}件, 連絡先${entities.connections.length}件`);
 
     return entities;
   }
 
-  // セクション別エンティティ抽出
-  private async extractEntitiesFromSection(section: ContentSection): Promise<HighConfidenceEntities> {
+  // 統合エンティティ抽出（全セクション一括処理）
+  private async extractEntitiesFromAllSections(allContent: string, sections: ContentSection[]): Promise<HighConfidenceEntities> {
     const prompt = `
-以下のセクションから、高精度でエンティティを抽出してください。
+以下の複数セクションから、高精度でエンティティを抽出してください。
 **品質重視**: 不確実なものは含めず、確実性の高いもののみ抽出してください。
 
-**セクション:**
-タイトル: ${section.title || '無題'}
-内容: ${section.content}
-トピック: ${section.topics.join(', ')}
+**ドキュメント内容:**
+${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長いため省略)' : ''}
 
 **回答形式 (JSON):**
 {
@@ -459,37 +459,50 @@ ${sections.map((s, i) => `
       const responseText = result.response.text();
       const parsed = this.parseJSONResponse(responseText);
 
-      return {
-        tasks: (parsed.tasks || []).map((task: any) => ({
+      // 高精度フィルタリング適用
+      const entities: HighConfidenceEntities = {
+        tasks: (parsed.tasks || []).filter((task: any) => 
+          task.confidence >= AdvancedContentAnalyzer.THRESHOLDS.TASK_CONFIDENCE
+        ).map((task: any) => ({
           ...task,
-          sourceSection: section.id,
+          sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, task.confidence || 0)
         })),
-        appointments: (parsed.appointments || []).map((appt: any) => ({
+        appointments: (parsed.appointments || []).filter((appt: any) => 
+          appt.confidence >= AdvancedContentAnalyzer.THRESHOLDS.APPOINTMENT_CONFIDENCE
+        ).map((appt: any) => ({
           ...appt,
-          sourceSection: section.id,
+          sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, appt.confidence || 0)
         })),
-        connections: (parsed.connections || []).map((conn: any) => ({
+        connections: (parsed.connections || []).filter((conn: any) => 
+          conn.confidence >= AdvancedContentAnalyzer.THRESHOLDS.CONNECTION_CONFIDENCE
+        ).map((conn: any) => ({
           ...conn,
-          sourceSection: section.id,
+          sourceSection: 'unified_extraction',
           existsInSystem: false, // 後で照合
           confidence: Math.min(1.0, conn.confidence || 0)
         })),
-        events: (parsed.events || []).map((event: any) => ({
+        events: (parsed.events || []).filter((event: any) => 
+          event.confidence >= AdvancedContentAnalyzer.THRESHOLDS.EVENT_CONFIDENCE
+        ).map((event: any) => ({
           ...event,
-          sourceSection: section.id,
+          sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, event.confidence || 0)
         })),
-        personalSchedules: (parsed.personalSchedules || []).map((schedule: any) => ({
+        personalSchedules: (parsed.personalSchedules || []).filter((schedule: any) => 
+          schedule.confidence >= AdvancedContentAnalyzer.THRESHOLDS.PERSONAL_SCHEDULE_CONFIDENCE
+        ).map((schedule: any) => ({
           ...schedule,
-          sourceSection: section.id,
+          sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, schedule.confidence || 0)
         }))
       };
 
+      return entities;
+
     } catch (error) {
-      console.warn(`セクション ${section.id} のエンティティ抽出失敗:`, error);
+      console.error(`❌ 統合エンティティ抽出失敗:`, error);
       return {
         tasks: [],
         appointments: [],
@@ -674,8 +687,8 @@ ${sections.map((s, i) => `
     const totalEntities = entities.tasks.length + entities.events.length + 
                          entities.appointments.length + entities.connections.length;
     
-    // コンテンツが短い場合（500文字以下）は原文をそのまま返す
-    if (content.trim().length <= 500) {
+    // コンテンツが短い場合（800文字以下）は原文をそのまま返す
+    if (content.trim().length <= 800) {
       console.log(`📄 短いコンテンツ(${content.trim().length}文字) - 原文保存`);
       return content.trim();
     }
@@ -711,13 +724,31 @@ ${content.substring(0, 3000)}${content.length > 3000 ? '...' : ''}
 `;
 
     try {
+      console.log('🔍 Raw Content Summary - Prompt:', prompt.substring(0, 200) + '...');
+      
+      // API呼び出し前に遅延（Rate Limit対策）
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
+      
+      console.log('🔍 Gemini Raw Response:', responseText);
+      console.log('🔍 Response Length:', responseText.length);
+      
       const parsed = this.parseJSONResponse(responseText);
+      console.log('🔍 Parsed Result:', parsed);
+      
+      if (!parsed.summary) {
+        console.warn('⚠️ No summary field in parsed response:', parsed);
+      }
       
       return parsed.summary || '要約を生成できませんでした';
     } catch (error) {
-      console.warn('原文要約生成エラー:', error);
+      console.error('❌ Raw content summary error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        contentLength: content.length
+      });
       return '要約を生成できませんでした';
     }
   }
@@ -747,13 +778,35 @@ ${content.substring(0, 2000)}...
 `;
 
     try {
+      console.log('🔍 Entity Summary - Entities:', {
+        tasks: entities.tasks.length,
+        events: entities.events.length,
+        appointments: entities.appointments.length
+      });
+      
+      // API呼び出し前に遅延（Rate Limit対策）
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
+      
+      console.log('🔍 Gemini Entity Response:', responseText);
+      console.log('🔍 Response Length:', responseText.length);
+      
       const parsed = this.parseJSONResponse(responseText);
+      console.log('🔍 Entity Parsed Result:', parsed);
+      
+      if (!parsed.summary) {
+        console.warn('⚠️ No summary field in entity response:', parsed);
+      }
       
       return parsed.summary || '要約を生成できませんでした';
     } catch (error) {
-      console.warn('エンティティ要約生成エラー:', error);
+      console.error('❌ Entity summary error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        entityCount: entities.tasks.length + entities.events.length + entities.appointments.length
+      });
       return '要約を生成できませんでした';
     }
   }
@@ -780,6 +833,33 @@ ${content.substring(0, 2000)}...
         confidence: 0,
         title: 'ドキュメントタイトル未設定',
         summary: '要約を生成できませんでした'
+      }
+    };
+  }
+
+  // 短いコンテンツ用：原文を保存する空の結果
+  private createEmptyResultWithOriginalContent(originalContent: string, title: string): AdvancedAnalysisResult {
+    return {
+      sections: [],
+      clusters: [],
+      highConfidenceEntities: {
+        tasks: [],
+        appointments: [],
+        connections: [],
+        events: [],
+        personalSchedules: []
+      },
+      projectCandidates: [],
+      overallInsights: {
+        documentType: 'mixed_discussions',
+        businessValue: 0,
+        urgencyLevel: 'LOW',
+        keyTopics: [],
+        actionItemsCount: 0,
+        projectPotentialCount: 0,
+        confidence: 0.3, // 短いコンテンツでも最低限の信頼度
+        title: title || 'ドキュメントタイトル未設定',
+        summary: originalContent // 原文をそのまま保存
       }
     };
   }
