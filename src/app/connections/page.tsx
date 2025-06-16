@@ -23,7 +23,7 @@ export default function ConnectionsPage() {
     return matchesFilter && matchesSearch;
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const connectionData = {
@@ -40,14 +40,18 @@ export default function ConnectionsPage() {
       createdById: 'user1', // 仮のユーザーID（後でログイン機能実装時に修正）
     };
 
-    if (editingConnection) {
-      updateConnection(editingConnection.id, connectionData);
-    } else {
-      addConnection(connectionData);
-    }
+    try {
+      if (editingConnection) {
+        await updateConnection(editingConnection.id, connectionData);
+      } else {
+        await addConnection(connectionData);
+      }
 
-    setShowModal(false);
-    setEditingConnection(null);
+      setShowModal(false);
+      setEditingConnection(null);
+    } catch (error) {
+      console.error('Failed to save connection:', error);
+    }
   };
 
   if (loading) {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 import { extractDataFromTextWithAI } from '@/lib/ai/text-processor';
+import { getJSTISOString, getJSTNow, getJSTTimestampForID } from '@/lib/utils/datetime-jst';
 import { 
   sendReplyMessage, 
   createErrorMessage,
@@ -45,6 +47,36 @@ interface LineWebhookBody {
   destination: string;
 }
 
+// LINE署名検証関数
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function validateSignature(body: string, signature: string): boolean {
+  const channelSecret = process.env.LINE_CHANNEL_SECRET;
+  if (!channelSecret) {
+    console.error('LINE_CHANNEL_SECRET is not set');
+    return false;
+  }
+  
+  const hash = createHmac('sha256', channelSecret)
+    .update(body)
+    .digest('base64');
+  
+  return hash === signature;
+}
+
+// Priority変換関数
+function convertPriority(priority: string): 'A' | 'B' | 'C' | 'D' {
+  switch (priority?.toLowerCase()) {
+    case 'urgent':
+    case 'high': 
+      return 'A';
+    case 'medium':
+      return 'B';
+    case 'low':
+      return 'C';
+    default:
+      return 'C';
+  }
+}
 
 // メンション検知（フォールバック対応）
 function isMentioned(message: LineMessage): boolean {
@@ -335,11 +367,16 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
         if (sessionInfo) {
           console.log('🔄 Saving classified data with session info:', sessionInfo);
-          await saveClassifiedData(null, sessionInfo, userId);
+          const recordId = await saveClassifiedData(null, sessionInfo, userId);
           
-          // セッションを終了
-          sessionManager.endSession(userId, groupId);
-          console.log('🏁 Session ended after successful save');
+          // 🔧 FIX: 保存済みマークを付ける
+          if (recordId) {
+            sessionManager.markAsSaved(userId, groupId, recordId);
+            console.log('✅ Session marked as saved after classification confirm');
+          }
+          
+          // セッションを終了しない（詳細入力のため継続）
+          console.log('📝 Session continues for potential detailed input');
           
           if (event.replyToken) {
             const { createCompletionMessage } = await import('@/lib/line/notification');
@@ -387,8 +424,17 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       // 詳細入力開始
       const type = data.replace('start_detailed_input_', '');
       
-      // セッション開始
-      sessionManager.startSession(event.source.userId, event.source.groupId, type);
+      // セッション詳細をログ出力（デバッグ用）
+      const sessionDetailsBefore = sessionManager.getSessionDetails(event.source.userId, event.source.groupId);
+      console.log('🔍 Session details BEFORE detailed input:', sessionDetailsBefore);
+      
+      // 🔧 FIX: 既存セッションを優先的に再開し、データを引き継ぐ
+      const resumed = sessionManager.resumeSession(event.source.userId, event.source.groupId, type);
+      console.log(`📝 Detailed input ${resumed ? 'resumed' : 'started'} for type: ${type}`);
+      
+      // セッション詳細をログ出力（デバッグ用）
+      const sessionDetailsAfter = sessionManager.getSessionDetails(event.source.userId, event.source.groupId);
+      console.log('🔍 Session details AFTER detailed input:', sessionDetailsAfter);
       
       if (event.replyToken) {
         const { startDetailedInputFlow } = await import('@/lib/line/notification');
@@ -452,18 +498,26 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       // 途中保存
       const type = data.replace('save_partial_', '');
       
-      // セッション終了（データ取得後）
-      const sessionData = sessionManager.endSession(event.source.userId, event.source.groupId);
+      // セッション情報を取得（終了前）
+      const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
       
-      // データベースに保存
-      if (sessionData) {
-        try {
-          await saveClassifiedData(null, sessionData, userId);
-          console.log('✅ セッションデータを保存しました:', sessionData);
-        } catch (error) {
-          console.error('❌ セッションデータ保存エラー:', error);
+      if (sessionInfo) {
+        // 🔧 FIX: 保存済みかチェック
+        if (sessionInfo.savedToDb) {
+          console.log('📝 既に保存済みデータを更新:', sessionInfo.dbRecordId);
+          // TODO: 既存レコードの更新処理を実装
+          await updateExistingRecord(sessionInfo.dbRecordId!, sessionInfo, userId);
+        } else {
+          console.log('💾 新規データを保存');
+          const recordId = await saveClassifiedData(null, sessionInfo, userId);
+          if (recordId) {
+            sessionManager.markAsSaved(event.source.userId, event.source.groupId, recordId);
+          }
         }
       }
+      
+      // セッション終了
+      const sessionData = sessionManager.endSession(event.source.userId, event.source.groupId);
       
       if (event.replyToken) {
         let savedFields = '';
@@ -526,7 +580,7 @@ async function handleEvent(event: LineWebhookEvent): Promise<void> {
 
 // Webhook エンドポイント
 export async function POST(request: NextRequest) {
-  console.log('🚀 WEBHOOK ENDPOINT HIT! Time:', new Date().toISOString());
+  console.log('🚀 WEBHOOK ENDPOINT HIT! Time:', getJSTISOString());
   try {
     console.log('=== LINE Webhook POST START ===');
     console.log('Request method:', request.method);
@@ -575,13 +629,14 @@ async function saveClassifiedData(
   extractedData: any,
   sessionInfo: { type: string; data: Record<string, any> } | null,
   userId: string
-): Promise<void> {
+): Promise<string | null> {
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
   
   let systemUserId: string | undefined;
   let finalData: any;
   let type: string | undefined;
+  let createdRecordId: string | null = null;
   
   try {
     console.log('💾 Starting database save process');
@@ -631,9 +686,10 @@ async function saveClassifiedData(
           }
         }
         
+        createdRecordId = `ps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.personal_schedules.create({
           data: {
-            id: `ps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: createdRecordId,
             title: finalData.title || finalData.summary || '新しい個人予定',
             date: personalParsedDate,
             time: personalParsedTime,
@@ -641,7 +697,7 @@ async function saveClassifiedData(
             description: finalData.description || '',
             location: finalData.location || null,
             userId: systemUserId,
-            priority: finalData.priority || 'C',
+            priority: convertPriority(finalData.priority || 'C'),
             isAllDay: finalData.isAllDay || false,
           },
         });
@@ -666,9 +722,10 @@ async function saveClassifiedData(
           }
         }
         
+        createdRecordId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.calendar_events.create({
           data: {
-            id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: createdRecordId,
             title: finalData.title || finalData.summary || '新しい予定',
             date: parsedDate,
             time: parsedTime,
@@ -681,9 +738,10 @@ async function saveClassifiedData(
         break;
         
       case 'task':
+        createdRecordId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.tasks.create({
           data: {
-            id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: createdRecordId,
             title: finalData.title || finalData.summary || '新しいタスク',
             description: finalData.description || '',
             projectId: finalData.projectId || null,
@@ -699,9 +757,10 @@ async function saveClassifiedData(
         break;
         
       case 'project':
+        createdRecordId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.projects.create({
           data: {
-            id: `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: createdRecordId,
             name: finalData.title || finalData.name || '新しいプロジェクト',
             description: finalData.description || '',
             status: 'PLANNING',
@@ -714,9 +773,10 @@ async function saveClassifiedData(
         break;
         
       case 'contact':
+        createdRecordId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.connections.create({
           data: {
-            id: `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: createdRecordId,
             name: finalData.name || finalData.title || '新しい人脈',
             date: finalData.date || new Date().toISOString().split('T')[0],
             location: finalData.location || '',
@@ -727,21 +787,22 @@ async function saveClassifiedData(
             conversation: finalData.conversation || '',
             potential: finalData.potential || '',
             businessCard: finalData.businessCard || null,
-            updatedAt: new Date(),
+            updatedAt: new Date(getJSTNow()),
           },
         });
         break;
         
       case 'memo':
+        createdRecordId = `know_${getJSTTimestampForID()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.knowledge_items.create({
           data: {
-            id: `know_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: createdRecordId,
             title: finalData.title || finalData.summary || '新しいナレッジ',
             category: finalData.category || 'BUSINESS',
             content: finalData.content || finalData.description || '',
             author: systemUserId,
             tags: finalData.tags || [],
-            updatedAt: new Date(),
+            updatedAt: new Date(getJSTNow()),
           },
         });
         break;
@@ -751,6 +812,7 @@ async function saveClassifiedData(
     }
     
     console.log(`✅ データ保存完了: ${type}`, finalData);
+    return createdRecordId;
     
   } catch (error) {
     console.error('❌ データ保存エラー:', error);
@@ -761,6 +823,105 @@ async function saveClassifiedData(
       systemUserId: systemUserId,
       sessionInfo
     });
+    throw error;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// 既存レコード更新処理
+async function updateExistingRecord(
+  recordId: string,
+  sessionInfo: { type: string; data: Record<string, any> },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  userId: string
+): Promise<void> {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  
+  try {
+    console.log(`📝 更新処理開始: ${recordId}`);
+    
+    const updateData = sessionInfo.data;
+    const type = sessionInfo.type;
+    
+    switch (type) {
+      case 'personal_schedule':
+        await prisma.personal_schedules.update({
+          where: { id: recordId },
+          data: {
+            title: updateData.title || undefined,
+            description: updateData.description || undefined,
+            location: updateData.location || undefined,
+            // 他の更新可能フィールドも追加
+          },
+        });
+        break;
+        
+      case 'schedule':
+        await prisma.calendar_events.update({
+          where: { id: recordId },
+          data: {
+            title: updateData.title || undefined,
+            description: updateData.description || undefined,
+            location: updateData.location || undefined,
+          },
+        });
+        break;
+        
+      case 'task':
+        await prisma.tasks.update({
+          where: { id: recordId },
+          data: {
+            title: updateData.title || undefined,
+            description: updateData.description || undefined,
+            priority: updateData.priority || undefined,
+          },
+        });
+        break;
+        
+      case 'project':
+        await prisma.projects.update({
+          where: { id: recordId },
+          data: {
+            name: updateData.title || updateData.name || undefined,
+            description: updateData.description || undefined,
+          },
+        });
+        break;
+        
+      case 'contact':
+        await prisma.connections.update({
+          where: { id: recordId },
+          data: {
+            name: updateData.name || undefined,
+            company: updateData.company || undefined,
+            position: updateData.position || undefined,
+            description: updateData.description || undefined,
+          },
+        });
+        break;
+        
+      case 'memo':
+        await prisma.knowledge_items.update({
+          where: { id: recordId },
+          data: {
+            title: updateData.title || undefined,
+            content: updateData.content || updateData.description || undefined,
+            tags: updateData.tags || undefined,
+            updatedAt: new Date(getJSTNow()),
+          },
+        });
+        break;
+        
+      default:
+        throw new Error(`未対応の更新タイプ: ${type}`);
+    }
+    
+    console.log(`✅ レコード更新完了: ${recordId}`);
+    
+  } catch (error) {
+    console.error('❌ レコード更新エラー:', error);
     throw error;
   } finally {
     await prisma.$disconnect();

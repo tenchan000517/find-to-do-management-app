@@ -7,6 +7,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { Project, User } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Tabs from '@/components/Tabs';
 import ProjectsTable from '@/components/ProjectsTable';
 import GanttChart from '@/components/GanttChart';
@@ -35,7 +36,8 @@ const priorityColors = {
 };
 
 export default function ProjectsPage() {
-  const { projects, loading: projectsLoading, addProject, updateProject, deleteProject } = useProjects();
+  const projectsHook = useProjects();
+  const { projects, loading: projectsLoading, addProject, updateProject, deleteProject, refreshProjects } = projectsHook;
   const { tasks, loading: tasksLoading } = useTasks();
   const { users, loading: usersLoading } = useUsers();
   const { saveUserProfile } = useUserProfile();
@@ -44,6 +46,7 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState<'all' | 'planning' | 'active' | 'on_hold' | 'completed'>('all');
   const [activeTab, setActiveTab] = useState('table');
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectDetailModal, setProjectDetailModal] = useState<{ isOpen: boolean; project: Project | null }>({
     isOpen: false,
     project: null
@@ -76,6 +79,7 @@ export default function ProjectsPage() {
       priority: formData.get('priority') as Project['priority'],
     };
 
+    setIsSubmitting(true);
     try {
       if (editingProject) {
         await updateProject(editingProject.id, projectData);
@@ -87,6 +91,8 @@ export default function ProjectsPage() {
       setEditingProject(null);
     } catch (error) {
       console.error('Failed to save project:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -274,7 +280,15 @@ export default function ProjectsPage() {
         {/* モーダル */}
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
+              {/* ローディングオーバーレイ */}
+              {isSubmitting && (
+                <LoadingSpinner 
+                  overlay={true}
+                  message="プロジェクトを保存しています..."
+                  size="sm"
+                />
+              )}
               <h2 className="text-xl font-bold mb-4">
                 {editingProject ? 'プロジェクト編集' : '新規プロジェクト'}
               </h2>
@@ -371,17 +385,19 @@ export default function ProjectsPage() {
                 <div className="flex gap-2 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {editingProject ? '更新' : '作成'}
+                    {isSubmitting ? '保存中...' : editingProject ? '更新' : '作成'}
                   </button>
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => {
                       setShowModal(false);
                       setEditingProject(null);
                     }}
-                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium"
+                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     キャンセル
                   </button>
@@ -398,6 +414,7 @@ export default function ProjectsPage() {
             users={users}
             isOpen={projectDetailModal.isOpen}
             onClose={() => setProjectDetailModal({ isOpen: false, project: null })}
+            onDataRefresh={refreshProjects}
           />
         )}
 
@@ -412,6 +429,7 @@ export default function ProjectsPage() {
                 await saveUserProfile(userProfileModal.user.id, profile);
               }
             }}
+            onDataRefresh={refreshProjects}
           />
         )}
       </div>

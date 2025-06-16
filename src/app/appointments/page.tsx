@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAppointments } from '@/hooks/useAppointments';
 import { Appointment } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import AppointmentKanbanBoard from '@/components/AppointmentKanbanBoard';
 
 
@@ -57,13 +58,14 @@ const getPriorityStyle = (priority: string) => {
 };
 
 export default function AppointmentsPage() {
-  const { appointments, loading, addAppointment, updateAppointment, deleteAppointment } = useAppointments();
+  const { appointments, loading, addAppointment, updateAppointment, deleteAppointment, reload: refetchAppointments } = useAppointments();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [kanbanType, setKanbanType] = useState<'processing' | 'relationship' | 'phase' | 'source'>('processing');
   const [filter, setFilter] = useState<'all' | 'pending' | 'contacted' | 'interested' | 'not_interested' | 'scheduled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredAppointments = appointments.filter(appointment => {
     const matchesFilter = filter === 'all' || appointment.status === filter;
@@ -92,16 +94,22 @@ export default function AppointmentsPage() {
     };
 
     try {
+      setIsSubmitting(true);
       if (editingAppointment) {
         await updateAppointment(editingAppointment.id, appointmentData);
       } else {
         await addAppointment(appointmentData);
       }
 
+      // データ再読み込み
+      await refetchAppointments();
+      
       setShowModal(false);
       setEditingAppointment(null);
     } catch (error) {
       console.error('Failed to save appointment:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -469,6 +477,7 @@ export default function AppointmentsPage() {
               onAppointmentMove={handleAppointmentMove}
               onAppointmentEdit={handleAppointmentEdit}
               onAppointmentComplete={handleAppointmentComplete}
+              onDataRefresh={refetchAppointments}
             />
           </div>
         )}
@@ -480,6 +489,9 @@ export default function AppointmentsPage() {
               <h2 className="text-lg md:text-xl font-bold mb-4">
                 {editingAppointment ? 'アポ情報編集' : '新規アポ'}
               </h2>
+              {isSubmitting && (
+                <LoadingSpinner size="sm" message="保存中..." className="mb-4" />
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -599,17 +611,19 @@ export default function AppointmentsPage() {
                 <div className="flex gap-2 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium text-sm md:text-base"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2 px-4 rounded-md font-medium text-sm md:text-base"
                   >
-                    {editingAppointment ? '更新' : '作成'}
+                    {isSubmitting ? '保存中...' : (editingAppointment ? '更新' : '作成')}
                   </button>
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => {
                       setShowModal(false);
                       setEditingAppointment(null);
                     }}
-                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium text-sm md:text-base"
+                    className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-700 py-2 px-4 rounded-md font-medium text-sm md:text-base"
                   >
                     キャンセル
                   </button>

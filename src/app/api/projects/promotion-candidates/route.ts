@@ -96,48 +96,79 @@ async function handlePromoteCandidate(candidateId: string, projectData: any) {
 async function handleAutoPromoteAll(promotionEngine: ProjectPromotionEngine) {
   try {
     const candidates = await promotionEngine.detectPromotionCandidates();
-    const autoPromotionResults = [];
-
-    for (const candidate of candidates) {
-      const evaluation = await promotionEngine.evaluateAutoPromotion(candidate);
-      
-      if (evaluation.shouldAutoPromote) {
+    
+    // バッチ評価用のデータ準備
+    const evaluationPromises = candidates.map(candidate => 
+      promotionEngine.evaluateAutoPromotion(candidate)
+    );
+    
+    // 並列評価（最大5件ずつ）
+    const batchSize = 5;
+    const results = [];
+    
+    for (let i = 0; i < evaluationPromises.length; i += batchSize) {
+      const batch = evaluationPromises.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch);
+      results.push(...batchResults);
+    }
+    
+    // 昇華すべきプロジェクトのみフィルタリング
+    const toPromote = results
+      .map((evaluation, index) => ({
+        evaluation,
+        candidate: candidates[index]
+      }))
+      .filter(item => item.evaluation.shouldAutoPromote);
+    
+    // バッチでプロジェクト作成（Prismaのcreate Manyは使えないので、並列処理）
+    const promotionResults = [];
+    if (toPromote.length > 0) {
+      const projectCreationPromises = toPromote.map(async (item) => {
         try {
           const newProject = await prismaDataService.addProject({
-            name: candidate.suggestedProject.name,
-            description: candidate.suggestedProject.description,
+            name: item.candidate.suggestedProject.name,
+            description: item.candidate.suggestedProject.description,
             status: 'planning',
             progress: 0,
             startDate: new Date().toISOString().split('T')[0],
             teamMembers: [],
-            priority: candidate.suggestedProject.priority,
-            phase: candidate.suggestedProject.phase,
-            kgi: candidate.suggestedProject.kgi || ''
+            priority: item.candidate.suggestedProject.priority,
+            phase: item.candidate.suggestedProject.phase,
+            kgi: item.candidate.suggestedProject.kgi || ''
           });
 
-          autoPromotionResults.push({
-            candidateId: candidate.id,
+          return {
+            candidateId: item.candidate.id,
             projectId: newProject.id,
             success: true,
-            reasoning: evaluation.reasoning
-          });
+            reasoning: item.evaluation.reasoning
+          };
         } catch (error) {
-          autoPromotionResults.push({
-            candidateId: candidate.id,
+          return {
+            candidateId: item.candidate.id,
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error'
-          });
+          };
         }
+      });
+
+      // 並列プロジェクト作成（最大3件同時）
+      const creationBatchSize = 3;
+      for (let i = 0; i < projectCreationPromises.length; i += creationBatchSize) {
+        const batch = projectCreationPromises.slice(i, i + creationBatchSize);
+        const batchResults = await Promise.all(batch);
+        promotionResults.push(...batchResults);
       }
     }
 
     return NextResponse.json({
       success: true,
-      results: autoPromotionResults,
+      results: promotionResults,
       summary: {
         totalCandidates: candidates.length,
-        autoPromoted: autoPromotionResults.filter(r => r.success).length,
-        failed: autoPromotionResults.filter(r => !r.success).length
+        evaluated: results.length,
+        autoPromoted: promotionResults.filter(r => r.success).length,
+        failed: promotionResults.filter(r => !r.success).length
       }
     });
   } catch (error) {

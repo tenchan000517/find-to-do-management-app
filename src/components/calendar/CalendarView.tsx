@@ -9,6 +9,8 @@ import { ColorTabs } from './ColorTabs';
 import { WeeklyPreview } from './WeeklyPreview';
 import { DayEventsModal } from './DayEventsModal';
 import { EventEditModal } from './EventEditModal';
+import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface CalendarViewProps {
   className?: string;
@@ -16,7 +18,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ className = '' }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getJSTDate());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [colorMode, setColorMode] = useState<ColorMode>('user');
@@ -49,8 +51,8 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     }
     
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
+      startDate: getJSTDateString(startDate),
+      endDate: getJSTDateString(endDate)
     };
   };
 
@@ -162,7 +164,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
   // 今日に戻る
   const goToToday = () => {
-    setCurrentDate(new Date());
+    setCurrentDate(getJSTDate());
   };
 
   // 日付クリック処理
@@ -174,7 +176,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   // 選択日のイベント取得
   const getEventsForSelectedDate = () => {
     if (!selectedDate) return [];
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = getJSTDateString(selectedDate);
     return filteredEvents.filter(event => event.date === dateStr);
   };
 
@@ -243,12 +245,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       {/* カレンダー本体 */}
       <div className="relative">
         {loading && (
-          <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10">
-            <div className="flex items-center space-x-2 text-gray-600">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              <span className="text-sm">読み込み中...</span>
-            </div>
-          </div>
+          <LoadingSpinner overlay message="カレンダーデータを読み込んでいます..." />
         )}
 
         {viewMode === 'month' && (
@@ -306,6 +303,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         }}
         event={editingEvent}
         onSave={handleEventSave}
+        onDataRefresh={fetchEvents}
       />
     </div>
   );

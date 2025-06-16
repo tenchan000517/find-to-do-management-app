@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { KnowledgeItem } from '@/lib/types';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 
 const getCategoryStyle = (category: string) => {
@@ -488,14 +488,23 @@ function CreateKnowledgeModal({ onClose, onCreated }: CreateKnowledgeModalProps)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto relative">
+        {/* ローディングオーバーレイ */}
+        {isSubmitting && (
+          <LoadingSpinner 
+            overlay={true}
+            message="ナレッジを投稿しています..."
+            size="sm"
+          />
+        )}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">新しいナレッジを投稿</h2>
             <button
               type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              disabled={isSubmitting}
+              className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -588,7 +597,8 @@ function CreateKnowledgeModal({ onClose, onCreated }: CreateKnowledgeModalProps)
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               キャンセル
             </button>

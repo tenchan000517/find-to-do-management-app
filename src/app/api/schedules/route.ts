@@ -22,7 +22,16 @@ export async function GET(request: NextRequest) {
       priority: (searchParams.get('priority') as PriorityLevel) || undefined,
     };
 
-    const where: any = {};
+    interface WhereClause {
+      userId?: string;
+      priority?: 'A' | 'B' | 'C' | 'D';
+      date?: {
+        gte?: string;
+        lte?: string;
+      };
+    }
+    
+    const where: WhereClause = {};
 
     if (query.userId) {
       where.userId = query.userId;
@@ -67,7 +76,23 @@ export async function GET(request: NextRequest) {
       prisma.personal_schedules.count({ where }),
     ]);
 
-    const formattedSchedules: PersonalSchedule[] = schedules.map((schedule) => ({
+    type ScheduleWithUser = {
+      id: string;
+      title: string;
+      date: string;
+      time: string;
+      endTime: string | null;
+      description: string | null;
+      location: string | null;
+      userId: string;
+      priority: string | null;
+      isAllDay: boolean;
+      createdAt: Date;
+      updatedAt: Date;
+      users: { id: string; name: string; color: string } | null;
+    };
+    
+    const formattedSchedules: PersonalSchedule[] = schedules.map((schedule: ScheduleWithUser) => ({
       id: schedule.id,
       title: schedule.title,
       date: schedule.date,

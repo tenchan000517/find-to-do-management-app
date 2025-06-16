@@ -1,0 +1,24 @@
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::5555
+    at Server.setupListenHandle [as _listen2] (node:net:1939:16)
+    at listenInCluster (node:net:1996:12)
+    at Server.listen (node:net:2101:7)
+    at E6.start (/mnt/c/find-to-do-management-app/node_modules/prisma/build/index.js:4807:14103)
+    at e.parse (/mnt/c/find-to-do-management-app/node_modules/prisma/build/index.js:4846:1145)
+    at async r4t (/mnt/c/find-to-do-management-app/node_modules/prisma/build/index.js:4883:2099)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1975:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 5555
+}
+
+Node.js v22.16.0

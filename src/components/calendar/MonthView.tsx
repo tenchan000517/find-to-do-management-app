@@ -2,6 +2,7 @@
 
 import { CalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
+import { getJSTDate, getJSTDateString, isToday } from '@/lib/utils/datetime-jst';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -43,14 +44,13 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
 
   // 特定の日付のイベントを取得
   const getEventsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = getJSTDateString(date);
     return events.filter(event => event.date === dateStr);
   };
 
-  // 今日かどうかを判定
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+  // 今日かどうかを判定（JST基準）
+  const isTodayJST = (date: Date) => {
+    return isToday(getJSTDateString(date));
   };
 
   // 現在の月かどうかを判定
@@ -82,7 +82,7 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
         {days.map((date, index) => {
           const dayEvents = getEventsForDate(date);
           const isCurrentMonthDay = isCurrentMonth(date);
-          const isTodayDay = isToday(date);
+          const isTodayDay = isTodayJST(date);
           
           return (
             <div

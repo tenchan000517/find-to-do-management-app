@@ -22,6 +22,9 @@ model appointments {
   updatedAt       DateTime             @updatedAt
   details         appointment_details?
   calendar_events calendar_events[]
+
+  @@index([status], name: "idx_appointments_status")
+  @@index([updatedAt], name: "idx_appointments_updated")
 }
 
 model calendar_events {
@@ -63,6 +66,12 @@ model calendar_events {
   tasks           tasks?           @relation(fields: [taskId], references: [id])
   appointments    appointments?    @relation(fields: [appointmentId], references: [id])
   recurring_rules recurring_rules? @relation(fields: [recurringPattern], references: [id])
+
+  @@index([date], name: "idx_calendar_date")
+  @@index([userId, date], name: "idx_calendar_user_date")
+  @@index([appointmentId], name: "idx_calendar_appointment")
+  @@index([taskId], name: "idx_calendar_task")
+  @@index([projectId], name: "idx_calendar_project")
 }
 
 model connections {
@@ -91,6 +100,9 @@ model knowledge_items {
   likes     Int                @default(0)
   createdAt DateTime           @default(now())
   updatedAt DateTime
+
+  @@index([category], name: "idx_knowledge_category")
+  @@index([createdAt], name: "idx_knowledge_created")
 }
 
 model line_integration_logs {
@@ -176,6 +188,11 @@ model tasks {
   projects           projects?            @relation(fields: [projectId], references: [id])
   users              users                @relation(fields: [userId], references: [id])
   calendar_events    calendar_events[]
+
+  @@index([dueDate], name: "idx_tasks_due")
+  @@index([userId, isArchived, status], name: "idx_tasks_filter")
+  @@index([projectId], name: "idx_tasks_project")
+  @@index([createdAt], name: "idx_tasks_created")
 }
 
 model users {
@@ -474,5 +491,7 @@ model personal_schedules {
   updatedAt   DateTime @updatedAt
   users       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([date], name: "idx_personal_date")
+  @@index([userId, date], name: "idx_personal_user_date")
   @@map("personal_schedules")
 }

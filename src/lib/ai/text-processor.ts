@@ -102,16 +102,16 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
   } catch (error) {
     console.error('AI extraction error:', error);
     console.log('Falling back to simple extraction');
-    return extractDataFromTextSimple(text);
+    return await extractDataFromTextSimple(text);
   }
 }
 
 // 簡易抽出（AIなし）
-function extractDataFromTextSimple(text: string): ExtractedData {
+async function extractDataFromTextSimple(text: string): Promise<ExtractedData> {
   const command = extractCommand(text);
   
   // 日時抽出の簡易実装
-  const datetime = extractDateTime(text);
+  const datetime = await extractDateTime(text);
   
   // 人名抽出の簡易実装
   const attendees = extractAttendees(text);
@@ -186,40 +186,22 @@ function extractCommand(text: string): string | undefined {
   return undefined;
 }
 
-function extractDateTime(text: string): string | undefined {
-  const now = new Date();
-  
-  // 今日、明日の処理
-  if (text.includes('今日')) {
-    const timeMatch = text.match(/(\d{1,2}:\d{2}|\d{1,2}時)/);
-    if (timeMatch) {
-      const time = timeMatch[1].includes(':') ? timeMatch[1] : `${timeMatch[1].replace('時', '')}:00`;
-      return `${now.toISOString().split('T')[0]}T${time}:00`;
-    }
-  }
-  
-  if (text.includes('明日')) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const timeMatch = text.match(/(\d{1,2}:\d{2}|\d{1,2}時)/);
-    if (timeMatch) {
-      const time = timeMatch[1].includes(':') ? timeMatch[1] : `${timeMatch[1].replace('時', '')}:00`;
-      return `${tomorrow.toISOString().split('T')[0]}T${time}:00`;
-    }
-  }
-  
-  // 月日と時刻の組み合わせ
-  const dateTimeMatch = text.match(/(\d{1,2})[月\/](\d{1,2})[日]?\s*(\d{1,2}:\d{2}|\d{1,2}時)/);
-  if (dateTimeMatch) {
-    const month = parseInt(dateTimeMatch[1]);
-    const day = parseInt(dateTimeMatch[2]);
-    const time = dateTimeMatch[3].includes(':') ? dateTimeMatch[3] : `${dateTimeMatch[3].replace('時', '')}:00`;
+async function extractDateTime(text: string): Promise<string | undefined> {
+  try {
+    const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+    const parsed = await dateTimeParser.parse(text);
     
-    const year = now.getFullYear();
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${time}:00`;
+    if (parsed.confidence >= 0.3) {
+      // JST基準でISO形式を作成
+      return `${parsed.date}T${parsed.time}:00`;
+    }
+    
+    console.log(`⚠️ AI日時解析信頼度低: "${text}" (confidence: ${parsed.confidence})`);
+    return undefined;
+  } catch (error) {
+    console.error('❌ AI日時解析エラー:', error);
+    return undefined;
   }
-  
-  return undefined;
 }
 
 function extractAttendees(text: string): string[] {

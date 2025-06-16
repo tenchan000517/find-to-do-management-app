@@ -8,13 +8,15 @@ interface EventEditModalProps {
   onClose: () => void;
   event: CalendarEvent | null;
   onSave?: (event: CalendarEvent) => void;
+  onDataRefresh?: () => void;
 }
 
 export function EventEditModal({
   isOpen,
   onClose,
   event,
-  onSave
+  onSave,
+  onDataRefresh
 }: EventEditModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -44,31 +46,54 @@ export function EventEditModal({
     }
   }, [event]);
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleSave = async () => {
     if (!event) return;
 
+    setIsLoading(true);
     try {
       const updatedEvent: CalendarEvent = {
         ...event,
         ...formData
       };
 
+      // 個人予定の場合は直接schedules APIを使用
+      const isPersonalSchedule = event.id.startsWith('personal_');
+      const realId = isPersonalSchedule ? event.id.replace('personal_', '') : event.id;
+      const apiUrl = isPersonalSchedule 
+        ? `/api/schedules/${realId}`
+        : `/api/calendar/events/${event.id}`;
+      
+      const requestBody = isPersonalSchedule
+        ? {
+            title: formData.title,
+            date: formData.date,
+            time: formData.time,
+            endTime: formData.endTime || null,
+            description: formData.description,
+            location: formData.location,
+            priority: formData.priority,
+            isAllDay: formData.isAllDay
+          }
+        : {
+            title: formData.title,
+            date: formData.date,
+            time: formData.time,
+            endTime: formData.endTime || null,
+            category: formData.category,
+            description: formData.description,
+            location: formData.location,
+            importance: formData.priority === 'A' ? 0.9 : formData.priority === 'B' ? 0.7 : formData.priority === 'C' ? 0.5 : 0.3
+          };
+
       // API呼び出しで更新
-      const response = await fetch(`/api/calendar/events/${event.id}`, {
+      const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: formData.title,
-          date: formData.date,
-          time: formData.time,
-          endTime: formData.endTime || null,
-          category: formData.category,
-          description: formData.description,
-          location: formData.location,
-          importance: formData.priority === 'A' ? 0.9 : formData.priority === 'B' ? 0.7 : formData.priority === 'C' ? 0.5 : 0.3
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -78,10 +103,13 @@ export function EventEditModal({
       const savedEvent = await response.json();
       
       onSave?.(savedEvent);
+      onDataRefresh?.();
       onClose();
     } catch (error) {
       console.error('Failed to save event:', error);
       alert('イベントの保存に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,7 +119,8 @@ export function EventEditModal({
     APPOINTMENT: 'アポイントメント',
     TASK_DUE: 'タスク期限',
     PROJECT: 'プロジェクト',
-    EVENT: 'イベント'
+    EVENT: 'イベント',
+    PERSONAL: '個人予定'
   };
 
   const priorityLabels: Record<PriorityLevel, string> = {
@@ -276,9 +305,10 @@ export function EventEditModal({
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                disabled={isLoading}
+                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                保存
+                {isLoading ? '保存中...' : '保存'}
               </button>
             </div>
           </div>

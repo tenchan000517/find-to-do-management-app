@@ -75,12 +75,16 @@ interface DiscordMetric {
   updatedAt: string;
 }
 
-export default function Dashboard() {
-  const { tasks, loading: tasksLoading } = useTasks();
-  const { projects, loading: projectsLoading } = useProjects();
-  const { connections, loading: connectionsLoading } = useConnections();
-  const { appointments, loading: appointmentsLoading } = useAppointments();
-  const { events, loading: eventsLoading } = useCalendarEvents();
+interface DashboardProps {
+  onDataRefresh?: () => void;
+}
+
+export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
+  const { tasks, loading: tasksLoading, refreshTasks } = useTasks();
+  const { projects, loading: projectsLoading, refreshProjects } = useProjects();
+  const { connections, loading: connectionsLoading, refreshConnections } = useConnections();
+  const { appointments, loading: appointmentsLoading, reload: reloadAppointments } = useAppointments();
+  const { events, loading: eventsLoading, refreshEvents } = useCalendarEvents();
   
   // Discord metrics state
   const [discordMetrics, setDiscordMetrics] = useState<DiscordMetric[]>([]);
@@ -93,22 +97,44 @@ export default function Dashboard() {
     appointments: { total: 0, scheduled: 0, completed: 0, thisWeek: 0 }
   });
 
-  // Discord metricsを取得
-  useEffect(() => {
-    const fetchDiscordMetrics = async () => {
-      try {
-        const response = await fetch('/api/discord/metrics?days=7');
-        if (response.ok) {
-          const data = await response.json();
-          setDiscordMetrics(data.data || []);
-        }
-      } catch (error) {
-        console.error('Discord metrics fetch error:', error);
-      } finally {
-        setDiscordLoading(false);
+  // 全データの再読み込み関数
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const refreshAllData = async () => {
+    try {
+      if (onDataRefresh) {
+        onDataRefresh();
+      } else {
+        await Promise.all([
+          refreshTasks(),
+          refreshProjects(),
+          refreshConnections(),
+          reloadAppointments(),
+          refreshEvents(),
+          fetchDiscordMetrics()
+        ]);
       }
-    };
-    
+    } catch (error) {
+      console.error('Failed to refresh dashboard data:', error);
+    }
+  };
+
+  // Discord metricsを取得
+  const fetchDiscordMetrics = async () => {
+    try {
+      setDiscordLoading(true);
+      const response = await fetch('/api/discord/metrics?days=7');
+      if (response.ok) {
+        const data = await response.json();
+        setDiscordMetrics(data.data || []);
+      }
+    } catch (error) {
+      console.error('Discord metrics fetch error:', error);
+    } finally {
+      setDiscordLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDiscordMetrics();
   }, []);
 

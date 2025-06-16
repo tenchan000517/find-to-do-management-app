@@ -79,11 +79,29 @@ export function useCalendarEvents() {
     }
   };
 
+  const refreshEvents = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/calendar');
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data);
+      } else {
+        throw new Error('Failed to fetch calendar events');
+      }
+    } catch (error) {
+      console.error('Failed to refresh calendar events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     events,
     loading,
     addEvent,
     updateEvent,
     deleteEvent,
+    refreshEvents,
   };
 }

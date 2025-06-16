@@ -1,0 +1,360 @@
+
+> find-to-do-management-app@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://172.23.53.187:3000
+   - Environments: .env.development.local, .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 14.1s
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbo
+
+ ○ Compiling /api/calendar/events/[id] ...
+ ✓ Compiled /api/calendar/events/[id] in 2.4s
+ PUT /api/calendar/events/personal_ps_1750033274803_5a70etu3r 200 in 11603ms
+ ○ Compiling /calendar ...
+ ✓ Compiled /calendar in 8.2s
+ GET /calendar 200 in 8895ms
+ ○ Compiling /_not-found/page ...
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 1988ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 3486ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 1210ms
+ ✓ Compiled /_not-found/page in 4.5s
+ GET /api/users 200 in 4329ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30&includeRecurring=true 200 in 6240ms
+ GET /api/calendar/events?startDate=2025-04-01&endDate=2025-06-30 200 in 4205ms
+ GET /api/calendar/events?startDate=2025-04-01&endDate=2025-06-30 200 in 4385ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30 200 in 3919ms
+ GET /api/calendar/events?startDate=2025-05-01&endDate=2025-05-31&includeRecurring=true 200 in 2864ms
+ GET /api/calendar/events?startDate=2025-04-01&endDate=2025-04-30&includeRecurring=true 200 in 3610ms
+ GET /api/calendar/events?startDate=2025-05-01&endDate=2025-05-31&includeRecurring=true 200 in 2936ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30&includeRecurring=true 200 in 3966ms
+ GET /calendar 200 in 595ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 686ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 752ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 646ms
+ GET /api/users 200 in 2883ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30&includeRecurring=true 200 in 5110ms
+ GET /api/calendar/events?startDate=2025-06-15&endDate=2025-06-21&includeRecurring=true 200 in 3618ms
+ GET /api/calendar/events?startDate=2025-06-16&endDate=2025-06-16&includeRecurring=true 200 in 3381ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30&includeRecurring=true 200 in 3976ms
+ GET /calendar 200 in 638ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 479ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 744ms
+ GET /api/users 200 in 1344ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 1067ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30&includeRecurring=true 200 in 4518ms
+ GET /calendar 200 in 582ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 535ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 778ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 725ms
+ GET /api/users 200 in 1494ms
+ GET /api/calendar/events?startDate=2025-06-01&endDate=2025-06-30&includeRecurring=true 200 in 4870ms
+ PUT /api/calendar/events/personal_ps_1750033274803_5a70etu3r 200 in 3473ms
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 2.9s
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.7jr8ykrdp3v'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.7jr8ykrdp3v'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.lio4li98e8s'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.lio4li98e8s'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.xre7q2xyov'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.xre7q2xyov'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.y9c4qgn0s'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.y9c4qgn0s'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.uyhqstowo1'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.uyhqstowo1'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.zcrc81hogt'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/static/development/_buildManifest.js.tmp.zcrc81hogt'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/calendar/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/mnt/c/find-to-do-management-app/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+[?25h

@@ -8,12 +8,41 @@ interface ParsedDateTime {
 }
 
 export class DateTimeParser {
+  // JST基準の日付取得
+  private getJSTDate(): Date {
+    const now = new Date();
+    const jstOffset = 9 * 60; // JST = UTC+9
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (jstOffset * 60000));
+  }
+
+  // 入力正規化（全角→半角、自然言語→構造化）
+  private normalizeInput(input: string): string {
+    const normalized = input
+      // 全角コロン→半角コロン
+      .replace(/：/g, ':')
+      // 全角数字→半角数字（完全版）
+      .replace(/０/g, '0').replace(/１/g, '1').replace(/２/g, '2').replace(/３/g, '3').replace(/４/g, '4')
+      .replace(/５/g, '5').replace(/６/g, '6').replace(/７/g, '7').replace(/８/g, '8').replace(/９/g, '9')
+      // 全角英数字→半角英数字
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+      })
+      // 自然言語正規化
+      .replace(/あした|アシタ/g, '明日')
+      .replace(/きょう|キョウ/g, '今日')
+      .replace(/らいしゅう|ライシュウ/g, '来週')
+      .trim();
+    
+    console.log(`🔄 正規化: "${input}" → "${normalized}"`);
+    return normalized;
+  }
   private patterns = [
     // 明日系（時刻なし）
     { 
       regex: /^明日(?:の)?(?!.*\d).*$/,
       handler: (match: RegExpMatchArray) => {
-        const tomorrow = new Date();
+        const tomorrow = this.getJSTDate();
         tomorrow.setDate(tomorrow.getDate() + 1);
         
         return {
@@ -31,7 +60,7 @@ export class DateTimeParser {
       handler: (match: RegExpMatchArray) => {
         const hour = parseInt(match[1]);
         const minute = match[2] ? parseInt(match[2]) : 0;
-        const tomorrow = new Date();
+        const tomorrow = this.getJSTDate();
         tomorrow.setDate(tomorrow.getDate() + 1);
         
         return {
@@ -47,7 +76,7 @@ export class DateTimeParser {
     {
       regex: /^今日(?:の)?(?!.*\d).*$/,
       handler: (match: RegExpMatchArray) => {
-        const today = new Date();
+        const today = this.getJSTDate();
         
         return {
           date: today.toISOString().split('T')[0],
@@ -146,7 +175,7 @@ export class DateTimeParser {
 
   // パターンマッチング解析
   parseWithPatterns(input: string): ParsedDateTime | null {
-    const cleanInput = input.trim();
+    const cleanInput = this.normalizeInput(input);
     
     for (const pattern of this.patterns) {
       const match = cleanInput.match(pattern.regex);
@@ -165,36 +194,57 @@ export class DateTimeParser {
     return null;
   }
 
-  // AI解析（フォールバック）
+  // AI解析（正規化特化）
   async parseWithAI(input: string): Promise<ParsedDateTime | null> {
     try {
-      console.log(`🤖 AI解析開始: "${input}"`);
+      const normalizedInput = this.normalizeInput(input);
+      console.log(`🤖 AI解析開始: "${input}" → "${normalizedInput}"`);
       
-      // AI解析の実装（既存のAI処理を活用）
+      const today = this.getJSTDate();
+      const todayStr = today.toISOString().split('T')[0];
+      
       const prompt = `
-以下の日時表現を解析して、日付と時間を抽出してください。
-今日は${new Date().toISOString().split('T')[0]}です。
+以下の日時表現を正規化して、日付と時間を抽出してください。
+今日は${todayStr}（${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日）です。
+
+重要なルール：
+1. 今年の過去日付は来年に自動変換
+2. 相対表現（明日、来週等）はJST基準で計算
+3. 全角文字は半角に正規化済み
 
 入力: "${input}"
 
 以下のJSON形式で回答してください：
 {
   "date": "YYYY-MM-DD",
-  "time": "HH:mm",
+  "time": "HH:mm", 
   "confidence": 0.0-1.0
 }
 
-解析できない場合は null を返してください。
+特に以下のパターンを重視：
+- 時間のみ（14:00等）→今日の該当時間
+- 月日表現（6/5、6月5日等）→今年または来年
+- 自然言語（来週火曜等）→具体日付変換
 `;
 
-      // TODO: AI API呼び出し実装
-      // 現在は簡易実装
-      return {
-        date: new Date().toISOString().split('T')[0],
-        time: "00:00",
-        confidence: 0.5,
-        method: 'ai'
-      };
+      // 実際のAI呼び出し（Gemini API使用想定）
+      // 現在は時間のみの簡易処理
+      const timeMatch = normalizedInput.match(/(\d{1,2}):(\d{2})/);
+      if (timeMatch) {
+        const hour = parseInt(timeMatch[1]);
+        const minute = parseInt(timeMatch[2]);
+        
+        if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+          return {
+            date: todayStr,
+            time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+            confidence: 0.8,
+            method: 'ai'
+          };
+        }
+      }
+      
+      return null;
       
     } catch (error) {
       console.error('❌ AI解析エラー:', error);
@@ -218,8 +268,9 @@ export class DateTimeParser {
 
     // 3. フォールバック（今日・デフォルト時間）
     console.log(`⚠️ 解析失敗、フォールバック: "${input}"`);
+    const fallbackDate = this.getJSTDate();
     return {
-      date: new Date().toISOString().split('T')[0],
+      date: fallbackDate.toISOString().split('T')[0],
       time: "00:00",
       confidence: 0.1,
       method: 'fallback'

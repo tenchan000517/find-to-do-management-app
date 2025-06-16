@@ -117,7 +117,8 @@ export function ColorTabs({
       APPOINTMENT: 'アポ',
       TASK_DUE: 'タスク',
       PROJECT: 'プロジェクト',
-      EVENT: 'イベント'
+      EVENT: 'イベント',
+      PERSONAL: '個人'
     };
 
     return (

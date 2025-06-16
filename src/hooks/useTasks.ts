@@ -173,6 +173,23 @@ export function useTasks() {
     }
   };
 
+  const refreshTasks = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setTasks(data);
+      } else {
+        throw new Error('Failed to fetch tasks');
+      }
+    } catch (error) {
+      console.error('Failed to refresh tasks:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     tasks,
     loading,
@@ -184,5 +201,6 @@ export function useTasks() {
     restoreTask,
     addCollaborator,
     removeCollaborator,
+    refreshTasks,
   };
 }

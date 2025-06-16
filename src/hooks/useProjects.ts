@@ -85,11 +85,29 @@ export function useProjects() {
     }
   };
 
+  const refreshProjects = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/projects');
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      } else {
+        throw new Error('Failed to fetch projects');
+      }
+    } catch (error) {
+      console.error('Failed to refresh projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     projects,
     loading,
     addProject,
     updateProject,
     deleteProject,
+    refreshProjects,
   };
 }

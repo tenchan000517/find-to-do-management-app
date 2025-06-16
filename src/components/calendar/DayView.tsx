@@ -2,6 +2,7 @@
 
 import { CalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
+import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
 
 interface DayViewProps {
   currentDate: Date;
@@ -22,7 +23,7 @@ export function DayView({ currentDate, events, colorMode }: DayViewProps) {
 
   // 当日のイベントを取得
   const getDayEvents = () => {
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getJSTDateString(currentDate);
     return events.filter(event => event.date === dateStr);
   };
 
@@ -49,8 +50,8 @@ export function DayView({ currentDate, events, colorMode }: DayViewProps) {
 
   // 現在時刻を取得（ハイライト用）
   const getCurrentTimeSlot = () => {
-    const now = new Date();
-    if (now.toDateString() !== currentDate.toDateString()) return null;
+    const now = getJSTDate();
+    if (getJSTDateString(now) !== getJSTDateString(currentDate)) return null;
     
     const hour = now.getHours();
     const minute = now.getMinutes();

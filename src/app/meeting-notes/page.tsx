@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface MeetingNote {
   id: number;
@@ -42,6 +43,7 @@ export default function MeetingNotesPage() {
 
   const [selectedNote, setSelectedNote] = useState<MeetingNote | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [newNote, setNewNote] = useState<Partial<MeetingNote>>({
     title: '',
     date: '',
@@ -78,18 +80,33 @@ export default function MeetingNotesPage() {
     setSelectedNote(null);
   };
 
-  const saveNote = () => {
-    if (selectedNote) {
-      // 編集の場合
-      setNotes(notes.map(note => 
-        note.id === selectedNote.id ? {...newNote as MeetingNote, id: selectedNote.id} : note
-      ));
-    } else {
-      // 新規作成の場合
-      const id = Math.max(...notes.map(n => n.id)) + 1;
-      setNotes([...notes, {...newNote as MeetingNote, id}]);
+  const saveNote = async () => {
+    if (!newNote.title || !newNote.author) {
+      return;
     }
-    closeModal();
+
+    setIsLoading(true);
+    try {
+      // サーバーでの保存をシミュレート
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (selectedNote) {
+        // 編集の場合
+        setNotes(notes.map(note => 
+          note.id === selectedNote.id ? {...newNote as MeetingNote, id: selectedNote.id} : note
+        ));
+      } else {
+        // 新規作成の場合
+        const id = Math.max(...notes.map(n => n.id)) + 1;
+        setNotes([...notes, {...newNote as MeetingNote, id}]);
+      }
+      
+      closeModal();
+    } catch (error) {
+      console.error('Failed to save note:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const deleteNote = (id: number) => {
@@ -193,7 +210,15 @@ export default function MeetingNotesPage() {
         {/* モーダル */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+              {/* ローディングオーバーレイ */}
+              {isLoading && (
+                <LoadingSpinner 
+                  overlay={true}
+                  message="議事録を保存しています..."
+                  size="sm"
+                />
+              )}
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">
                 {selectedNote ? '議事録編集' : '新規議事録作成'}
               </h2>
@@ -283,15 +308,17 @@ export default function MeetingNotesPage() {
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={closeModal}
-                  className="px-2 md:px-4 py-2 text-gray-600 hover:text-gray-800 text-sm md:text-base"
+                  disabled={isLoading}
+                  className="px-2 md:px-4 py-2 text-gray-600 hover:text-gray-800 text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={saveNote}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 md:px-4 py-2 rounded-lg text-sm md:text-base"
+                  disabled={isLoading || !newNote.title || !newNote.author}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 md:px-4 py-2 rounded-lg text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  保存
+                  {isLoading ? '保存中...' : '保存'}
                 </button>
               </div>
             </div>

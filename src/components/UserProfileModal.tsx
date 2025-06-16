@@ -8,9 +8,10 @@ interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (profile: Partial<User>) => Promise<void>;
+  onDataRefresh?: () => void;
 }
 
-export default function UserProfileModal({ user, isOpen, onClose, onSave }: UserProfileModalProps) {
+export default function UserProfileModal({ user, isOpen, onClose, onSave, onDataRefresh }: UserProfileModalProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'skills' | 'preferences' | 'workstyle'>('skills');
   
@@ -64,6 +65,9 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave }: User
     try {
       setLoading(true);
       await onSave({ skills, preferences, workStyle });
+      
+      // データの再読み込みを実行
+      onDataRefresh?.();
       onClose();
     } catch (error) {
       console.error('Failed to save profile:', error);

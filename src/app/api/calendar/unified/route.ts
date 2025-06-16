@@ -8,6 +8,8 @@ import {
   EventCategory,
   PriorityLevel 
 } from '@/types/calendar';
+import { cache } from '@/lib/cache/memory-cache';
+import { getJSTISOString } from '@/lib/utils/datetime-jst';
 
 const prisma = new PrismaClient();
 
@@ -30,6 +32,134 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // キャッシュキー生成
+    const cacheKey = `calendar:unified:${searchParams.toString()}`;
+    
+    // キャッシュチェック
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      return NextResponse.json({
+        ...cached,
+        _cached: true,
+        _cacheTimestamp: getJSTISOString()
+      });
+    }
+
+    // 並列クエリで全データ取得
+    const baseWhere = {
+      date: {
+        gte: query.startDate,
+        lte: query.endDate,
+      },
+      ...(query.userId && { userId: query.userId })
+    };
+
+    const queryPromises = [];
+    
+    // 1. 個人予定取得
+    if (query.includePersonal) {
+      queryPromises.push(
+        prisma.personal_schedules.findMany({
+          where: baseWhere,
+          select: {
+            id: true,
+            title: true,
+            date: true,
+            time: true,
+            endTime: true,
+            description: true,
+            location: true,
+            priority: true,
+            userId: true,
+            isAllDay: true,
+            users: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              }
+            }
+          }
+        })
+      );
+    } else {
+      queryPromises.push(Promise.resolve([]));
+    }
+    
+    // 2. カレンダーイベント取得
+    if (query.includePublic) {
+      queryPromises.push(
+        prisma.calendar_events.findMany({
+          where: baseWhere,
+          select: {
+            id: true,
+            title: true,
+            date: true,
+            time: true,
+            endTime: true,
+            type: true,
+            category: true,
+            description: true,
+            location: true,
+            importance: true,
+            colorCode: true,
+            isAllDay: true,
+            userId: true,
+            projectId: true,
+            taskId: true,
+            appointmentId: true,
+            users: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              }
+            }
+          }
+        })
+      );
+    } else {
+      queryPromises.push(Promise.resolve([]));
+    }
+    
+    // 3. タスク期限取得
+    if (query.includePublic) {
+      queryPromises.push(
+        prisma.tasks.findMany({
+          where: {
+            dueDate: {
+              gte: query.startDate,
+              lte: query.endDate,
+            },
+            isArchived: false,
+            ...(query.userId && { userId: query.userId })
+          },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            dueDate: true,
+            priority: true,
+            userId: true,
+            projectId: true,
+            users: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              }
+            }
+          }
+        })
+      );
+    } else {
+      queryPromises.push(Promise.resolve([]));
+    }
+    
+    // 並列実行
+    const [personalSchedules, calendarEvents, tasks] = await Promise.all(queryPromises);
+    
+    // データ変換とマージ
     const events: UnifiedCalendarEvent[] = [];
     const sources = {
       calendar_events: 0,
@@ -38,252 +168,94 @@ export async function GET(request: NextRequest) {
       appointments: 0,
     };
 
-    // 1. 個人予定の取得
-    if (query.includePersonal) {
-      const personalWhere: any = {
-        date: {
-          gte: query.startDate,
-          lte: query.endDate,
-        },
-      };
+    // 個人予定の変換
+    personalSchedules.forEach((schedule: any) => {
+      events.push({
+        id: schedule.id,
+        title: schedule.title,
+        date: schedule.date,
+        time: schedule.time,
+        endTime: schedule.endTime || undefined,
+        type: 'EVENT' as EventType,
+        category: 'PERSONAL' as EventCategory,
+        description: schedule.description || undefined,
+        location: schedule.location || undefined,
+        source: 'personal_schedules',
+        isPersonal: true,
+        priority: schedule.priority as PriorityLevel,
+        userId: schedule.userId,
+        users: schedule.users ? {
+          id: schedule.users.id,
+          name: schedule.users.name,
+          color: schedule.users.color,
+        } : undefined,
+        isAllDay: schedule.isAllDay,
+      });
+    });
+    sources.personal_schedules = personalSchedules.length;
 
-      if (query.userId) {
-        personalWhere.userId = query.userId;
+    // カレンダーイベントの変換
+    calendarEvents.forEach((event: any) => {
+      events.push({
+        id: event.id,
+        title: event.title,
+        date: event.date,
+        time: event.time,
+        endTime: event.endTime || undefined,
+        type: event.type as EventType,
+        category: event.category as EventCategory,
+        description: event.description || undefined,
+        location: event.location || undefined,
+        source: 'calendar_events',
+        isPersonal: false,
+        userId: event.userId || undefined,
+        projectId: event.projectId || undefined,
+        taskId: event.taskId || undefined,
+        appointmentId: event.appointmentId || undefined,
+        users: event.users ? {
+          id: event.users.id,
+          name: event.users.name,
+          color: event.users.color,
+        } : undefined,
+        colorCode: event.colorCode || undefined,
+        isAllDay: event.isAllDay,
+        importance: event.importance,
+      });
+      
+      // アポイントメント関連イベントもカウント
+      if (event.appointmentId) {
+        sources.appointments++;
       }
+    });
+    sources.calendar_events = calendarEvents.length;
 
-      const personalSchedules = await prisma.personal_schedules.findMany({
-        where: personalWhere,
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-        },
-        orderBy: [
-          { date: 'asc' },
-          { time: 'asc' },
-        ],
-      });
-
-      personalSchedules.forEach((schedule) => {
+    // タスクの変換
+    tasks.forEach((task: any) => {
+      if (task.dueDate) {
         events.push({
-          id: schedule.id,
-          title: schedule.title,
-          date: schedule.date,
-          time: schedule.time,
-          endTime: schedule.endTime || undefined,
-          type: 'EVENT' as EventType,
-          category: 'PERSONAL' as EventCategory,
-          description: schedule.description || undefined,
-          location: schedule.location || undefined,
-          source: 'personal_schedules',
-          isPersonal: true,
-          priority: schedule.priority as PriorityLevel,
-          userId: schedule.userId,
-          users: schedule.users ? {
-            id: schedule.users.id,
-            name: schedule.users.name,
-            color: schedule.users.color,
-          } : undefined,
-          isAllDay: schedule.isAllDay,
-        });
-      });
-
-      sources.personal_schedules = personalSchedules.length;
-    }
-
-    // 2. パブリックイベントの取得
-    if (query.includePublic) {
-      const calendarWhere: any = {
-        date: {
-          gte: query.startDate,
-          lte: query.endDate,
-        },
-      };
-
-      if (query.userId) {
-        calendarWhere.userId = query.userId;
-      }
-
-      const calendarEvents = await prisma.calendar_events.findMany({
-        where: calendarWhere,
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-          projects: {
-            select: {
-              id: true,
-              name: true,
-              priority: true,
-            },
-          },
-          tasks: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              priority: true,
-            },
-          },
-          appointments: {
-            select: {
-              id: true,
-              companyName: true,
-              contactName: true,
-              priority: true,
-            },
-          },
-        },
-        orderBy: [
-          { date: 'asc' },
-          { time: 'asc' },
-        ],
-      });
-
-      calendarEvents.forEach((event) => {
-        events.push({
-          id: event.id,
-          title: event.title,
-          date: event.date,
-          time: event.time,
-          endTime: event.endTime || undefined,
-          type: event.type as EventType,
-          category: event.category as EventCategory,
-          description: event.description || undefined,
-          location: event.location || undefined,
-          source: 'calendar_events',
+          id: `task_${task.id}`,
+          title: `📋 ${task.title}`,
+          date: task.dueDate,
+          time: '23:59',
+          type: 'DEADLINE' as EventType,
+          category: 'TASK_DUE' as EventCategory,
+          description: task.description || undefined,
+          source: 'tasks',
           isPersonal: false,
-          userId: event.userId || undefined,
-          projectId: event.projectId || undefined,
-          taskId: event.taskId || undefined,
-          appointmentId: event.appointmentId || undefined,
-          users: event.users ? {
-            id: event.users.id,
-            name: event.users.name,
-            color: event.users.color,
-          } : undefined,
-          colorCode: event.colorCode || undefined,
-          isAllDay: event.isAllDay,
-          importance: event.importance,
+          priority: task.priority as PriorityLevel,
+          userId: task.userId,
+          projectId: task.projectId || undefined,
+          taskId: task.id,
+          users: {
+            id: task.users.id,
+            name: task.users.name,
+            color: task.users.color,
+          },
+          isAllDay: true,
         });
-      });
-
-      sources.calendar_events = calendarEvents.length;
-    }
-
-    // 3. タスク期限の取得（オプション）
-    if (query.includePublic) {
-      const taskWhere: any = {
-        dueDate: {
-          gte: query.startDate,
-          lte: query.endDate,
-        },
-        isArchived: false,
-      };
-
-      if (query.userId) {
-        taskWhere.userId = query.userId;
       }
-
-      const tasks = await prisma.tasks.findMany({
-        where: taskWhere,
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-          projects: {
-            select: {
-              id: true,
-              name: true,
-              priority: true,
-            },
-          },
-        },
-        orderBy: [
-          { dueDate: 'asc' },
-        ],
-      });
-
-      tasks.forEach((task) => {
-        if (task.dueDate) {
-          events.push({
-            id: `task_${task.id}`,
-            title: `📋 ${task.title}`,
-            date: task.dueDate,
-            time: '23:59', // タスク期限は終日扱い
-            type: 'DEADLINE' as EventType,
-            category: 'TASK_DUE' as EventCategory,
-            description: task.description || undefined,
-            source: 'tasks',
-            isPersonal: false,
-            priority: task.priority as PriorityLevel,
-            userId: task.userId,
-            projectId: task.projectId || undefined,
-            taskId: task.id,
-            users: {
-              id: task.users.id,
-              name: task.users.name,
-              color: task.users.color,
-            },
-            isAllDay: true,
-          });
-        }
-      });
-
-      sources.tasks = tasks.filter(t => t.dueDate).length;
-    }
-
-    // 4. アポイントメントの取得（オプション）
-    if (query.includePublic) {
-      // ここではアポイントメントが関連するcalendar_eventsを取得
-      // 別途アポイントメント専用の日付フィールドがあれば、そちらも考慮
-      const appointmentEvents = await prisma.calendar_events.findMany({
-        where: {
-          appointmentId: { not: null },
-          date: {
-            gte: query.startDate,
-            lte: query.endDate,
-          },
-        },
-        include: {
-          appointments: {
-            select: {
-              id: true,
-              companyName: true,
-              contactName: true,
-              priority: true,
-            },
-          },
-          users: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
-        },
-      });
-
-      appointmentEvents.forEach((event) => {
-        if (event.appointments) {
-          // 既にcalendar_eventsとして追加されているので、ここでは重複を避ける
-          // sources.appointmentsのカウントのみ行う
-          sources.appointments++;
-        }
-      });
-    }
+    });
+    sources.tasks = tasks.filter((t: any) => t.dueDate).length;
 
     // イベントを日時順でソート
     events.sort((a, b) => {
@@ -297,6 +269,9 @@ export async function GET(request: NextRequest) {
       totalCount: events.length,
       sources,
     };
+
+    // キャッシュに保存（5分間）
+    await cache.set(cacheKey, response, 300);
 
     return NextResponse.json(response);
   } catch (error) {

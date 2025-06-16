@@ -72,36 +72,39 @@ export async function POST(request: Request) {
       }))
     );
 
-    // Update appointment details with evaluations
-    const updatePromises = appointments.map(async (appointment: AppointmentWithDetails) => {
-      const evaluation = evaluations.get(appointment.id);
-      if (!evaluation) return null;
+    // Update appointment details with evaluations using transaction
+    const updateOperations = appointments
+      .map((appointment: AppointmentWithDetails) => {
+        const evaluation = evaluations.get(appointment.id);
+        if (!evaluation) return null;
 
-      return prisma.appointment_details.upsert({
-        where: { appointmentId: appointment.id },
-        create: {
-          appointmentId: appointment.id,
-          importance: evaluation.importance,
-          businessValue: evaluation.businessValue,
-          closingProbability: evaluation.closingProbability,
-          followUpActions: evaluation.nextActions,
-          internalNotes: evaluation.reasoning
-        },
-        update: {
-          importance: evaluation.importance,
-          businessValue: evaluation.businessValue,
-          closingProbability: evaluation.closingProbability,
-          followUpActions: evaluation.nextActions,
-          internalNotes: evaluation.reasoning
-        }
-      });
-    });
+        return prisma.appointment_details.upsert({
+          where: { appointmentId: appointment.id },
+          create: {
+            appointmentId: appointment.id,
+            importance: evaluation.importance,
+            businessValue: evaluation.businessValue,
+            closingProbability: evaluation.closingProbability,
+            followUpActions: evaluation.nextActions,
+            internalNotes: evaluation.reasoning
+          },
+          update: {
+            importance: evaluation.importance,
+            businessValue: evaluation.businessValue,
+            closingProbability: evaluation.closingProbability,
+            followUpActions: evaluation.nextActions,
+            internalNotes: evaluation.reasoning
+          }
+        });
+      })
+      .filter((op): op is NonNullable<typeof op> => op !== null);
 
-    const results = await Promise.all(updatePromises);
+    // Execute all updates in a single transaction for better performance
+    const results = await prisma.$transaction(updateOperations);
 
     return NextResponse.json({
       success: true,
-      evaluatedCount: results.filter(r => r !== null).length,
+      evaluatedCount: results.length,
       evaluations: Object.fromEntries(evaluations)
     });
   } catch (error) {

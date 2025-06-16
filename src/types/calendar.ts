@@ -65,12 +65,14 @@ export type EventCategory =
   | 'APPOINTMENT'
   | 'TASK_DUE'
   | 'PROJECT'
-  | 'EVENT';
+  | 'EVENT'
+  | 'PERSONAL';
 
 export type EventType =
   | 'MEETING'
   | 'EVENT'
-  | 'DEADLINE';
+  | 'DEADLINE'
+  | 'PERSONAL';
 
 // Prismaから返される型をより正確に定義
 export interface PrismaCalendarEvent {
@@ -161,7 +163,8 @@ export const CATEGORY_COLORS = {
   APPOINTMENT: '#10B981',  // 緑 - アポイントメント
   TASK_DUE: '#F59E0B',     // オレンジ - タスク期限
   PROJECT: '#8B5CF6',      // 紫 - プロジェクト
-  EVENT: '#3B82F6'         // 青 - イベント
+  EVENT: '#3B82F6',        // 青 - イベント
+  PERSONAL: '#EC4899'      // ピンク - 個人予定
 } as const;
 
 export const PRIORITY_COLORS = {

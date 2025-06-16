@@ -90,33 +90,33 @@ export default function DiscordInsights() {
     });
   };
 
-  const StatCard = ({ title, value, subtitle, color, icon }: {
-    title: string;
-    value: string | number;
-    subtitle: string;
-    color: string;
-    icon: string;
-  }) => (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500">{subtitle}</p>
-        </div>
-        <div className={`w-12 h-12 rounded-full ${color} flex items-center justify-center`}>
-          <span className="text-2xl">{icon}</span>
-        </div>
-      </div>
-    </div>
-  );
+  // const StatCard = ({ title, value, subtitle, color, icon }: {
+  //   title: string;
+  //   value: string | number;
+  //   subtitle: string;
+  //   color: string;
+  //   icon: string;
+  // }) => (
+  //   <div className="bg-white rounded-lg shadow-lg p-6">
+  //     <div className="flex items-center justify-between">
+  //       <div>
+  //         <p className="text-sm font-medium text-gray-600">{title}</p>
+  //         <p className="text-3xl font-bold text-gray-900">{value}</p>
+  //         <p className="text-sm text-gray-500">{subtitle}</p>
+  //       </div>
+  //       <div className={`w-12 h-12 rounded-full ${color} flex items-center justify-center`}>
+  //         <span className="text-2xl">{icon}</span>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ja-JP', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  // const formatDate = (dateString: string) => {
+  //   return new Date(dateString).toLocaleDateString('ja-JP', {
+  //     month: 'short',
+  //     day: 'numeric'
+  //   });
+  // };
 
   // 過去7日分の日付を生成
   const getLast7Days = () => {

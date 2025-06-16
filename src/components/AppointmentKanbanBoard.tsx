@@ -18,6 +18,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface Appointment {
   id: string;
@@ -46,6 +47,7 @@ interface AppointmentKanbanProps {
   onAppointmentMove: (appointmentId: string, newStatus: string) => void;
   onAppointmentEdit: (appointment: Appointment) => void;
   onAppointmentComplete: (appointmentId: string) => void;
+  onDataRefresh?: () => void;
 }
 
 interface Column {
@@ -271,6 +273,7 @@ export default function AppointmentKanbanBoard({
   onAppointmentMove,
   onAppointmentEdit,
   onAppointmentComplete,
+  onDataRefresh,
 }: AppointmentKanbanProps) {
   const [appointments, setAppointments] = useState<Record<string, Appointment[]>>({});
   const [loading, setLoading] = useState(true);
@@ -306,7 +309,7 @@ export default function AppointmentKanbanBoard({
     setActiveAppointment(appointment || null);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (!over || active.id === over.id) {
@@ -317,20 +320,36 @@ export default function AppointmentKanbanBoard({
     const appointmentId = active.id as string;
     const newStatus = over.id as string;
     
-    onAppointmentMove(appointmentId, newStatus);
+    try {
+      onAppointmentMove(appointmentId, newStatus);
+      // データ再読み込み
+      onDataRefresh?.();
+      await loadKanbanData();
+    } catch (error) {
+      console.error('Failed to move appointment:', error);
+    }
     setActiveAppointment(null);
-    
-    // Optimistically update local state
-    setTimeout(() => loadKanbanData(), 500);
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">読み込み中...</div>
-      </div>
+      <LoadingSpinner size="md" message="カンバンデータを読み込み中..." />
     );
   }
+
+  // アポイント完了ハンドラー
+  const handleAppointmentComplete = async (appointmentId: string) => {
+    try {
+      if (onAppointmentComplete) {
+        onAppointmentComplete(appointmentId);
+      }
+      // データ再読み込み
+      onDataRefresh?.();
+      await loadKanbanData();
+    } catch (error) {
+      console.error('Failed to complete appointment:', error);
+    }
+  };
 
   return (
     <div className="h-full">
@@ -357,7 +376,7 @@ export default function AppointmentKanbanBoard({
               appointments={appointments[column.id] || []}
               kanbanType={kanbanType}
               onEdit={onAppointmentEdit}
-              onComplete={onAppointmentComplete}
+              onComplete={handleAppointmentComplete}
             />
           ))}
         </div>

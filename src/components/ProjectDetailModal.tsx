@@ -3,19 +3,22 @@
 import { useState } from 'react';
 import { Project, User } from '@/lib/types';
 import ProjectLeadershipTab from './ProjectLeadershipTab';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface ProjectDetailModalProps {
   project: Project;
   users: User[];
   isOpen: boolean;
   onClose: () => void;
+  onDataRefresh?: () => void;
 }
 
 export default function ProjectDetailModal({ 
   project, 
   users, 
   isOpen, 
-  onClose 
+  onClose,
+  onDataRefresh
 }: ProjectDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'leadership' | 'analytics'>('overview');
   const [loading, setLoading] = useState(false);
@@ -33,8 +36,8 @@ export default function ProjectDetailModal({
         throw new Error('Failed to change leader');
       }
 
-      // プロジェクト情報を更新（簡易実装）
-      window.location.reload(); // 実際の実装では、プロジェクトデータの状態更新を行う
+      // プロジェクト情報を更新
+      onDataRefresh?.();
     } catch (error) {
       console.error('Failed to change leader:', error);
       throw error;
@@ -77,7 +80,15 @@ export default function ProjectDetailModal({
 
   return (
     <div className="fixed inset-0 bg-gray-700/80 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden relative">
+        {/* ローディングオーバーレイ */}
+        {loading && (
+          <LoadingSpinner 
+            overlay={true}
+            message="プロジェクト情報を更新しています..."
+            size="sm"
+          />
+        )}
         {/* ヘッダー */}
         <div className="flex justify-between items-center p-6 border-b">
           <div>

@@ -79,11 +79,29 @@ export function useConnections() {
     }
   };
 
+  const refreshConnections = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/connections');
+      if (response.ok) {
+        const data = await response.json();
+        setConnections(data);
+      } else {
+        throw new Error('Failed to fetch connections');
+      }
+    } catch (error) {
+      console.error('Failed to refresh connections:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     connections,
     loading,
     addConnection,
     updateConnection,
     deleteConnection,
+    refreshConnections,
   };
 }

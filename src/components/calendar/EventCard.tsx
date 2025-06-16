@@ -79,7 +79,8 @@ export function EventCard({
       APPOINTMENT: 'ア',
       TASK_DUE: 'タ',
       PROJECT: 'プ',
-      EVENT: 'イ'
+      EVENT: 'イ',
+      PERSONAL: '予'
     };
     
     labels.push({

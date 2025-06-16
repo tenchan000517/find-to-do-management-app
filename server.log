@@ -1,0 +1,93 @@
+
+> find-to-do-management-app@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://172.23.53.187:3000
+   - Environments: .env.development.local, .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 12.8s
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbo
+
+ ○ Compiling /api/webhook/line ...
+ ✓ Compiled /api/webhook/line in 2.7s
+🚀 WEBHOOK ENDPOINT HIT! Time: 2025-06-16T00:35:54.772Z
+=== LINE Webhook POST START ===
+Request method: POST
+Request URL: https://localhost:3000/api/webhook/line
+Request headers: {
+  'accept-encoding': 'gzip',
+  'content-length': '420',
+  'content-type': 'application/json; charset=utf-8',
+  host: '5e83-2402-6b00-da0d-9600-78-397f-ab3d-5949.ngrok-free.app',
+  'user-agent': 'LineBotWebhook/2.0',
+  'x-forwarded-for': '147.92.149.165',
+  'x-forwarded-host': '5e83-2402-6b00-da0d-9600-78-397f-ab3d-5949.ngrok-free.app',
+  'x-forwarded-port': '3000',
+  'x-forwarded-proto': 'https',
+  'x-line-signature': 'qNbWqIOqnhXgypcxzw8L0DvO0E6tds2y6nOtBcX6KzM='
+}
+Body length: 0
+Body content: 
+Signature present: true
+Empty request body
+🚀 WEBHOOK ENDPOINT HIT! Time: 2025-06-16T00:35:55.058Z
+=== LINE Webhook POST START ===
+Request method: POST
+Request URL: https://localhost:3000/api/webhook/line
+Request headers: {
+  'accept-encoding': 'gzip',
+  'content-length': '420',
+  'content-type': 'application/json; charset=utf-8',
+  host: '5e83-2402-6b00-da0d-9600-78-397f-ab3d-5949.ngrok-free.app',
+  'user-agent': 'LineBotWebhook/2.0',
+  'x-forwarded-for': '147.92.149.165',
+  'x-forwarded-host': '5e83-2402-6b00-da0d-9600-78-397f-ab3d-5949.ngrok-free.app',
+  'x-forwarded-port': '3000',
+  'x-forwarded-proto': 'https',
+  'x-line-signature': 'IXPmvzriHca9KXzxx+0lSZOoobmCLmZyeBtsQ6ybRJA='
+}
+Body length: 420
+Body content: {"destination":"Ud61838cd8848767a778aa37d7034f985","events":[{"type":"postback","postback":{"data":"classification_change"},"webhookEventId":"01JXV2M0TWS14AEPD07YYFMP6N","deliveryContext":{"isRedelive
+Signature present: true
+*** SIGNATURE VALIDATION DISABLED FOR TESTING ***
+Signature validation passed
+Events count: 1
+=== handlePostback START ===
+Postback data: classification_change
+Flex message sent
+=== LINE Webhook POST END ===
+ POST /api/webhook/line 200 in 441ms
+🚀 WEBHOOK ENDPOINT HIT! Time: 2025-06-16T00:35:58.175Z
+=== LINE Webhook POST START ===
+Request method: POST
+Request URL: https://localhost:3000/api/webhook/line
+Request headers: {
+  'accept-encoding': 'gzip',
+  'content-length': '427',
+  'content-type': 'application/json; charset=utf-8',
+  host: '5e83-2402-6b00-da0d-9600-78-397f-ab3d-5949.ngrok-free.app',
+  'user-agent': 'LineBotWebhook/2.0',
+  'x-forwarded-for': '147.92.149.165',
+  'x-forwarded-host': '5e83-2402-6b00-da0d-9600-78-397f-ab3d-5949.ngrok-free.app',
+  'x-forwarded-port': '3000',
+  'x-forwarded-proto': 'https',
+  'x-line-signature': '/DBOb8anB075vmtgOOlk2tLNGLs9Iv01nU3/QjOU/t8='
+}
+Body length: 427
+Body content: {"destination":"Ud61838cd8848767a778aa37d7034f985","events":[{"type":"postback","postback":{"data":"reclassify_personal_schedule"},"webhookEventId":"01JXV2M4B976Z9D28A6J0D94QQ","deliveryContext":{"isR
+Signature present: true
+*** SIGNATURE VALIDATION DISABLED FOR TESTING ***
+Signature validation passed
+Events count: 1
+=== handlePostback START ===
+Postback data: reclassify_personal_schedule
+❌ No session found for reclassification
+Reply sent
+=== LINE Webhook POST END ===
+ POST /api/webhook/line 200 in 310ms
+[?25h

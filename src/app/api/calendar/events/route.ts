@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { CalendarEvent, CreateEventRequest, CalendarFilters, PrismaCalendarEvent, EventCategory, EventType, PriorityLevel } from '@/types/calendar';
+import { getTodayJST, getJSTDateAfterDays, getJSTTimestampForID } from '@/lib/utils/datetime-jst';
 
 const prisma = new PrismaClient();
 
@@ -10,8 +11,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     
     const filters: CalendarFilters = {
-      startDate: searchParams.get('startDate') || new Date().toISOString().split('T')[0],
-      endDate: searchParams.get('endDate') || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: searchParams.get('startDate') || getTodayJST(),
+      endDate: searchParams.get('endDate') || getJSTDateAfterDays(30),
       userId: searchParams.get('userId') || undefined,
       projectId: searchParams.get('projectId') || undefined,
       category: searchParams.get('category') as EventCategory || undefined,
@@ -185,10 +186,23 @@ export async function GET(request: NextRequest) {
     }));
 
     // タスクをイベントに変換
-    const taskEvents: CalendarEvent[] = tasks.map(task => ({
+    type TaskWithRelations = {
+      id: string;
+      title: string;
+      description: string | null;
+      dueDate: string | null;
+      userId: string;
+      projectId: string | null;
+      priority: string;
+      status: string;
+      users: { id: string; name: string; color: string } | null;
+      projects: { id: string; name: string } | null;
+    };
+    
+    const taskEvents: CalendarEvent[] = tasks.map((task: TaskWithRelations) => ({
       id: `task_${task.id}`,
       title: task.title,
-      date: task.dueDate || new Date().toISOString().split('T')[0],
+      date: task.dueDate || getTodayJST(),
       time: '23:59', // デフォルト時刻
       type: 'DEADLINE' as EventType,
       userId: task.userId,
@@ -220,7 +234,27 @@ export async function GET(request: NextRequest) {
     }));
 
     // アポをイベントに変換
-    const appointmentEvents: CalendarEvent[] = appointments.flatMap(apt => 
+    type AppointmentWithCalendarEvents = {
+      id: string;
+      companyName: string;
+      contactName: string;
+      priority: string;
+      calendar_events: Array<{
+        id: string;
+        date: string;
+        time: string;
+        endTime: string | null;
+        userId: string | null;
+        isRecurring: boolean;
+        isAllDay: boolean;
+        description: string;
+        participants: string[];
+        location: string | null;
+        users: { id: string; name: string; color: string } | null;
+      }>;
+    };
+    
+    const appointmentEvents: CalendarEvent[] = appointments.flatMap((apt: AppointmentWithCalendarEvents) => 
       apt.calendar_events.map(ce => ({
         id: `apt_${apt.id}_${ce.id}`,
         title: `${apt.companyName} - ${apt.contactName}`,
@@ -252,8 +286,65 @@ export async function GET(request: NextRequest) {
       }))
     );
 
+    // 個人予定をイベントに変換
+    const personalSchedules = await prisma.personal_schedules.findMany({
+      where: {
+        date: { 
+          gte: filters.startDate, 
+          lte: filters.endDate 
+        },
+        ...(filters.userId && { userId: filters.userId })
+      },
+      include: {
+        users: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
+        }
+      }
+    });
+
+    type PersonalScheduleWithUser = {
+      id: string;
+      title: string;
+      date: string;
+      time: string;
+      endTime: string | null;
+      userId: string | null;
+      priority: string | null;
+      isAllDay: boolean;
+      description: string | null;
+      location: string | null;
+      users: { id: string; name: string; color: string } | null;
+    };
+    
+    const personalEvents: CalendarEvent[] = personalSchedules.map((ps: PersonalScheduleWithUser) => ({
+      id: `personal_${ps.id}`,
+      title: ps.title,
+      date: ps.date,
+      time: ps.time,
+      endTime: ps.endTime || undefined,
+      type: 'PERSONAL' as EventType,
+      userId: ps.userId || undefined,
+      category: 'PERSONAL' as EventCategory,
+      importance: 0.6,
+      priority: ps.priority as PriorityLevel | undefined,
+      isRecurring: false,
+      isAllDay: ps.isAllDay,
+      description: ps.description || '',
+      participants: [],
+      location: ps.location || undefined,
+      users: ps.users ? {
+        id: ps.users.id,
+        name: ps.users.name,
+        color: ps.users.color
+      } : undefined
+    }));
+
     // 全イベントを統合
-    const allEvents = [...formattedEvents, ...taskEvents, ...appointmentEvents];
+    const allEvents = [...formattedEvents, ...taskEvents, ...appointmentEvents, ...personalEvents];
 
     return NextResponse.json({
       events: allEvents,
@@ -289,7 +380,7 @@ export async function POST(request: NextRequest) {
 
     // カテゴリの自動判定
     let autoCategory: EventCategory = body.category;
-    let eventType: string = 'EVENT';
+    let eventType: 'MEETING' | 'EVENT' | 'DEADLINE' = 'EVENT';
     
     if (body.taskId) {
       autoCategory = 'TASK_DUE';
@@ -305,12 +396,12 @@ export async function POST(request: NextRequest) {
     // イベント作成
     const event = await prisma.calendar_events.create({
       data: {
-        id: `cal_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+        id: `cal_${getJSTTimestampForID()}_${Math.random().toString(36).slice(2, 11)}`,
         title: body.title,
         date: body.date,
         time: body.time,
         endTime: body.endTime || null,
-        type: eventType as any,
+        type: eventType,
         description: body.description || '',
         participants: body.participants || [],
         location: body.location || null,
