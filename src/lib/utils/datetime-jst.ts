@@ -25,7 +25,11 @@ export function getJSTNow(): number {
  */
 export function getJSTDateString(date?: Date): string {
   const jstDate = date ? convertToJST(date) : getJSTDate();
-  return jstDate.toISOString().split('T')[0];
+  // toISOString()はUTC基準なので、JST変換後のDateから直接年月日を取得
+  const year = jstDate.getFullYear();
+  const month = String(jstDate.getMonth() + 1).padStart(2, '0');
+  const day = String(jstDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**

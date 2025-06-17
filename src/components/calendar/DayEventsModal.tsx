@@ -2,6 +2,7 @@
 
 import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
+import { convertToJST } from '@/lib/utils/datetime-jst';
 
 interface DayEventsModalProps {
   isOpen: boolean;
@@ -22,12 +23,13 @@ export function DayEventsModal({
 }: DayEventsModalProps) {
   if (!isOpen) return null;
 
-  // 日付フォーマット
+  // 日付フォーマット（JST基準）
   const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const weekDay = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+    const jstDate = convertToJST(date);
+    const year = jstDate.getFullYear();
+    const month = jstDate.getMonth() + 1;
+    const day = jstDate.getDate();
+    const weekDay = ['日', '月', '火', '水', '木', '金', '土'][jstDate.getDay()];
     return `${year}年${month}月${day}日(${weekDay})`;
   };
 

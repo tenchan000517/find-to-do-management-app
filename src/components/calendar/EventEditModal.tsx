@@ -53,39 +53,8 @@ export function EventEditModal({
 
     setIsLoading(true);
     try {
-      const updatedEvent = {
-        ...event,
-        ...formData
-      };
-
-      // 個人予定の場合は直接schedules APIを使用
-      const isPersonalSchedule = event.id.startsWith('personal_');
-      const realId = isPersonalSchedule ? event.id.replace('personal_', '') : event.id;
-      const apiUrl = isPersonalSchedule 
-        ? `/api/schedules/${realId}`
-        : `/api/calendar/events/${event.id}`;
-      
-      const requestBody = isPersonalSchedule
-        ? {
-            title: formData.title,
-            date: formData.date,
-            time: formData.time,
-            endTime: formData.endTime || null,
-            description: formData.description,
-            location: formData.location,
-            priority: formData.priority,
-            isAllDay: formData.isAllDay
-          }
-        : {
-            title: formData.title,
-            date: formData.date,
-            time: formData.time,
-            endTime: formData.endTime || null,
-            category: formData.category,
-            description: formData.description,
-            location: formData.location,
-            importance: formData.priority === 'A' ? 0.9 : formData.priority === 'B' ? 0.7 : formData.priority === 'C' ? 0.5 : 0.3
-          };
+      // 統合API方針: イベントソース別に適切なAPIを決定
+      const { apiUrl, requestBody } = getApiConfig(event, formData);
 
       // API呼び出しで更新
       const response = await fetch(apiUrl, {
@@ -111,6 +80,99 @@ export function EventEditModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 統合API方針: イベントソース別API設定
+  const getApiConfig = (event: CalendarEvent | UnifiedCalendarEvent, formData: any) => {
+    const eventSource = (event as UnifiedCalendarEvent).source;
+    
+    switch (eventSource) {
+      case 'personal_schedules':
+        // 個人予定: ps_プレフィックスは実際のIDなのでそのまま使用、personal_プレフィックスのみ除去
+        const personalId = event.id.startsWith('personal_') 
+          ? event.id.replace('personal_', '') 
+          : event.id; // ps_プレフィックスの場合はそのまま使用
+        return {
+          apiUrl: `/api/schedules/${personalId}`,
+          requestBody: {
+            title: formData.title,
+            date: formData.date,
+            time: formData.time,
+            endTime: formData.endTime || null,
+            description: formData.description,
+            location: formData.location,
+            priority: formData.priority,
+            isAllDay: formData.isAllDay
+          }
+        };
+      
+      case 'tasks':
+        // タスク期限: task_プレフィックス
+        const taskId = event.id.replace(/^task_/, '');
+        return {
+          apiUrl: `/api/tasks/${taskId}`,
+          requestBody: {
+            title: formData.title.replace(/^📋 /, ''), // 絵文字を除去
+            dueDate: formData.date,
+            description: formData.description,
+            priority: formData.priority
+          }
+        };
+      
+      case 'appointments':
+        // アポイントメント: appointment_プレフィックス
+        const appointmentMatch = event.id.match(/^appointment_(\d+)_(.+)$/);
+        if (appointmentMatch) {
+          const [, appointmentId, calendarEventId] = appointmentMatch;
+          return {
+            apiUrl: `/api/calendar/events/${calendarEventId}`,
+            requestBody: {
+              title: formData.title.replace(/^🤝 /, ''), // 絵文字を除去
+              date: formData.date,
+              time: formData.time,
+              endTime: formData.endTime || null,
+              description: formData.description,
+              location: formData.location,
+              appointmentId: parseInt(appointmentId)
+            }
+          };
+        }
+        break;
+      
+      case 'calendar_events':
+      default:
+        // 通常のカレンダーイベント
+        return {
+          apiUrl: `/api/calendar/events/${event.id}`,
+          requestBody: {
+            title: formData.title,
+            date: formData.date,
+            time: formData.time,
+            endTime: formData.endTime || null,
+            category: formData.category,
+            description: formData.description,
+            location: formData.location,
+            importance: formData.priority === 'A' ? 0.9 : formData.priority === 'B' ? 0.7 : formData.priority === 'C' ? 0.5 : 0.3,
+            isAllDay: formData.isAllDay
+          }
+        };
+    }
+    
+    // フォールバック
+    return {
+      apiUrl: `/api/calendar/events/${event.id}`,
+      requestBody: {
+        title: formData.title,
+        date: formData.date,
+        time: formData.time,
+        endTime: formData.endTime || null,
+        category: formData.category,
+        description: formData.description,
+        location: formData.location,
+        importance: formData.priority === 'A' ? 0.9 : formData.priority === 'B' ? 0.7 : formData.priority === 'C' ? 0.5 : 0.3,
+        isAllDay: formData.isAllDay
+      }
+    };
   };
 
   if (!isOpen || !event) return null;

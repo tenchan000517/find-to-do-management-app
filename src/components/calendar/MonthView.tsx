@@ -2,7 +2,7 @@
 
 import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
-import { getJSTDate, getJSTDateString, isToday } from '@/lib/utils/datetime-jst';
+import { getJSTDate, getJSTDateString, isToday, getTodayJST } from '@/lib/utils/datetime-jst';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -50,7 +50,21 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
 
   // 今日かどうかを判定（JST基準）
   const isTodayJST = (date: Date) => {
-    return isToday(getJSTDateString(date));
+    const dateStr = getJSTDateString(date);
+    const todayStr = getTodayJST();
+    const jstNow = getJSTDate();
+    
+    // デバッグログ: 今日の判定情報
+    console.log('🕐 今日判定デバッグ:', {
+      'チェック対象日付': dateStr,
+      '今日(JST)': todayStr,
+      '現在時刻(JST)': jstNow.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+      '判定結果': dateStr === todayStr,
+      '元Date': date.toISOString(),
+      'JST変換後': getJSTDate(date).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
+    });
+    
+    return isToday(dateStr);
   };
 
   // 現在の月かどうかを判定
@@ -83,6 +97,16 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
           const dayEvents = getEventsForDate(date);
           const isCurrentMonthDay = isCurrentMonth(date);
           const isTodayDay = isTodayJST(date);
+          
+          // 今日として判定された日付のみログ出力
+          if (isTodayDay) {
+            console.log('🎯 今日として判定された日付:', {
+              '日付': date.toISOString(),
+              '日付文字列': getJSTDateString(date),
+              'JST日付': getJSTDate(date).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+              '日(getDate)': date.getDate()
+            });
+          }
           
           return (
             <div
