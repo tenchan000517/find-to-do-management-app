@@ -115,8 +115,31 @@ export async function sendFlexMessage(
       console.error('❌ JSON validation failed:', jsonError);
       throw new Error(`Invalid JSON structure: ${jsonError.message}`);
     }
+    
+    // Normalize Unicode characters for LINE API compatibility
+    const normalizeUnicode = (obj: any): any => {
+      if (typeof obj === 'string') {
+        return obj.normalize('NFC'); // Canonical decomposition, then canonical composition
+      } else if (Array.isArray(obj)) {
+        return obj.map(normalizeUnicode);
+      } else if (typeof obj === 'object' && obj !== null) {
+        const normalized: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          normalized[normalizeUnicode(key)] = normalizeUnicode(value);
+        }
+        return normalized;
+      }
+      return obj;
+    };
+    
+    const normalizedContent = normalizeUnicode(flexContent);
+    const normalizedPayload = {
+      type: 'flex',
+      altText: altText.normalize('NFC'),
+      contents: normalizedContent
+    };
 
-    await client.replyMessage(replyToken, messagePayload);
+    await client.replyMessage(replyToken, normalizedPayload);
     
     console.log('✅ Flex message sent successfully');
     return true;
@@ -868,7 +891,8 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
       layout: 'vertical',
       spacing: 'sm',
       contents: [
-        ...config.fields.map(field => ({
+        // Split buttons into groups to avoid LINE's button limits
+        ...config.fields.slice(0, 3).map(field => ({
           type: 'button',
           style: 'secondary',
           height: 'sm',
@@ -878,6 +902,40 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
             data: `add_field_${type}_${field.key}`
           }
         })),
+        // Add remaining buttons if more than 3
+        ...(config.fields.length > 3 ? [
+          {
+            type: 'separator',
+            margin: 'xs'
+          },
+          ...config.fields.slice(3, 6).map(field => ({
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: {
+              type: 'postback',
+              label: field.name,
+              data: `add_field_${type}_${field.key}`
+            }
+          }))
+        ] : []),
+        // Add a third group if more than 6 buttons
+        ...(config.fields.length > 6 ? [
+          {
+            type: 'separator',
+            margin: 'xs'
+          },
+          ...config.fields.slice(6).map(field => ({
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: {
+              type: 'postback',
+              label: field.name,
+              data: `add_field_${type}_${field.key}`
+            }
+          }))
+        ] : []),
         {
           type: 'separator',
           margin: 'md'
