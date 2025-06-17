@@ -209,6 +209,9 @@ model projects {
   project_phase_history project_phase_history[]
   calendar_events       calendar_events[]
   
+  // MECE関係性リレーション - Phase 3で追加
+  task_relationships    task_relationships[]
+  
   // 新しいリレーション
   creator               users?                  @relation("ProjectCreator", fields: [createdBy], references: [id])
   manager               users?                  @relation("ProjectManager", fields: [assignedTo], references: [id])
@@ -271,6 +274,10 @@ model tasks {
   // 新しいリレーション
   creator            users?               @relation("TaskCreator", fields: [createdBy], references: [id])
   assignee           users?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  
+  // MECE関係性リレーション - Phase 3で追加
+  sourceRelationships task_relationships[] @relation("SourceTask")
+  targetRelationships task_relationships[] @relation("TargetTask")
   
   // 既存リレーション（互換性のため保持）
   users              users                @relation("TaskUser", fields: [userId], references: [id])
@@ -847,4 +854,33 @@ enum google_docs_sync_status {
   COMPLETED
   ERROR
   FAILED
+}
+
+// MECE関係性テーブル - Phase 3で追加
+model task_relationships {
+  id               String            @id @default(cuid())
+  sourceTaskId     String            @map("source_task_id")
+  targetTaskId     String?           @map("target_task_id")
+  projectId        String?           @map("project_id")
+  relationshipType relationship_type @map("relationship_type")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  
+  // リレーション
+  sourceTask       tasks             @relation("SourceTask", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTask       tasks?            @relation("TargetTask", fields: [targetTaskId], references: [id], onDelete: Cascade)
+  project          projects?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([sourceTaskId], name: "idx_task_relationships_source")
+  @@index([targetTaskId], name: "idx_task_relationships_target")
+  @@index([projectId], name: "idx_task_relationships_project")
+  @@index([relationshipType], name: "idx_task_relationships_type")
+  @@map("task_relationships")
+}
+
+// MECE関係性タイプ
+enum relationship_type {
+  TRANSFERABLE   // 移譲可能（タスクを他の人に任せられる）
+  SIMULTANEOUS   // 同時実行可能（同時に進行できる）
+  DEPENDENT      // 依存関係（前提条件）
 }

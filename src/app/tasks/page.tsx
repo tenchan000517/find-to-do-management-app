@@ -5,11 +5,16 @@ import { useTasks } from '@/hooks/useTasks';
 import { useUsers } from '@/hooks/useUsers';
 import { useProjects } from '@/hooks/useProjects';
 import { Task, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
-import KanbanBoard from '@/components/KanbanBoard';
 import EnhancedTaskKanban from '@/components/tasks/EnhancedTaskKanban';
 import UserKanbanBoard from '@/components/UserKanbanBoard';
 import ProjectKanbanBoard from '@/components/ProjectKanbanBoard';
 import DeadlineKanbanBoard from '@/components/DeadlineKanbanBoard';
+import dynamic from 'next/dynamic';
+
+const MECERelationshipManager = dynamic(
+  () => import('@/components/tasks/MECERelationshipManager'),
+  { ssr: false }
+);
 import FullPageLoading from '@/components/FullPageLoading';
 import TaskModal from '@/components/TaskModal';
 
@@ -42,7 +47,7 @@ export default function TasksPage() {
   const { projects } = useProjects();
   const [filter, setFilter] = useState<'all' | 'A' | 'B' | 'C' | 'D'>('all');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const [kanbanView, setKanbanView] = useState<'status' | 'user' | 'project' | 'deadline'>('status');
+  const [kanbanView, setKanbanView] = useState<'status' | 'user' | 'project' | 'deadline' | 'relationships'>('status');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -233,6 +238,16 @@ export default function TasksPage() {
                 >
                   期限別
                 </button>
+                <button
+                  onClick={() => setKanbanView('relationships')}
+                  className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
+                    kanbanView === 'relationships'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  MECE関係性
+                </button>
               </nav>
             </div>
 
@@ -288,6 +303,13 @@ export default function TasksPage() {
                 }}
                 onTaskDelete={deleteTask}
                 onQuickAction={handleQuickAction}
+              />
+            )}
+            
+            {kanbanView === 'relationships' && (
+              <MECERelationshipManager
+                tasks={filteredTasks}
+                onTaskUpdate={updateTask}
               />
             )}
           </div>
