@@ -3,6 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { 
+  Rocket, 
+  CheckCircle, 
+  Calendar, 
+  Users, 
+  Phone, 
+  BookOpen, 
+  FileText, 
+  Bot, 
+  BarChart3, 
+  ClipboardList 
+} from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
 export default function Header() {
@@ -11,15 +23,15 @@ export default function Header() {
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
   
   const navItems = [
-    // { href: '/', label: 'ダッシュボード', icon: '🏠' },
-    { href: '/projects', label: 'プロジェクト', icon: '🚀' },
-    { href: '/tasks', label: 'タスク', icon: '✅' },
-    { href: '/calendar', label: 'カレンダー', icon: '📅' },
-    { href: '/connections', label: 'つながり', icon: '👥' },
-    { href: '/appointments', label: 'アポイント', icon: '📞' },
-    { href: '/knowledge', label: 'ナレッジ', icon: '📚' },
-    { href: '/meeting-notes', label: '議事録', icon: '📝' },
-    { href: '/google-docs-dashboard', label: 'AI レコメンド', icon: '🤖' },
+    // { href: '/', label: 'ダッシュボード', icon: Home },
+    { href: '/projects', label: 'プロジェクト', icon: Rocket },
+    { href: '/tasks', label: 'タスク', icon: CheckCircle },
+    { href: '/calendar', label: 'カレンダー', icon: Calendar },
+    { href: '/connections', label: 'つながり', icon: Users },
+    { href: '/appointments', label: 'アポイント', icon: Phone },
+    { href: '/knowledge', label: 'ナレッジ', icon: BookOpen },
+    { href: '/meeting-notes', label: '議事録', icon: FileText },
+    { href: '/google-docs-dashboard', label: 'AI レコメンド', icon: Bot },
   ];
 
   return (
@@ -28,7 +40,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <span className="text-2xl">📋</span>
+              <ClipboardList className="h-6 w-6 text-blue-600" />
               <span className="text-lg md:text-xl font-bold text-gray-900">FIND to DO</span>
             </Link>
           </div>
@@ -45,7 +57,7 @@ export default function Header() {
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <span>{item.icon}</span>
+                <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>
               </Link>
             ))}
@@ -57,7 +69,7 @@ export default function Header() {
               href="/dashboard/discord-insights"
               className="flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg text-sm"
             >
-              <span className="mr-2">📊</span>
+              <BarChart3 className="mr-2 h-4 w-4" />
               Discord インサイト
             </Link>
             <button 
@@ -106,7 +118,7 @@ export default function Header() {
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <span>{item.icon}</span>
+                <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
               </Link>
             ))}
@@ -117,7 +129,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium bg-gradient-to-r from-purple-600 to-blue-600 text-white mt-2"
             >
-              <span>📊</span>
+              <BarChart3 className="h-5 w-5" />
               <span>Discord インサイト</span>
             </Link>
           </nav>

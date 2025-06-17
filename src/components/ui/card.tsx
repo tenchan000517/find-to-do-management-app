@@ -1,53 +1,59 @@
-import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface CardProps {
+  variant?: 'default' | 'elevated' | 'outlined' | 'ghost';
+  padding?: 'compact' | 'normal' | 'spacious';
+  hover?: boolean;
   children: React.ReactNode;
   className?: string;
 }
 
-export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
+const cardVariants = {
+  default: 'bg-white border border-gray-200',
+  elevated: 'bg-white shadow-lg border-0',
+  outlined: 'bg-white border-2 border-blue-200',
+  ghost: 'bg-gray-50 border-0',
+};
+
+const cardPadding = {
+  compact: 'p-4',
+  normal: 'p-6',
+  spacious: 'p-8',
+};
+
+export function Card({ 
+  variant = 'default', 
+  padding = 'normal',
+  hover = true,
+  children, 
+  className 
+}: CardProps) {
   return (
-    <div className={`bg-white shadow rounded-lg border border-gray-200 ${className}`}>
+    <div className={cn(
+      'rounded-lg transition-shadow duration-200',
+      cardVariants[variant],
+      cardPadding[padding],
+      hover && 'hover:shadow-lg',
+      className
+    )}>
       {children}
     </div>
   );
-};
-
-interface CardHeaderProps {
-  children: React.ReactNode;
-  className?: string;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
-  return (
-    <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>
-      {children}
-    </div>
-  );
-};
-
-interface CardContentProps {
-  children: React.ReactNode;
-  className?: string;
+// カード内要素
+export function CardHeader({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('flex items-center justify-between mb-4', className)}>{children}</div>;
 }
 
-export const CardContent: React.FC<CardContentProps> = ({ children, className = '' }) => {
-  return (
-    <div className={`px-6 py-4 ${className}`}>
-      {children}
-    </div>
-  );
-};
-
-interface CardTitleProps {
-  children: React.ReactNode;
-  className?: string;
+export function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <h3 className={cn('text-lg font-semibold text-gray-900', className)}>{children}</h3>;
 }
 
-export const CardTitle: React.FC<CardTitleProps> = ({ children, className = '' }) => {
-  return (
-    <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
-      {children}
-    </h3>
-  );
-};
+export function CardContent({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('text-gray-600', className)}>{children}</div>;
+}
+
+export function CardActions({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn('flex items-center space-x-2', className)}>{children}</div>;
+}

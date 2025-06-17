@@ -3,6 +3,15 @@ import Link from "next/link";
 import Dashboard from "@/components/Dashboard";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useState } from "react";
+import { 
+  Rocket, 
+  CheckCircle, 
+  Calendar, 
+  Users, 
+  BookOpen, 
+  Phone, 
+  FileText 
+} from 'lucide-react';
 import { useTasks } from "@/hooks/useTasks";
 import { useUsers } from "@/hooks/useUsers";
 import { useProjects } from "@/hooks/useProjects";
@@ -15,49 +24,49 @@ const menuItems = [
     title: "プロジェクト",
     description: "進行中のプロジェクトを管理",
     href: "/projects",
-    icon: "🚀",
+    icon: Rocket,
     color: "from-blue-500 to-purple-600"
   },
   {
     title: "タスク",
     description: "チームのタスクと進捗を追跡",
     href: "/tasks",
-    icon: "✅",
+    icon: CheckCircle,
     color: "from-green-500 to-teal-600"
   },
   {
     title: "カレンダー",
     description: "スケジュールとイベント管理",
     href: "/calendar",
-    icon: "📅",
+    icon: Calendar,
     color: "from-purple-500 to-pink-600"
   },
   {
     title: "つながり",
     description: "人脈とネットワーク管理",
     href: "/connections",
-    icon: "👥",
+    icon: Users,
     color: "from-orange-500 to-red-600"
   },
   {
     title: "ナレッジ",
     description: "知識と情報の共有",
     href: "/knowledge",
-    icon: "📚",
+    icon: BookOpen,
     color: "from-indigo-500 to-blue-600"
   },
   {
     title: "アポ",
     description: "テレアポと営業管理",
     href: "/appointments",
-    icon: "📞",
+    icon: Phone,
     color: "from-pink-500 to-rose-600"
   },
   {
     title: "議事録",
     description: "会議録と文書管理",
     href: "/meeting-notes",
-    icon: "📝",
+    icon: FileText,
     color: "from-gray-500 to-gray-600"
   }
 ];
@@ -256,35 +265,35 @@ export default function Home() {
               onClick={() => setShowProjectModal(true)}
               className="flex flex-col items-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
             >
-              <span className="text-2xl mb-2">🚀</span>
+              <Rocket className="h-6 w-6 mb-2 text-blue-600" />
               <span className="text-sm font-medium text-gray-900">新規プロジェクト</span>
             </button>
             <button
               onClick={() => setShowTaskModal(true)}
               className="flex flex-col items-center p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
             >
-              <span className="text-2xl mb-2">✅</span>
+              <CheckCircle className="h-6 w-6 mb-2 text-green-600" />
               <span className="text-sm font-medium text-gray-900">タスク追加</span>
             </button>
             <button
               onClick={() => setShowConnectionModal(true)}
               className="flex flex-col items-center p-4 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors"
             >
-              <span className="text-2xl mb-2">👥</span>
+              <Users className="h-6 w-6 mb-2 text-purple-600" />
               <span className="text-sm font-medium text-gray-900">つながり追加</span>
             </button>
             <button
               onClick={() => setShowEventModal(true)}
               className="flex flex-col items-center p-4 rounded-lg bg-orange-50 hover:bg-orange-100 transition-colors"
             >
-              <span className="text-2xl mb-2">📅</span>
+              <Calendar className="h-6 w-6 mb-2 text-orange-600" />
               <span className="text-sm font-medium text-gray-900">予定追加</span>
             </button>
             <button
               onClick={() => setShowAppointmentModal(true)}
               className="flex flex-col items-center p-4 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors"
             >
-              <span className="text-2xl mb-2">📞</span>
+              <Phone className="h-6 w-6 mb-2 text-pink-600" />
               <span className="text-sm font-medium text-gray-900">アポ追加</span>
             </button>
           </div>
@@ -302,7 +311,7 @@ export default function Home() {
               >
                 <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
                   <div className={`h-20 bg-gradient-to-r ${item.color} flex items-center justify-center`}>
-                    <span className="text-3xl">{item.icon}</span>
+                    <item.icon className="h-8 w-8 text-white" />
                   </div>
                   <div className="p-4 text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
@@ -614,35 +623,35 @@ export default function Home() {
             onClick={() => setShowProjectModal(true)}
             className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-base sm:text-lg mb-1">🚀</span>
+            <Rocket className="h-5 w-5 mb-1 text-blue-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">プロジェクト</span>
           </button>
           <button
             onClick={() => setShowTaskModal(true)}
             className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-base sm:text-lg mb-1">✅</span>
+            <CheckCircle className="h-5 w-5 mb-1 text-green-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">タスク</span>
           </button>
           <button
             onClick={() => setShowConnectionModal(true)}
             className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-base sm:text-lg mb-1">👥</span>
+            <Users className="h-5 w-5 mb-1 text-purple-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">つながり</span>
           </button>
           <button
             onClick={() => setShowEventModal(true)}
             className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-base sm:text-lg mb-1">📅</span>
+            <Calendar className="h-5 w-5 mb-1 text-orange-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">予定</span>
           </button>
           <button
             onClick={() => setShowAppointmentModal(true)}
             className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
           >
-            <span className="text-base sm:text-lg mb-1">📞</span>
+            <Phone className="h-5 w-5 mb-1 text-pink-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">アポ</span>
           </button>
         </div>
