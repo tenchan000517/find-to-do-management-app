@@ -9,6 +9,7 @@ interface EventCardProps {
   colorMode?: ColorMode;
   onClick?: (e: React.MouseEvent) => void;
   onEventEdit?: (event: any) => void;
+  onEventDelete?: (eventId: string) => void;
 }
 
 export function EventCard({ 
@@ -17,7 +18,8 @@ export function EventCard({
   showTime = true, 
   colorMode = 'category',
   onClick,
-  onEventEdit
+  onEventEdit,
+  onEventDelete
 }: EventCardProps) {
   
   // 色を決定（色分けモードに基づく）
@@ -86,11 +88,11 @@ export function EventCard({
         color: 'bg-gray-100 text-gray-800'
       });
     } else {
-      // パブリックイベント（担当者なし）
-      labels.push({
-        text: 'P',
-        color: 'bg-green-100 text-green-800'
-      });
+      // // パブリックイベント（担当者なし）
+      // labels.push({
+      //   text: 'P',
+      //   color: 'bg-green-100 text-green-800'
+      // });
     }
     
     // カテゴリ
@@ -149,9 +151,16 @@ export function EventCard({
     }
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEventDelete && window.confirm('このイベントを削除してもよろしいですか？')) {
+      onEventDelete(event.id);
+    }
+  };
+
   return (
     <div
-      className={`rounded-md cursor-pointer transition-all duration-200 hover:shadow-md font-medium ${
+      className={`group rounded-md cursor-pointer transition-all duration-200 hover:shadow-md font-medium ${
         compact ? 'p-1 text-xs h-6' : 'p-2 text-sm h-8'
       }`}
       style={{ 
@@ -174,6 +183,17 @@ export function EventCard({
               {label.text}
             </span>
           ))}
+          {onEventDelete && (
+            <button
+              onClick={handleDelete}
+              className="p-0.5 bg-red-500 hover:bg-red-600 rounded transition-colors"
+              title="削除"
+            >
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

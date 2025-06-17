@@ -11,6 +11,7 @@ interface DayEventsModalProps {
   events: UnifiedCalendarEvent[];
   colorMode: ColorMode;
   onEventEdit?: (event: UnifiedCalendarEvent) => void;
+  onEventDelete?: (eventId: string) => void;
 }
 
 export function DayEventsModal({
@@ -19,7 +20,8 @@ export function DayEventsModal({
   date,
   events,
   colorMode,
-  onEventEdit
+  onEventEdit,
+  onEventDelete
 }: DayEventsModalProps) {
   if (!isOpen) return null;
 
@@ -44,12 +46,12 @@ export function DayEventsModal({
     <>
       {/* オーバーレイ */}
       <div
-        className="fixed inset-0 bg-gray-700/80 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-gray-700/80 flex items-center justify-center p-4 z-50"
         onClick={onClose}
       >
         {/* モーダル */}
         <div
-          className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden relative z-[99]"
+          className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[95vh] sm:max-h-[80vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* ヘッダー */}
@@ -91,6 +93,7 @@ export function DayEventsModal({
                           showTime={false}
                           colorMode={colorMode}
                           onEventEdit={onEventEdit}
+                          onEventDelete={onEventDelete}
                         />
                       ))
                     }
@@ -115,6 +118,7 @@ export function DayEventsModal({
                           showTime={true}
                           colorMode={colorMode}
                           onEventEdit={onEventEdit}
+                          onEventDelete={onEventDelete}
                         />
                       ))
                     }

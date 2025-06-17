@@ -188,6 +188,59 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     setShowEditModal(true);
   };
 
+  const handleEventDelete = async (eventId: string) => {
+    try {
+      setLoading(true);
+      
+      // イベントのソースを特定して適切なAPIエンドポイントを決定
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+      
+      let apiUrl = '';
+      
+      switch (event.source) {
+        case 'personal_schedules':
+          const personalId = event.id.startsWith('personal_') 
+            ? event.id.replace('personal_', '') 
+            : event.id;
+          apiUrl = `/api/schedules/${personalId}`;
+          break;
+        case 'tasks':
+          const taskId = event.id.replace(/^task_/, '');
+          apiUrl = `/api/tasks/${taskId}`;
+          break;
+        case 'appointments':
+          const appointmentMatch = event.id.match(/^appointment_(\d+)_(.+)$/);
+          if (appointmentMatch) {
+            const [, appointmentId] = appointmentMatch;
+            apiUrl = `/api/appointments/${appointmentId}`;
+          }
+          break;
+        case 'calendar_events':
+        default:
+          apiUrl = `/api/calendar/events/${event.id}`;
+          break;
+      }
+      
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // イベントリストから削除
+      setEvents(prevEvents => prevEvents.filter(e => e.id !== eventId));
+      
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      alert('イベントの削除に失敗しました。もう一度お試しください。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // イベント保存処理
   const handleEventSave = async (updatedEvent: UnifiedCalendarEvent) => {
     try {
@@ -294,6 +347,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         events={getEventsForSelectedDate()}
         colorMode={colorMode}
         onEventEdit={handleEventEdit}
+        onEventDelete={handleEventDelete}
       />
 
       {/* イベント編集モーダル */}

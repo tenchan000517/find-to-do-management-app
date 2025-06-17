@@ -9,6 +9,7 @@ interface EventEditModalProps {
   event: CalendarEvent | UnifiedCalendarEvent | null;
   onSave?: (event: CalendarEvent | UnifiedCalendarEvent) => void;
   onDataRefresh?: () => void;
+  onDelete?: (eventId: string) => void;
 }
 
 export function EventEditModal({
@@ -16,7 +17,8 @@ export function EventEditModal({
   onClose,
   event,
   onSave,
-  onDataRefresh
+  onDataRefresh,
+  onDelete
 }: EventEditModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -202,12 +204,12 @@ export function EventEditModal({
     <>
       {/* オーバーレイ */}
       <div
-        className="fixed inset-0 bg-gray-700/80 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-gray-700/80 flex items-center justify-center p-4 z-50"
         onClick={onClose}
       >
         {/* モーダル */}
         <div
-          className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden relative z-[81]"
+          className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* ヘッダー */}
@@ -215,18 +217,37 @@ export function EventEditModal({
             <h2 className="text-lg font-semibold text-gray-900">
               {getEventTypeName()}編集
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center space-x-2">
+              {onDelete && (
+                <button
+                  onClick={() => {
+                    if (window.confirm(`${getEventTypeName()}を削除してもよろしいですか？`)) {
+                      onDelete(event!.id);
+                      onClose();
+                    }
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="削除"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="閉じる"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* コンテンツ */}
-          <div className="p-4 overflow-y-auto max-h-[70vh] space-y-4">
+          <div className="p-4 overflow-y-auto max-h-[60vh] sm:max-h-[70vh] space-y-4">
             {/* タイトル */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
