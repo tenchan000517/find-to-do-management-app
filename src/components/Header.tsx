@@ -16,6 +16,7 @@ import {
   ClipboardList 
 } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
+import { Button } from './ui/Button';
 
 export default function Header() {
   const pathname = usePathname();
@@ -72,8 +73,10 @@ export default function Header() {
               <BarChart3 className="mr-2 h-4 w-4" />
               Discord インサイト
             </Link>
-            <button 
+            <Button 
               onClick={() => setNotificationCenterOpen(true)}
+              variant="ghost"
+              size="sm"
               className="p-2 text-gray-400 hover:text-gray-500 relative"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,14 +84,16 @@ export default function Header() {
               </svg>
               {/* 未読通知バッジ（実装後に動的に制御） */}
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-            </button>
+            </Button>
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
               U
             </div>
           </div>
 
           {/* Mobile menu button */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -99,7 +104,7 @@ export default function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               )}
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 

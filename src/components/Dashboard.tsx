@@ -11,6 +11,8 @@ import { LoadingPage } from '@/components/ui/Loading';
 import MemberChart from '@/components/charts/MemberChart';
 import RoleLineChart from '@/components/charts/RoleLineChart';
 import RolePieChart from '@/components/charts/RolePieChart';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/Button';
 // Removed unused imports
 
 // 型定義
@@ -343,7 +345,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     color: string;
     icon: string;
   }) => (
-    <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+    <Card variant="elevated" padding="normal">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs sm:text-sm font-medium text-gray-600">{title}</p>
@@ -354,7 +356,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           <span className="text-xl sm:text-2xl">{icon}</span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 
   // Helper functions for Discord data
@@ -430,7 +432,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
         {/* プロジェクト進捗、今日のタスク、カレンダー、今後の予定 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* プロジェクト進捗状況 */}
-          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+          <Card variant="elevated" padding="normal">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">プロジェクト進捗状況</h2>
             <div className="space-y-4">
               {projects.slice(0, 5).map((project, index) => {
@@ -454,10 +456,10 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 <p className="text-sm text-gray-500 text-center py-4">プロジェクトがありません</p>
               )}
             </div>
-          </div>
+          </Card>
 
           {/* 今日のタスク */}
-          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+          <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg md:text-xl font-semibold text-gray-900">今日のタスク</h2>
               <Link href="/tasks" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
@@ -486,10 +488,10 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 <p className="text-sm text-gray-500 text-center py-4">今日のタスクはありません</p>
               )}
             </div>
-          </div>
+          </Card>
 
           {/* カレンダー */}
-          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+          <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg md:text-xl font-semibold text-gray-900">カレンダー</h2>
               <Link href="/calendar" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
@@ -514,10 +516,10 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 <p className="text-sm text-gray-500 text-center py-4">予定がありません</p>
               )}
             </div>
-          </div>
+          </Card>
 
           {/* 今後の予定 */}
-          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+          <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg md:text-xl font-semibold text-gray-900">今後の予定</h2>
               <Link href="/calendar" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
@@ -549,7 +551,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Discord インサイト概要 */}
@@ -755,12 +757,13 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                         <span>関連性: {Math.round(rec.relevance_score * 100)}%</span>
                         <span>実行性: {Math.round(rec.executabilityScore * 100)}%</span>
                       </div>
-                      <button
+                      <Button
                         onClick={() => executeRecommendation(rec.id)}
-                        className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition-colors"
+                        size="sm"
+                        className="px-2 py-1 text-xs"
                       >
                         実行
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}

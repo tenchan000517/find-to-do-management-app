@@ -13,6 +13,8 @@ import ProjectsTable from '@/components/ProjectsTable';
 import GanttChart from '@/components/GanttChart';
 import ProjectDetailModal from '@/components/ProjectDetailModal';
 import UserProfileModal from '@/components/UserProfileModal';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/card';
 
 const statusColors = {
   planning: 'from-gray-500 to-gray-600',
@@ -136,46 +138,34 @@ export default function ProjectsPage() {
           <>
             {/* フィルター（テーブル表示時のみ） */}
             <div className="mb-6 flex flex-wrap gap-2">
-              <button
+              <Button
                 onClick={() => setFilter('all')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                variant={filter === 'all' ? 'primary' : 'secondary'}
+                size="sm"
               >
                 すべて
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setFilter('active')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'active' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                variant={filter === 'active' ? 'primary' : 'secondary'}
+                size="sm"
               >
                 進行中
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setFilter('planning')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'planning' 
-                    ? 'bg-gray-600 text-white' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                variant={filter === 'planning' ? 'primary' : 'secondary'}
+                size="sm"
               >
                 企画中
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setFilter('completed')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'completed' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                variant={filter === 'completed' ? 'primary' : 'secondary'}
+                size="sm"
               >
                 完了
-              </button>
+              </Button>
             </div>
 
             {/* テーブル/カード表示切り替え */}
@@ -202,7 +192,7 @@ export default function ProjectsPage() {
                 {/* カード表示 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                   {filteredProjects.map((project) => (
-                    <div key={project.id} className="bg-white rounded-lg shadow-lg p-4 md:p-6 hover:shadow-xl transition-shadow">
+                    <Card key={project.id} variant="elevated" padding="normal">
                       <div className={`h-32 bg-gradient-to-r ${statusColors[project.status]} rounded-lg mb-4 flex items-center justify-center`}>
                         <span className="text-white font-bold text-lg truncate px-2">{project.name}</span>
                       </div>
@@ -233,16 +223,18 @@ export default function ProjectsPage() {
                       </div>
 
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => {
                             setEditingProject(project);
                             setShowModal(true);
                           }}
-                          className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
+                          variant="secondary"
+                          size="sm"
+                          className="flex-1"
                         >
                           編集
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={async () => {
                             try {
                               await deleteProject(project.id);
@@ -250,12 +242,14 @@ export default function ProjectsPage() {
                               console.error('Failed to delete project:', error);
                             }
                           }}
-                          className="flex-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded"
+                          variant="danger"
+                          size="sm"
+                          className="flex-1"
                         >
                           削除
-                        </button>
+                        </Button>
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
 

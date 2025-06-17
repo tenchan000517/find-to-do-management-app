@@ -12,6 +12,8 @@ import {
   Phone, 
   FileText 
 } from 'lucide-react';
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { useTasks } from "@/hooks/useTasks";
 import { useUsers } from "@/hooks/useUsers";
 import { useProjects } from "@/hooks/useProjects";
@@ -261,41 +263,46 @@ export default function Home() {
         {/* クイックアクション - デスクトップ */}
         <div className="hidden md:block bg-white rounded-lg shadow-lg p-6 mb-8">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <button
+            <Button
               onClick={() => setShowProjectModal(true)}
-              className="flex flex-col items-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
+              variant="ghost"
+              className="flex flex-col items-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors h-auto"
             >
               <Rocket className="h-6 w-6 mb-2 text-blue-600" />
               <span className="text-sm font-medium text-gray-900">新規プロジェクト</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowTaskModal(true)}
-              className="flex flex-col items-center p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
+              variant="ghost"
+              className="flex flex-col items-center p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors h-auto"
             >
               <CheckCircle className="h-6 w-6 mb-2 text-green-600" />
               <span className="text-sm font-medium text-gray-900">タスク追加</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowConnectionModal(true)}
-              className="flex flex-col items-center p-4 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors"
+              variant="ghost"
+              className="flex flex-col items-center p-4 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors h-auto"
             >
               <Users className="h-6 w-6 mb-2 text-purple-600" />
               <span className="text-sm font-medium text-gray-900">つながり追加</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowEventModal(true)}
-              className="flex flex-col items-center p-4 rounded-lg bg-orange-50 hover:bg-orange-100 transition-colors"
+              variant="ghost"
+              className="flex flex-col items-center p-4 rounded-lg bg-orange-50 hover:bg-orange-100 transition-colors h-auto"
             >
               <Calendar className="h-6 w-6 mb-2 text-orange-600" />
               <span className="text-sm font-medium text-gray-900">予定追加</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowAppointmentModal(true)}
-              className="flex flex-col items-center p-4 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors"
+              variant="ghost"
+              className="flex flex-col items-center p-4 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors h-auto"
             >
               <Phone className="h-6 w-6 mb-2 text-pink-600" />
               <span className="text-sm font-medium text-gray-900">アポ追加</span>
-            </button>
+            </Button>
           </div>
         </div>
         
@@ -333,16 +340,19 @@ export default function Home() {
 
       {/* モーダル群 */}
       {/* タスク作成モーダル */}
-      {showTaskModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
-            {/* ローディングオーバーレイ */}
-            <LoadingOverlay 
-              isLoading={taskLoading}
-              message="タスクを作成しています..."
-              size="md"
-            />
-            <h2 className="text-xl font-bold mb-4">新規タスク</h2>
+      <Modal 
+        isOpen={showTaskModal} 
+        onClose={() => setShowTaskModal(false)}
+        title="新規タスク"
+        size="md"
+      >
+        <div className="relative">
+          {/* ローディングオーバーレイ */}
+          <LoadingOverlay 
+            isLoading={taskLoading}
+            message="タスクを作成しています..."
+            size="md"
+          />
             <form onSubmit={handleTaskSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">タスク名</label>
@@ -377,27 +387,29 @@ export default function Home() {
                 <input type="date" name="dueDate" required disabled={taskLoading} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100" />
               </div>
               <div className="flex gap-2 pt-4">
-                <button type="submit" disabled={taskLoading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium disabled:bg-gray-400 disabled:cursor-not-allowed">
-                  {taskLoading ? '作成中...' : '作成'}
-                </button>
-                <button type="button" onClick={() => setShowTaskModal(false)} disabled={taskLoading} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium disabled:bg-gray-200 disabled:cursor-not-allowed">キャンセル</button>
+                <Button type="submit" loading={taskLoading} className="flex-1">
+                  作成
+                </Button>
+                <Button type="button" onClick={() => setShowTaskModal(false)} disabled={taskLoading} variant="secondary" className="flex-1">キャンセル</Button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
       {/* プロジェクト作成モーダル */}
-      {showProjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
-            {/* ローディングオーバーレイ */}
-            <LoadingOverlay 
-              isLoading={projectLoading}
-              message="プロジェクトを作成しています..."
-              size="md"
-            />
-            <h2 className="text-xl font-bold mb-4">新規プロジェクト</h2>
+      <Modal 
+        isOpen={showProjectModal} 
+        onClose={() => setShowProjectModal(false)}
+        title="新規プロジェクト"
+        size="md"
+      >
+        <div className="relative">
+          {/* ローディングオーバーレイ */}
+          <LoadingOverlay 
+            isLoading={projectLoading}
+            message="プロジェクトを作成しています..."
+            size="md"
+          />
             <form onSubmit={handleProjectSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">プロジェクト名</label>
@@ -425,27 +437,29 @@ export default function Home() {
                 <input type="date" name="endDate" disabled={projectLoading} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100" />
               </div>
               <div className="flex gap-2 pt-4">
-                <button type="submit" disabled={projectLoading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium disabled:bg-gray-400 disabled:cursor-not-allowed">
-                  {projectLoading ? '作成中...' : '作成'}
-                </button>
-                <button type="button" onClick={() => setShowProjectModal(false)} disabled={projectLoading} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium disabled:bg-gray-200 disabled:cursor-not-allowed">キャンセル</button>
+                <Button type="submit" loading={projectLoading} className="flex-1">
+                  作成
+                </Button>
+                <Button type="button" onClick={() => setShowProjectModal(false)} disabled={projectLoading} variant="secondary" className="flex-1">キャンセル</Button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
       {/* 予定作成モーダル */}
-      {showEventModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
-            {/* ローディングオーバーレイ */}
-            <LoadingOverlay 
-              isLoading={eventLoading}
-              message="予定を作成しています..."
-              size="md"
-            />
-            <h2 className="text-xl font-bold mb-4">新規予定</h2>
+      <Modal 
+        isOpen={showEventModal} 
+        onClose={() => setShowEventModal(false)}
+        title="新規予定"
+        size="md"
+      >
+        <div className="relative">
+          {/* ローディングオーバーレイ */}
+          <LoadingOverlay 
+            isLoading={eventLoading}
+            message="予定を作成しています..."
+            size="md"
+          />
             <form onSubmit={handleEventSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">タイトル</label>
@@ -476,27 +490,29 @@ export default function Home() {
                 <input type="text" name="location" disabled={eventLoading} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100" />
               </div>
               <div className="flex gap-2 pt-4">
-                <button type="submit" disabled={eventLoading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium disabled:bg-gray-400 disabled:cursor-not-allowed">
-                  {eventLoading ? '作成中...' : '作成'}
-                </button>
-                <button type="button" onClick={() => setShowEventModal(false)} disabled={eventLoading} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium disabled:bg-gray-200 disabled:cursor-not-allowed">キャンセル</button>
+                <Button type="submit" loading={eventLoading} className="flex-1">
+                  作成
+                </Button>
+                <Button type="button" onClick={() => setShowEventModal(false)} disabled={eventLoading} variant="secondary" className="flex-1">キャンセル</Button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
       {/* つながり作成モーダル */}
-      {showConnectionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
-            {/* ローディングオーバーレイ */}
-            <LoadingOverlay 
-              isLoading={connectionLoading}
-              message="つながりを作成しています..."
-              size="md"
-            />
-            <h2 className="text-xl font-bold mb-4">新規つながり</h2>
+      <Modal 
+        isOpen={showConnectionModal} 
+        onClose={() => setShowConnectionModal(false)}
+        title="新規つながり"
+        size="lg"
+      >
+        <div className="relative">
+          {/* ローディングオーバーレイ */}
+          <LoadingOverlay 
+            isLoading={connectionLoading}
+            message="つながりを作成しています..."
+            size="md"
+          />
             <form onSubmit={handleConnectionSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -544,27 +560,29 @@ export default function Home() {
                 <input type="text" name="businessCard" placeholder="名刺画像のURLなど" disabled={connectionLoading} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100" />
               </div>
               <div className="flex gap-2 pt-4">
-                <button type="submit" disabled={connectionLoading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium disabled:bg-gray-400 disabled:cursor-not-allowed">
-                  {connectionLoading ? '作成中...' : '作成'}
-                </button>
-                <button type="button" onClick={() => setShowConnectionModal(false)} disabled={connectionLoading} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium disabled:bg-gray-200 disabled:cursor-not-allowed">キャンセル</button>
+                <Button type="submit" loading={connectionLoading} className="flex-1">
+                  作成
+                </Button>
+                <Button type="button" onClick={() => setShowConnectionModal(false)} disabled={connectionLoading} variant="secondary" className="flex-1">キャンセル</Button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
       {/* アポ作成モーダル */}
-      {showAppointmentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
-            {/* ローディングオーバーレイ */}
-            <LoadingOverlay 
-              isLoading={appointmentLoading}
-              message="アポを作成しています..."
-              size="md"
-            />
-            <h2 className="text-xl font-bold mb-4">新規アポ</h2>
+      <Modal 
+        isOpen={showAppointmentModal} 
+        onClose={() => setShowAppointmentModal(false)}
+        title="新規アポ"
+        size="md"
+      >
+        <div className="relative">
+          {/* ローディングオーバーレイ */}
+          <LoadingOverlay 
+            isLoading={appointmentLoading}
+            message="アポを作成しています..."
+            size="md"
+          />
             <form onSubmit={handleAppointmentSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">名前</label>
@@ -596,54 +614,58 @@ export default function Home() {
                 </select>
               </div>
               <div className="flex gap-2 pt-4">
-                <button type="submit" disabled={appointmentLoading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium disabled:bg-gray-400 disabled:cursor-not-allowed">
-                  {appointmentLoading ? '作成中...' : '作成'}
-                </button>
-                <button type="button" onClick={() => setShowAppointmentModal(false)} disabled={appointmentLoading} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded-md font-medium disabled:bg-gray-200 disabled:cursor-not-allowed">キャンセル</button>
+                <Button type="submit" loading={appointmentLoading} className="flex-1">
+                  作成
+                </Button>
+                <Button type="button" onClick={() => setShowAppointmentModal(false)} disabled={appointmentLoading} variant="secondary" className="flex-1">キャンセル</Button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
       {/* モバイル固定クイックアクション */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-[9999] shadow-lg pb-safe">
         <div className="grid grid-cols-5 gap-1">
-          <button
+          <Button
             onClick={() => setShowProjectModal(true)}
-            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
+            variant="ghost"
+            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors h-auto"
           >
             <Rocket className="h-5 w-5 mb-1 text-blue-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">プロジェクト</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowTaskModal(true)}
-            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
+            variant="ghost"
+            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors h-auto"
           >
             <CheckCircle className="h-5 w-5 mb-1 text-green-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">タスク</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowConnectionModal(true)}
-            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
+            variant="ghost"
+            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors h-auto"
           >
             <Users className="h-5 w-5 mb-1 text-purple-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">つながり</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowEventModal(true)}
-            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
+            variant="ghost"
+            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors h-auto"
           >
             <Calendar className="h-5 w-5 mb-1 text-orange-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">予定</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowAppointmentModal(true)}
-            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors"
+            variant="ghost"
+            className="flex flex-col items-center py-3 px-1 hover:bg-gray-50 transition-colors h-auto"
           >
             <Phone className="h-5 w-5 mb-1 text-pink-600" />
             <span className="text-xs font-medium text-gray-900 leading-tight">アポ</span>
-          </button>
+          </Button>
         </div>
       </div>
 
