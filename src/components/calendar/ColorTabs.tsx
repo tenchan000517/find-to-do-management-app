@@ -1,6 +1,7 @@
 'use client';
 
 import { ColorMode, CATEGORY_COLORS, PRIORITY_COLORS, PriorityLevel } from '@/types/calendar';
+import { Users, Folder, Star } from 'lucide-react';
 
 interface ColorTabsProps {
   selectedMode: ColorMode;
@@ -235,9 +236,9 @@ export function ColorTabs({
           {/* 左: モード選択タブ */}
           <div className="flex items-center space-x-1">
             {([
-              { mode: 'user' as ColorMode, label: 'ユーザー別', icon: '👤' },
-              { mode: 'category' as ColorMode, label: 'カテゴリ別', icon: '📂' },
-              { mode: 'importance' as ColorMode, label: '重要度別', icon: '⭐' }
+              { mode: 'user' as ColorMode, label: 'ユーザー別', icon: <Users className="w-4 h-4" /> },
+              { mode: 'category' as ColorMode, label: 'カテゴリ別', icon: <Folder className="w-4 h-4" /> },
+              { mode: 'importance' as ColorMode, label: '重要度別', icon: <Star className="w-4 h-4" /> }
             ]).map(({ mode, label, icon }) => (
               <button
                 key={mode}
@@ -251,7 +252,7 @@ export function ColorTabs({
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                <span>{icon}</span>
+                {icon}
                 <span className="hidden md:inline">{label}</span>
               </button>
             ))}

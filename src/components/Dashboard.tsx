@@ -13,6 +13,7 @@ import RoleLineChart from '@/components/charts/RoleLineChart';
 import RolePieChart from '@/components/charts/RolePieChart';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
+import { CheckCircle, Target, Calendar, Handshake, Clock } from 'lucide-react';
 // Removed unused imports
 
 // 型定義
@@ -283,20 +284,20 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
 
   const getActivityIcon = (type: RecentActivity['type']) => {
     switch (type) {
-      case 'project': return '🚀';
-      case 'task': return '✅';
-      case 'appointment': return '📞';
-      case 'connection': return '👥';
-      default: return '📄';
+      case 'project': return <Target className="w-4 h-4" />;
+      case 'task': return <CheckCircle className="w-4 h-4" />;
+      case 'appointment': return <Calendar className="w-4 h-4" />;
+      case 'connection': return <Target className="w-4 h-4" />;
+      default: return <Calendar className="w-4 h-4" />;
     }
   };
 
   const getEventIcon = (type: UpcomingEvent['type']) => {
     switch (type) {
-      case 'meeting': return '🤝';
-      case 'deadline': return '⏰';
-      case 'event': return '🎯';
-      default: return '📅';
+      case 'meeting': return <Handshake className="w-4 h-4" />;
+      case 'deadline': return <Clock className="w-4 h-4" />;
+      case 'event': return <Target className="w-4 h-4" />;
+      default: return <Calendar className="w-4 h-4" />;
     }
   };
 
@@ -328,13 +329,13 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
       const data = await response.json();
       
       if (data.success) {
-        alert(`✅ ${data.result.message}`);
+        alert(`Success: ${data.result.message}`);
         fetchRecommendations(); // リストを更新
       } else {
-        alert(`❌ 実行失敗: ${data.error}`);
+        alert(`Error: ${data.error}`);
       }
     } catch (error) {
-      alert(`❌ エラー: ${error}`);
+      alert(`Error: ${error}`);
     }
   };
 
@@ -343,7 +344,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     value: number;
     subtitle: string;
     color: string;
-    icon: string;
+    icon: React.ReactNode;
   }) => (
     <Card variant="elevated" padding="normal">
       <div className="flex items-center justify-between">
@@ -353,7 +354,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>
         </div>
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${color} flex items-center justify-center`}>
-          <span className="text-xl sm:text-2xl">{icon}</span>
+          {icon}
         </div>
       </div>
     </Card>
@@ -404,7 +405,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
             value={stats.tasks.inProgress}
             subtitle={`${stats.tasks.overdue}件が期限超過`}
             color="bg-green-100"
-            icon="✅"
+            icon={<CheckCircle className="w-6 h-6" />}
           />
           <StatCard
             title="今月の新規つながり"
