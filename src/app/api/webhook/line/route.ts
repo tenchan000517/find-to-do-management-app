@@ -132,6 +132,11 @@ function cleanMessageText(message: LineMessage): string {
 
 // コマンド解析
 function extractCommand(text: string): string | undefined {
+  // メニューコマンド
+  if (text.includes('メニュー') || text.includes('menu') || text.includes('Menu')) {
+    return 'menu';
+  }
+  
   // テスト用コマンド追加
   if (text.includes('@コマンド') || text.includes('@command')) {
     return 'test_button';
@@ -273,6 +278,16 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
       if (event.replyToken) {
         const { createTestButtonMessage } = await import('@/lib/line/notification');
         await createTestButtonMessage(event.replyToken);
+      }
+      return;
+    }
+    
+    // メニューコマンドの処理
+    if (command === 'menu') {
+      console.log('📋 Menu command detected');
+      if (event.replyToken) {
+        const { createMenuMessage } = await import('@/lib/line/notification');
+        await createMenuMessage(event.replyToken);
       }
       return;
     }
@@ -494,12 +509,20 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       // 項目追加
       const [, , type, fieldKey] = data.split('_');
       
-      // 現在入力中フィールドを設定
-      sessionManager.setCurrentField(event.source.userId, event.source.groupId, fieldKey);
-      
-      if (event.replyToken) {
-        const { createFieldInputMessage } = await import('@/lib/line/notification');
-        await createFieldInputMessage(event.replyToken, type, fieldKey);
+      // 担当者フィールドの場合は専用UI表示
+      if (fieldKey === 'assignee') {
+        if (event.replyToken) {
+          const { createAssigneeSelectionMessage } = await import('@/lib/line/notification');
+          await createAssigneeSelectionMessage(event.replyToken, type);
+        }
+      } else {
+        // 現在入力中フィールドを設定
+        sessionManager.setCurrentField(event.source.userId, event.source.groupId, fieldKey);
+        
+        if (event.replyToken) {
+          const { createFieldInputMessage } = await import('@/lib/line/notification');
+          await createFieldInputMessage(event.replyToken, type, fieldKey);
+        }
       }
     } else if (data.startsWith('skip_field_')) {
       // 項目スキップ
@@ -573,6 +596,44 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         const itemName = title ? `「${title}」` : '';
         
         await sendReplyMessage(event.replyToken, `✅ ${typeText}${itemName}を保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
+      }
+    } else if (data.startsWith('select_assignee_')) {
+      // 担当者選択
+      const [, , type, userId] = data.split('_');
+      
+      // セッションに担当者を保存
+      sessionManager.saveFieldData(event.source.userId, event.source.groupId, 'assignee', userId);
+      
+      if (event.replyToken) {
+        // 選択されたユーザー名を取得
+        const { prismaDataService } = await import('@/lib/database/prisma-service');
+        const user = await prismaDataService.getUserById(userId);
+        const userName = user ? user.name : 'ユーザー';
+        
+        await sendReplyMessage(event.replyToken, `✅ 担当者「${userName}」を設定しました！\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
+        
+        // 項目選択画面に戻る
+        setTimeout(async () => {
+          if (event.replyToken) {
+            const { startDetailedInputFlow } = await import('@/lib/line/notification');
+            await startDetailedInputFlow(event.replyToken, type);
+          }
+        }, 2000);
+      }
+    } else if (data.startsWith('skip_assignee_')) {
+      // 担当者スキップ
+      const type = data.replace('skip_assignee_', '');
+      
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '⏭️ 担当者の設定をスキップしました。');
+        
+        // 項目選択画面に戻る
+        setTimeout(async () => {
+          if (event.replyToken) {
+            const { startDetailedInputFlow } = await import('@/lib/line/notification');
+            await startDetailedInputFlow(event.replyToken, type);
+          }
+        }, 1000);
       }
     } else if (data === 'cancel_detailed_input') {
       // 詳細入力キャンセル
@@ -780,6 +841,9 @@ async function saveClassifiedData(
             description: finalData.description || '',
             participants: finalData.participants || [],
             location: finalData.location || null,
+            // 担当者システム統合: イベント担当者
+            createdBy: systemUserId,
+            assignedTo: finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -799,6 +863,9 @@ async function saveClassifiedData(
             estimatedHours: finalData.estimatedHours || 0,
             resourceWeight: finalData.resourceWeight || 0.5,
             aiIssueLevel: finalData.issueLevel || 'MEDIUM',
+            // 担当者システム統合: デフォルトで作成者=担当者
+            createdBy: systemUserId,
+            assignedTo: finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -815,6 +882,9 @@ async function saveClassifiedData(
             endDate: finalData.endDate || null,
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : finalData.priority,
             teamMembers: finalData.teamMembers || [],
+            // 担当者システム統合: デフォルトで作成者=担当者（プロジェクトマネージャー）
+            createdBy: systemUserId,
+            assignedTo: finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -835,6 +905,28 @@ async function saveClassifiedData(
             potential: finalData.potential || '',
             businessCard: finalData.businessCard || null,
             updatedAt: new Date(getJSTNow()),
+            // 担当者システム統合: 人脈管理者
+            createdBy: systemUserId,
+            assignedTo: finalData.assignedTo || systemUserId,
+          },
+        });
+        break;
+        
+      case 'appointment':
+        createdRecordId = `appt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        await prisma.appointments.create({
+          data: {
+            id: createdRecordId,
+            companyName: finalData.companyName || finalData.company || '新しい会社',
+            contactName: finalData.contactName || finalData.name || '担当者',
+            phone: finalData.phone || '',
+            email: finalData.email || '',
+            nextAction: finalData.nextAction || finalData.title || finalData.summary || '面談',
+            notes: finalData.notes || finalData.description || '',
+            priority: (finalData.priority === 'null' || !finalData.priority) ? 'B' : convertPriority(finalData.priority),
+            // 担当者システム統合: 営業担当者
+            createdBy: systemUserId,
+            assignedTo: finalData.assignedTo || systemUserId,
           },
         });
         break;

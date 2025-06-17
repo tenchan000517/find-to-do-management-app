@@ -757,6 +757,17 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
   console.log(`🚀 Starting detailed input flow for type: ${type}`);
   
   const flowConfigs = {
+    personal_schedule: {
+      title: '📅 個人予定の詳細入力',
+      description: '追加したい項目を選択してください',
+      fields: [
+        { key: 'title', name: '📋 タイトル', description: '予定のタイトル' },
+        { key: 'datetime', name: '📅 日時', description: '予定の日時' },
+        { key: 'location', name: '📍 場所', description: '開催場所' },
+        { key: 'description', name: '📝 内容', description: '詳細説明' },
+        { key: 'priority', name: '🎯 優先度', description: '重要度レベル' }
+      ]
+    },
     schedule: {
       title: '📅 予定の詳細入力',
       description: '追加したい項目を選択してください',
@@ -766,7 +777,8 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
         { key: 'datetime', name: '📅 日時', description: '会議や予定の日時' },
         { key: 'location', name: '📍 場所', description: '開催場所や会議室' },
         { key: 'attendees', name: '👥 参加者', description: '参加メンバー' },
-        { key: 'description', name: '📝 内容', description: '詳細説明やアジェンダ' }
+        { key: 'description', name: '📝 内容', description: '詳細説明やアジェンダ' },
+        { key: 'assignee', name: '👤 担当者', description: 'イベント担当者' }
       ]
     },
     task: {
@@ -792,7 +804,8 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
         { key: 'priority', name: '🎯 優先度', description: '重要度レベル' },
         { key: 'status', name: '📊 ステータス', description: 'プロジェクト状況' },
         { key: 'members', name: '👥 メンバー', description: 'チーム構成' },
-        { key: 'goals', name: '🎯 目標', description: '目標や成果物' }
+        { key: 'goals', name: '🎯 目標', description: '目標や成果物' },
+        { key: 'assignee', name: '👤 プロジェクトマネージャー', description: 'プロジェクト責任者' }
       ]
     },
     contact: {
@@ -807,7 +820,22 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
         { key: 'company', name: '🏢 会社名', description: '所属会社' },
         { key: 'position', name: '💼 役職', description: '部署や役職' },
         { key: 'contact', name: '📞 連絡先', description: 'メールや電話' },
-        { key: 'relation', name: '🤝 関係性', description: 'どんな関係か' }
+        { key: 'relation', name: '🤝 関係性', description: 'どんな関係か' },
+        { key: 'assignee', name: '👤 担当者', description: '人脈管理担当者' }
+      ]
+    },
+    appointment: {
+      title: '📅 アポイントメントの詳細入力',
+      description: '追加したい項目を選択してください',
+      fields: [
+        { key: 'companyName', name: '🏢 会社名', description: '訪問先会社名' },
+        { key: 'contactName', name: '👤 担当者名', description: '先方担当者名' },
+        { key: 'phone', name: '📞 電話番号', description: '連絡先電話番号' },
+        { key: 'email', name: '📧 メールアドレス', description: '連絡先メール' },
+        { key: 'nextAction', name: '📋 アクション', description: '面談内容・目的' },
+        { key: 'notes', name: '📝 備考', description: '詳細や特記事項' },
+        { key: 'priority', name: '🎯 優先度', description: '重要度レベル' },
+        { key: 'assignee', name: '👤 営業担当', description: '営業担当者' }
       ]
     },
     memo: {
@@ -1006,6 +1034,224 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
 }
 
 // 質問フロー用のメッセージ
+// メニューUIメッセージ
+export async function createMenuMessage(replyToken: string): Promise<boolean> {
+  const flexContent = {
+    type: 'bubble',
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: '📋 FIND to DO メニュー',
+          weight: 'bold',
+          size: 'xl',
+          color: '#333333',
+          align: 'center'
+        },
+        {
+          type: 'text',
+          text: '作成したいデータの種類を選択してください',
+          size: 'sm',
+          color: '#666666',
+          align: 'center',
+          margin: 'md'
+        },
+        {
+          type: 'separator',
+          margin: 'lg'
+        },
+        {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          margin: 'lg',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📅 個人予定',
+                data: 'start_classification_personal_schedule'
+              },
+              color: '#4A90E2'
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '🎯 イベント・予定',
+                data: 'start_classification_schedule'
+              },
+              color: '#7ED321'
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📋 タスク',
+                data: 'start_classification_task'
+              },
+              color: '#F5A623'
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📊 プロジェクト',
+                data: 'start_classification_project'
+              },
+              color: '#BD10E0'
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📅 アポイントメント',
+                data: 'start_classification_appointment'
+              },
+              color: '#B8E986'
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '👤 人脈・コネクション',
+                data: 'start_classification_contact'
+              },
+              color: '#50E3C2'
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📝 メモ・ナレッジ',
+                data: 'start_classification_memo'
+              }
+            }
+          ]
+        },
+        {
+          type: 'separator',
+          margin: 'lg'
+        },
+        {
+          type: 'text',
+          text: '💡 ヒント: 直接メッセージを送信することもできます\n例: "明日14時に会議"',
+          size: 'xs',
+          color: '#999999',
+          wrap: true,
+          margin: 'md'
+        }
+      ]
+    }
+  };
+
+  return await sendFlexMessage(replyToken, 'メニュー', flexContent);
+}
+
+// 担当者選択UIメッセージ
+export async function createAssigneeSelectionMessage(replyToken: string, type: string): Promise<boolean> {
+  try {
+    // 既存ユーザーを取得
+    const { prismaDataService } = await import('@/lib/database/prisma-service');
+    const users = await prismaDataService.getUsers();
+    
+    if (users.length === 0) {
+      return await sendReplyMessage(replyToken, '❌ 登録済みユーザーが見つかりません。');
+    }
+
+    // ユーザー選択ボタンを作成（最大6名まで表示）
+    const userButtons = users.slice(0, 6).map(user => ({
+      type: 'button',
+      style: 'primary',
+      height: 'sm',
+      action: {
+        type: 'postback',
+        label: `👤 ${user.name}`,
+        data: `select_assignee_${type}_${user.id}`
+      }
+    }));
+
+    // 2列レイアウトでボタンを配置
+    const buttonRows = [];
+    for (let i = 0; i < userButtons.length; i += 2) {
+      const row = {
+        type: 'box',
+        layout: 'horizontal',
+        spacing: 'sm',
+        contents: [userButtons[i]]
+      };
+      if (userButtons[i + 1]) {
+        row.contents.push(userButtons[i + 1]);
+      }
+      buttonRows.push(row);
+    }
+
+    const flexContent = {
+      type: 'bubble',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: '👤 担当者を選択',
+            weight: 'bold',
+            size: 'lg',
+            color: '#333333'
+          },
+          {
+            type: 'text',
+            text: '担当者を選択してください',
+            size: 'sm',
+            color: '#666666',
+            margin: 'sm'
+          },
+          {
+            type: 'separator',
+            margin: 'md'
+          },
+          ...buttonRows,
+          {
+            type: 'separator',
+            margin: 'md'
+          },
+          {
+            type: 'button',
+            style: 'secondary',
+            action: {
+              type: 'postback',
+              label: '⏭️ スキップ',
+              data: `skip_assignee_${type}`
+            }
+          }
+        ]
+      }
+    };
+
+    return await sendFlexMessage(replyToken, '担当者選択', flexContent);
+  } catch (error) {
+    console.error('Error creating assignee selection message:', error);
+    return await sendReplyMessage(replyToken, '❌ 担当者選択画面の作成に失敗しました。');
+  }
+}
+
 export async function createQuestionMessage(replyToken: string, type: string, questionIndex: number): Promise<boolean> {
   const questionConfigs = {
     schedule: [

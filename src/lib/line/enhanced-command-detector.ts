@@ -11,6 +11,12 @@ interface CommandDetectionResult {
     type: string;
     data: any;
   }>;
+  assigneeInfo?: {
+    assigneeName: string;
+    resolvedUserId?: string;
+    entityType: 'task' | 'project' | 'appointment' | 'connection';
+    confidence: number;
+  };
 }
 
 export class EnhancedCommandDetector {
@@ -28,8 +34,16 @@ export class EnhancedCommandDetector {
       // ユーザーコンテキスト取得
       const userContext = await this.getUserContext(userId);
       
+      // 担当者指定コマンド検知（最優先）
+      const assigneeCommand = await this.detectAssigneeCommand(message);
+      
       // 自然な表現の詳細検知
       const intent = await this.analyzeNaturalLanguage(message, userContext);
+      
+      // 担当者指定が検知された場合は統合
+      if (assigneeCommand.detected) {
+        intent.entities = { ...intent.entities, ...assigneeCommand.entities };
+      }
       
       // アクションプラン生成
       const actions = await this.generateActionPlan(intent);
@@ -43,7 +57,8 @@ export class EnhancedCommandDetector {
         entities: intent.entities,
         context: userContext?.currentProject,
         response,
-        actions
+        actions,
+        assigneeInfo: assigneeCommand.detected ? assigneeCommand.assigneeInfo : undefined
       };
     } catch (error) {
       console.error('Intent detection failed:', error);
