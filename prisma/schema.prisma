@@ -18,12 +18,23 @@ model appointments {
   nextAction      String
   notes           String               @default("")
   priority        priority             @default(C)
+  
+  // 新しい担当者システム（業務実行エンティティ：移行中は任意）
+  createdBy       String?              // 作成者ID（移行中は任意）
+  assignedTo      String?              // 営業担当者ID（移行中は任意）
+  
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   details         appointment_details?
   calendar_events calendar_events[]
+  
+  // 新しいリレーション
+  creator         users?               @relation("AppointmentCreator", fields: [createdBy], references: [id])
+  assignee        users?               @relation("AppointmentAssignee", fields: [assignedTo], references: [id])
 
   @@index([status], name: "idx_appointments_status")
+  @@index([createdBy], name: "idx_appointments_created_by")
+  @@index([assignedTo], name: "idx_appointments_assigned_to")
   @@index([updatedAt], name: "idx_appointments_updated")
 }
 
@@ -38,7 +49,11 @@ model calendar_events {
   participants String[]   @default([])
   location     String?
 
-  // 新規追加フィールド
+  // 新しい担当者システム（パブリック・共有エンティティ：任意）
+  createdBy     String?    // 作成者ID（必須）
+  assignedTo    String?    // イベント責任者ID（任意・パブリック可能）
+  
+  // 既存フィールド（後方互換性のため保持）
   userId        String?
   projectId     String?
   taskId        String?
@@ -61,14 +76,22 @@ model calendar_events {
   updatedAt DateTime @updatedAt
 
   // リレーション
-  users           users?           @relation(fields: [userId], references: [id])
   projects        projects?        @relation(fields: [projectId], references: [id])
   tasks           tasks?           @relation(fields: [taskId], references: [id])
   appointments    appointments?    @relation(fields: [appointmentId], references: [id])
   recurring_rules recurring_rules? @relation(fields: [recurringPattern], references: [id])
+  
+  // 新しいリレーション
+  creator         users?           @relation("CalendarCreator", fields: [createdBy], references: [id])
+  assignee        users?           @relation("CalendarAssignee", fields: [assignedTo], references: [id])
+  
+  // 既存リレーション（互換性のため保持）
+  users           users?           @relation("CalendarUser", fields: [userId], references: [id])
 
   @@index([date], name: "idx_calendar_date")
   @@index([userId, date], name: "idx_calendar_user_date")
+  @@index([createdBy], name: "idx_calendar_created_by")
+  @@index([assignedTo, date], name: "idx_calendar_assigned_date")
   @@index([appointmentId], name: "idx_calendar_appointment")
   @@index([taskId], name: "idx_calendar_task")
   @@index([projectId], name: "idx_calendar_project")
@@ -86,8 +109,22 @@ model connections {
   conversation String
   potential    String
   businessCard String?
+  
+  // 新しい担当者システム（パブリック・共有エンティティ：任意）
+  createdBy    String?         // 作成者ID（任意）
+  assignedTo   String?         // 関係構築担当者ID（任意・共有人脈）
+  
   createdAt    DateTime        @default(now())
   updatedAt    DateTime
+  
+  // 新しいリレーション
+  creator      users?          @relation("ConnectionCreator", fields: [createdBy], references: [id])
+  assignee     users?          @relation("ConnectionAssignee", fields: [assignedTo], references: [id])
+
+  @@index([type], name: "idx_connections_type")
+  @@index([createdBy], name: "idx_connections_created_by")
+  @@index([assignedTo], name: "idx_connections_assigned_to")
+  @@index([updatedAt], name: "idx_connections_updated")
 }
 
 model knowledge_items {
@@ -103,13 +140,24 @@ model knowledge_items {
   source_page_number  Int?
   source_url          String?
   auto_generated      Boolean            @default(false)
+  
+  // 新しい担当者システム（パブリック・共有エンティティ：任意）
+  createdBy           String?            // 作成者ID（任意）
+  assignedTo          String?            // 管理担当者ID（任意・ナレッジ共有）
+  
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
+  
+  // 新しいリレーション
+  creator             users?             @relation("KnowledgeCreator", fields: [createdBy], references: [id])
+  assignee            users?             @relation("KnowledgeAssignee", fields: [assignedTo], references: [id])
 
   @@index([category], name: "idx_knowledge_category")
   @@index([createdAt], name: "idx_knowledge_created")
   @@index([source_document_id], name: "idx_knowledge_source")
   @@index([auto_generated], name: "idx_knowledge_auto")
+  @@index([createdBy], name: "idx_knowledge_created_by")
+  @@index([assignedTo], name: "idx_knowledge_assigned_to")
 }
 
 model line_integration_logs {
@@ -137,6 +185,11 @@ model projects {
   progress              Int                     @default(0)
   startDate             String
   endDate               String?
+  
+  // 新しい担当者システム（業務実行エンティティ：移行中は任意）
+  createdBy             String?                 // 作成者ID（移行中は任意）
+  assignedTo            String?                 // プロジェクトマネージャーID（移行中は任意）
+  
   teamMembers           String[]                @default([])
   priority              priority                @default(C)
   createdAt             DateTime                @default(now())
@@ -148,11 +201,22 @@ model projects {
   connectionPower       Int                     @default(0)
   lastActivityDate      DateTime                @default(now())
   phaseChangeDate       DateTime                @default(now())
+  
+  // リレーション
   tasks                 tasks[]
   project_relationships project_relationships[]
   project_alerts        project_alerts[]
   project_phase_history project_phase_history[]
   calendar_events       calendar_events[]
+  
+  // 新しいリレーション
+  creator               users?                  @relation("ProjectCreator", fields: [createdBy], references: [id])
+  manager               users?                  @relation("ProjectManager", fields: [assignedTo], references: [id])
+
+  @@index([status], name: "idx_projects_status")
+  @@index([createdBy], name: "idx_projects_created_by")
+  @@index([assignedTo], name: "idx_projects_assigned_to")
+  @@index([updatedAt], name: "idx_projects_updated")
 }
 
 model task_archives {
@@ -179,7 +243,14 @@ model tasks {
   title              String
   description        String               @default("")
   projectId          String?
+  
+  // 新しい担当者システム（業務実行エンティティ：移行中は任意）
+  createdBy          String?              // 作成者ID（移行中は任意）
+  assignedTo         String?              // 担当者ID（移行中は任意）
+  
+  // 既存フィールド（後方互換性のため保持）
   userId             String
+  
   status             task_status          @default(IDEA)
   priority           priority             @default(C)
   dueDate            String?
@@ -191,15 +262,26 @@ model tasks {
   difficultyScore    Int                  @default(3)
   aiIssueLevel       String               @default("C")
   resourceWeight     Float                @default(1.0)
+  
+  // リレーション
   task_collaborators task_collaborators[]
   projects           projects?            @relation(fields: [projectId], references: [id])
-  users              users                @relation(fields: [userId], references: [id])
   calendar_events    calendar_events[]
+  
+  // 新しいリレーション
+  creator            users?               @relation("TaskCreator", fields: [createdBy], references: [id])
+  assignee           users?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  
+  // 既存リレーション（互換性のため保持）
+  users              users                @relation("TaskUser", fields: [userId], references: [id])
 
   @@index([dueDate], name: "idx_tasks_due")
   @@index([userId, isArchived, status], name: "idx_tasks_filter")
   @@index([projectId], name: "idx_tasks_project")
   @@index([createdAt], name: "idx_tasks_created")
+  @@index([createdBy], name: "idx_tasks_created_by")
+  @@index([assignedTo], name: "idx_tasks_assigned_to")
+  @@index([assignedTo, status], name: "idx_tasks_assigned_status")
 }
 
 model users {
@@ -215,12 +297,34 @@ model users {
   skills                Json                    @default("{}")
   preferences           Json                    @default("{}")
   workStyle             Json                    @default("{}")
+  
+  // 既存リレーション
   task_collaborators    task_collaborators[]
-  tasks                 tasks[]
   user_alerts           user_alerts[]
   project_phase_history project_phase_history[]
-  calendar_events       calendar_events[]
   personal_schedules    personal_schedules[]
+  
+  // 新しいリレーション - 作成者として
+  created_tasks         tasks[]                 @relation("TaskCreator")
+  created_projects      projects[]              @relation("ProjectCreator")
+  created_appointments  appointments[]          @relation("AppointmentCreator")
+  created_events        calendar_events[]       @relation("CalendarCreator")
+  created_connections   connections[]           @relation("ConnectionCreator")
+  created_knowledge     knowledge_items[]       @relation("KnowledgeCreator")
+  created_ai_analysis   ai_content_analysis[]   @relation("AIAnalysisCreator")
+  
+  // 新しいリレーション - 担当者として
+  assigned_tasks        tasks[]                 @relation("TaskAssignee")
+  managed_projects      projects[]              @relation("ProjectManager")
+  assigned_appointments appointments[]          @relation("AppointmentAssignee")
+  assigned_events       calendar_events[]       @relation("CalendarAssignee")
+  assigned_connections  connections[]           @relation("ConnectionAssignee")
+  assigned_knowledge    knowledge_items[]       @relation("KnowledgeAssignee")
+  assigned_ai_analysis  ai_content_analysis[]   @relation("AIAnalysisAssignee")
+  
+  // 既存リレーション（互換性のため保持）
+  tasks                 tasks[]                 @relation("TaskUser")
+  calendar_events       calendar_events[]       @relation("CalendarUser")
 }
 
 enum appointment_status {
@@ -560,13 +664,23 @@ model ai_content_analysis {
   recommendations    Json                        @default("[]")
   auto_suggestions   Json                        @default("[]")
   
+  // 新しい担当者システム（パブリック・共有エンティティ：任意）
+  createdBy          String?                     // 作成者ID（任意）
+  assignedTo         String?                     // レビュー担当者ID（任意・全員閲覧可能）
+  
   createdAt          DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
+  
+  // 新しいリレーション
+  creator            users?                      @relation("AIAnalysisCreator", fields: [createdBy], references: [id])
+  assignee           users?                      @relation("AIAnalysisAssignee", fields: [assignedTo], references: [id])
   
   @@index([source_document_id], name: "idx_ai_analysis_source")
   @@index([analysis_type], name: "idx_ai_analysis_type")
   @@index([confidence_score], name: "idx_ai_analysis_confidence")
   @@index([urgency_level], name: "idx_ai_analysis_urgency")
+  @@index([createdBy], name: "idx_ai_analysis_created_by")
+  @@index([assignedTo], name: "idx_ai_analysis_assigned_to")
   @@map("ai_content_analysis")
 }
 

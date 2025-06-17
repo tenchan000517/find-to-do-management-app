@@ -926,7 +926,7 @@ async function updateExistingRecord(
             priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : updateData.priority,
             // assignee maps to userId field in database
             // userId: updateData.assignee || undefined, // Commented - cannot change userId after creation
-            deadline: updateData.deadline || undefined,
+            dueDate: updateData.deadline || undefined,
             estimatedHours: updateData.estimatedHours ? parseInt(updateData.estimatedHours) : undefined,
           },
         });

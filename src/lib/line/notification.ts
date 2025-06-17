@@ -113,7 +113,7 @@ export async function sendFlexMessage(
       console.log('✅ JSON validation passed');
     } catch (jsonError) {
       console.error('❌ JSON validation failed:', jsonError);
-      throw new Error(`Invalid JSON structure: ${jsonError.message}`);
+      throw new Error(`Invalid JSON structure: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
     }
     
     // Normalize Unicode characters for LINE API compatibility
