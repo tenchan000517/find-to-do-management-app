@@ -768,6 +768,18 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
         { key: 'priority', name: '🎯 優先度', description: '重要度レベル' }
       ]
     },
+    personal: {
+      // personal_scheduleの別名として処理
+      title: '📅 個人予定の詳細入力',
+      description: '追加したい項目を選択してください',
+      fields: [
+        { key: 'title', name: '📋 タイトル', description: '予定のタイトル' },
+        { key: 'datetime', name: '📅 日時', description: '予定の日時' },
+        { key: 'location', name: '📍 場所', description: '開催場所' },
+        { key: 'description', name: '📝 内容', description: '詳細説明' },
+        { key: 'priority', name: '🎯 優先度', description: '重要度レベル' }
+      ]
+    },
     schedule: {
       title: '📅 予定の詳細入力',
       description: '追加したい項目を選択してください',
@@ -1169,15 +1181,15 @@ export async function createMenuMessage(replyToken: string): Promise<boolean> {
               flex: 1
             }
           ]
+        },
+        {
+          type: 'text',
+          text: '💡 ヒント: メニューセッション中はメンション不要で登録が行えます\n\n途中で終わる場合はセッション終了するか２分でタイムアウトします',
+          size: 'xs',
+          color: '#999999',
+          wrap: true,
+          margin: 'md'
         }
-        // {
-        //   type: 'text',
-        //   text: '💡 ヒント: 直接メッセージを送信することもできます\n例: "明日14時に会議"',
-        //   size: 'xs',
-        //   color: '#999999',
-        //   wrap: true,
-        //   margin: 'md'
-        // }
       ]
     }
   };
@@ -1411,6 +1423,51 @@ export async function createQuestionMessage(replyToken: string, type: string, qu
 // 単一項目入力メッセージ
 export async function createFieldInputMessage(replyToken: string, type: string, fieldKey: string): Promise<boolean> {
   const fieldConfigs: Record<string, Record<string, { question: string; placeholder: string; examples: string[] }>> = {
+    personal_schedule: {
+      datetime: {
+        question: '📅 予定の日時を教えてください',
+        placeholder: '日時を入力してください',
+        examples: ['明日14時', '来週火曜日15:30', '12月25日 10:00']
+      },
+      location: {
+        question: '📍 場所を教えてください',
+        placeholder: '場所を入力してください',
+        examples: ['自宅', '病院', '渋谷駅']
+      },
+      description: {
+        question: '📝 予定の内容を教えてください',
+        placeholder: '内容を入力してください',
+        examples: ['歯医者の予約', '買い物', 'ジム']
+      },
+      priority: {
+        question: '🎯 優先度を教えてください',
+        placeholder: '優先度を入力してください',
+        examples: ['高', '中', '低']
+      }
+    },
+    personal: {
+      // personal_scheduleの別名として同じ設定
+      datetime: {
+        question: '📅 予定の日時を教えてください',
+        placeholder: '日時を入力してください',
+        examples: ['明日14時', '来週火曜日15:30', '12月25日 10:00']
+      },
+      location: {
+        question: '📍 場所を教えてください',
+        placeholder: '場所を入力してください',
+        examples: ['自宅', '病院', '渋谷駅']
+      },
+      description: {
+        question: '📝 予定の内容を教えてください',
+        placeholder: '内容を入力してください',
+        examples: ['歯医者の予約', '買い物', 'ジム']
+      },
+      priority: {
+        question: '🎯 優先度を教えてください',
+        placeholder: '優先度を入力してください',
+        examples: ['高', '中', '低']
+      }
+    },
     schedule: {
       datetime: {
         question: '📅 予定の日時を教えてください',

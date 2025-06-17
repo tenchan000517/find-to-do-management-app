@@ -199,13 +199,17 @@ async function handleSessionInput(event: LineWebhookEvent, inputText: string): P
     const fieldName = fieldNames[sessionInfo.currentField] || sessionInfo.currentField;
     await sendReplyMessage(event.replyToken, `✅ ${fieldName}を保存しました！\n\n「${inputText}」\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
     
-    // 項目選択画面に戻る
-    setTimeout(async () => {
-      if (event.replyToken) {
-        const { startDetailedInputFlow } = await import('@/lib/line/notification');
-        await startDetailedInputFlow(event.replyToken, sessionInfo.type);
-      }
-    }, 2000);
+    // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
+    try {
+      const { sendGroupNotification } = await import('@/lib/line/notification');
+      const groupId = event.source.groupId || event.source.userId;
+      
+      // 簡単な項目選択メニューをテキストで送信
+      const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
+      await sendGroupNotification(groupId, menuText);
+    } catch (error) {
+      console.log('項目選択メニュー送信をスキップ:', error);
+    }
   }
 }
 
@@ -256,10 +260,13 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     return;
   }
   
-  // メニューセッション中の場合は@メンションなしでも処理
+  // メニューセッション中、またはアクティブセッション（メニュー以外）の場合は@メンションなしでも処理
   if (isMenuSession) {
     console.log('Processing message in menu session (no mention required)');
     // メニューセッション中は直接AI処理に進む
+  } else if (hasActiveSession && !isWaitingForInput) {
+    console.log('Processing message in active session (no mention required)');
+    // アクティブセッション中は直接AI処理に進む
   } else if (!mentioned && !command) {
     // 通常状態では@メンション必須
     console.log('Message ignored - no mention or command detected');
@@ -306,18 +313,19 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     
     console.log('Extracted data:', extractedData);
     
-    // メニューセッション中の場合は既存セッションを変換
-    if (isMenuSession) {
-      console.log('🔄 Converting menu session to data session');
+    // セッション状態に応じて処理を分岐
+    if (hasActiveSession) {
+      // 既存セッションがある場合（メニューからの変換セッション含む）
+      console.log('🔄 Using existing session for extracted data');
       const session = sessionManager.getSession(event.source.userId, event.source.groupId);
-      if (session) {
-        session.type = extractedData.type;
-        session.isMenuSession = false;
-        session.menuTimeout = undefined;
+      if (session && session.type !== extractedData.type) {
+        // AI分析結果がセッションタイプと異なる場合は、セッションタイプを優先
+        console.log(`📝 Session type mismatch: session=${session.type}, AI=${extractedData.type}. Using session type.`);
+        (extractedData as any).type = session.type;
       }
     } else {
-      // 🔧 FIX: セッションを作成して抽出データを保存
-      console.log('📝 Creating session with extracted data');
+      // 新規セッション作成
+      console.log('📝 Creating new session with extracted data');
       sessionManager.startSession(event.source.userId, event.source.groupId, extractedData.type);
     }
     
@@ -412,12 +420,7 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       console.log('📋 Menu classification selected:', type);
       
       // メニューセッションを通常セッションに変換
-      const session = sessionManager.getSession(event.source.userId, event.source.groupId);
-      if (session) {
-        session.type = type;
-        session.isMenuSession = false;
-        session.menuTimeout = undefined;
-      }
+      sessionManager.convertToDataSession(event.source.userId, event.source.groupId, type);
       
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, `✅ ${type === 'personal_schedule' ? '個人予定' : type === 'schedule' ? 'イベント・予定' : type === 'task' ? 'タスク' : type === 'project' ? 'プロジェクト' : type === 'contact' ? '人脈・コネクション' : type === 'appointment' ? 'アポイントメント' : 'メモ・ナレッジ'}モードに切り替わりました！\n\n内容を直接メッセージで送信してください。\n例: 「明日14時に会議」「企画書作成 来週まで」`);
@@ -495,15 +498,22 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       }
     } else if (data.startsWith('start_detailed_input_')) {
       // 詳細入力開始
-      const type = data.replace('start_detailed_input_', '');
+      const requestedType = data.replace('start_detailed_input_', '');
       
       // セッション詳細をログ出力（デバッグ用）
       const sessionDetailsBefore = sessionManager.getSessionDetails(event.source.userId, event.source.groupId);
       console.log('🔍 Session details BEFORE detailed input:', sessionDetailsBefore);
       
-      // 🔧 FIX: 既存セッションを優先的に再開し、データを引き継ぐ
-      const resumed = sessionManager.resumeSession(event.source.userId, event.source.groupId, type);
-      console.log(`📝 Detailed input ${resumed ? 'resumed' : 'started'} for type: ${type}`);
+      // 既存セッションのタイプを取得（あれば優先）
+      const existingSession = sessionManager.getSession(event.source.userId, event.source.groupId);
+      const actualType = existingSession ? existingSession.type : requestedType;
+      
+      // セッションが存在しない場合のみ新規作成
+      if (!existingSession) {
+        sessionManager.startSession(event.source.userId, event.source.groupId, requestedType);
+      }
+      
+      console.log(`📝 Detailed input for type: ${actualType} (requested: ${requestedType}, session exists: ${!!existingSession})`);
       
       // セッション詳細をログ出力（デバッグ用）
       const sessionDetailsAfter = sessionManager.getSessionDetails(event.source.userId, event.source.groupId);
@@ -511,7 +521,7 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       
       if (event.replyToken) {
         const { startDetailedInputFlow } = await import('@/lib/line/notification');
-        await startDetailedInputFlow(event.replyToken, type);
+        await startDetailedInputFlow(event.replyToken, actualType);
       }
     } else if (data.startsWith('start_questions_')) {
       // 質問開始
@@ -542,7 +552,9 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       }
     } else if (data.startsWith('add_field_')) {
       // 項目追加
-      const [, , type, fieldKey] = data.split('_');
+      const parts = data.split('_');
+      const fieldKey = parts[parts.length - 1]; // 最後の要素がfieldKey
+      const type = parts.slice(2, -1).join('_'); // add_field_の後から最後の要素までがtype
       
       // 担当者フィールドの場合は専用UI表示
       if (fieldKey === 'assignee') {
@@ -561,12 +573,23 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       }
     } else if (data.startsWith('skip_field_')) {
       // 項目スキップ
-      const [, , type, fieldKey] = data.split('_');
+      const parts = data.split('_');
+      const fieldKey = parts[parts.length - 1]; // 最後の要素がfieldKey
+      const type = parts.slice(2, -1).join('_'); // skip_field_の後から最後の要素までがtype
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, `⏭️ ${fieldKey}をスキップしました。`);
-        // 項目選択画面に戻る
-        const { startDetailedInputFlow } = await import('@/lib/line/notification');
-        setTimeout(() => startDetailedInputFlow(event.replyToken!, type), 1000);
+        
+        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
+        try {
+          const { sendGroupNotification } = await import('@/lib/line/notification');
+          const groupId = event.source.groupId || event.source.userId;
+          
+          // 簡単な項目選択メニューをテキストで送信
+          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
+          await sendGroupNotification(groupId, menuText);
+        } catch (error) {
+          console.log('項目スキップ後の項目選択メニュー送信をスキップ:', error);
+        }
       }
     } else if (data.startsWith('back_to_selection_')) {
       // 項目選択に戻る
@@ -634,7 +657,9 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       }
     } else if (data.startsWith('select_assignee_')) {
       // 担当者選択
-      const [, , type, userId] = data.split('_');
+      const parts = data.split('_');
+      const userId = parts[parts.length - 1]; // 最後の要素がuserId
+      const type = parts.slice(2, -1).join('_'); // select_assignee_の後から最後の要素までがtype
       
       // セッションに担当者を保存
       sessionManager.saveFieldData(event.source.userId, event.source.groupId, 'assignee', userId);
@@ -647,13 +672,17 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         
         await sendReplyMessage(event.replyToken, `✅ 担当者「${userName}」を設定しました！\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
         
-        // 項目選択画面に戻る
-        setTimeout(async () => {
-          if (event.replyToken) {
-            const { startDetailedInputFlow } = await import('@/lib/line/notification');
-            await startDetailedInputFlow(event.replyToken, type);
-          }
-        }, 2000);
+        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
+        try {
+          const { sendGroupNotification } = await import('@/lib/line/notification');
+          const groupId = event.source.groupId || event.source.userId;
+          
+          // 簡単な項目選択メニューをテキストで送信
+          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
+          await sendGroupNotification(groupId, menuText);
+        } catch (error) {
+          console.log('担当者選択後の項目選択メニュー送信をスキップ:', error);
+        }
       }
     } else if (data.startsWith('skip_assignee_')) {
       // 担当者スキップ
@@ -662,13 +691,17 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, '⏭️ 担当者の設定をスキップしました。');
         
-        // 項目選択画面に戻る
-        setTimeout(async () => {
-          if (event.replyToken) {
-            const { startDetailedInputFlow } = await import('@/lib/line/notification');
-            await startDetailedInputFlow(event.replyToken, type);
-          }
-        }, 1000);
+        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
+        try {
+          const { sendGroupNotification } = await import('@/lib/line/notification');
+          const groupId = event.source.groupId || event.source.userId;
+          
+          // 簡単な項目選択メニューをテキストで送信
+          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
+          await sendGroupNotification(groupId, menuText);
+        } catch (error) {
+          console.log('担当者スキップ後の項目選択メニュー送信をスキップ:', error);
+        }
       }
     } else if (data === 'cancel_detailed_input') {
       // 詳細入力キャンセル
@@ -818,7 +851,8 @@ async function saveClassifiedData(
     
     switch (type) {
       case 'personal_schedule':
-        // 個人予定の処理
+      case 'personal':
+        // 個人予定の処理（personalは personal_scheduleの別名）
         let personalParsedDate = finalData.date || new Date().toISOString().split('T')[0];
         let personalParsedTime = finalData.time || '00:00';
         
@@ -1028,6 +1062,7 @@ async function updateExistingRecord(
     
     switch (type) {
       case 'personal_schedule':
+      case 'personal':
         await prisma.personal_schedules.update({
           where: { id: recordId },
           data: {
