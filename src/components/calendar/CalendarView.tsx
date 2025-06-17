@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CalendarEvent, UnifiedCalendarEvent, ViewMode, ColorMode } from '@/types/calendar';
+import { User } from '@/lib/types';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
@@ -25,7 +26,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const [events, setEvents] = useState<UnifiedCalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [colorMode, setColorMode] = useState<ColorMode>('user');
-  const [users, setUsers] = useState<Array<{ id: string; name: string; color: string }>>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showWeeklyPreview, setShowWeeklyPreview] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDayModal, setShowDayModal] = useState(false);

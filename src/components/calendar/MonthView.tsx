@@ -2,7 +2,7 @@
 
 import { UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
-import { getJSTDate, getJSTDateString, getTodayJST } from '@/lib/utils/datetime-jst';
+import { getJSTDate, getJSTDateString, getTodayJST, convertToJST } from '@/lib/utils/datetime-jst';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -52,18 +52,6 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
   const isTodayJST = (date: Date) => {
     const dateStr = getJSTDateString(date);
     const todayStr = getTodayJST();
-    const jstNow = getJSTDate();
-    
-    // デバッグログ: 今日の判定情報
-    console.log('🕐 今日判定デバッグ:', {
-      'チェック対象日付': dateStr,
-      '今日(JST)': todayStr,
-      '現在時刻(JST)': jstNow.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
-      '判定結果': dateStr === todayStr,
-      '元Date': date.toISOString(),
-      'JST変換後': getJSTDate(date).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
-    });
-    
     return dateStr === todayStr;
   };
 
