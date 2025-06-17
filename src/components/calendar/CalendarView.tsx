@@ -304,7 +304,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
           setEditingEvent(null);
         }}
         event={editingEvent}
-        onSave={handleEventSave}
+        onSave={(event: any) => handleEventSave(event)}
         onDataRefresh={fetchEvents}
       />
     </div>

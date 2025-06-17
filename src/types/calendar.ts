@@ -225,7 +225,7 @@ export interface UnifiedCalendarEvent {
   priority?: PriorityLevel;
   
   // CalendarEventとの互換性
-  isRecurring?: boolean;
+  isRecurring: boolean;
   recurringPattern?: string;
   participants?: string[];
   
@@ -275,7 +275,7 @@ export interface UnifiedCalendarEvent {
   
   // 表示設定
   colorCode?: string;
-  isAllDay?: boolean;
+  isAllDay: boolean;
   importance: number;
 }
 

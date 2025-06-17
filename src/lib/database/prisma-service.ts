@@ -130,13 +130,16 @@ class PrismaDataService {
   }
 
   async addProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+    const { creator, manager, ...projectData } = project;
     const newProject = await prisma.projects.create({
       data: {
         id: `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...project,
+        ...projectData,
         status: projectStatusMap[project.status],
         priority: priorityMap[project.priority],
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdBy: project.createdBy || null,
+        assignedTo: project.assignedTo || null
       }
     });
 
@@ -502,12 +505,15 @@ class PrismaDataService {
   }
 
   async addConnection(connection: Omit<Connection, 'id' | 'createdAt' | 'updatedAt'>): Promise<Connection> {
+    const { creator, assignee, ...connectionData } = connection;
     const newConnection = await prisma.connections.create({
       data: {
         id: `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...connection,
+        ...connectionData,
         type: connectionTypeMap[connection.type],
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdBy: connection.createdBy || null,
+        assignedTo: connection.assignedTo || null
       }
     });
 
@@ -577,7 +583,7 @@ class PrismaDataService {
   }
 
   async addCalendarEvent(event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<CalendarEvent> {
-    const { startTime, ...eventData } = event;
+    const { startTime, creator, assignee, ...eventData } = event;
     const newEvent = await prisma.calendar_events.create({
       data: {
         id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -586,7 +592,9 @@ class PrismaDataService {
         time: new Date(startTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
         participants: [],
         type: eventTypeMap[event.type],
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdBy: eventData.createdBy || null,
+        assignedTo: eventData.assignedTo || null
       }
     });
 
@@ -662,14 +670,16 @@ class PrismaDataService {
   }
 
   async addKnowledge(knowledge: Omit<KnowledgeItem, 'id' | 'createdAt' | 'updatedAt' | 'likes'>): Promise<KnowledgeItem> {
-    const { author, ...knowledgeData } = knowledge;
+    const { author, creator, assignee, ...knowledgeData } = knowledge;
     const newKnowledge = await prisma.knowledge_items.create({
       data: {
         id: `knowledge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...knowledgeData,
         category: knowledgeCategoryMap[knowledge.category],
         author: author || 'Unknown',
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdBy: knowledgeData.createdBy || null,
+        assignedTo: knowledgeData.assignedTo || null
       }
     });
 
@@ -740,13 +750,16 @@ class PrismaDataService {
   }
 
   async addAppointment(appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> {
+    const { creator, assignee, assignedToId, ...appointmentData } = appointment;
     const newAppointment = await prisma.appointments.create({
       data: {
         id: `appt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...appointment,
+        ...appointmentData,
         status: appointmentStatusMap[appointment.status],
         priority: priorityMap[appointment.priority],
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        createdBy: appointment.createdBy || null,
+        assignedTo: appointment.assignedTo || null
       }
     });
 

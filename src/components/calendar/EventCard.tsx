@@ -1,14 +1,14 @@
 'use client';
 
-import { CalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, ColorMode, PriorityLevel } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, ColorMode, PriorityLevel } from '@/types/calendar';
 
 interface EventCardProps {
-  event: CalendarEvent;
+  event: CalendarEvent | UnifiedCalendarEvent;
   compact?: boolean;
   showTime?: boolean;
   colorMode?: ColorMode;
   onClick?: (e: React.MouseEvent) => void;
-  onEventEdit?: (event: CalendarEvent) => void;
+  onEventEdit?: (event: any) => void;
 }
 
 export function EventCard({ 

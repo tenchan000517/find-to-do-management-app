@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarEvent, ColorMode } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
 
@@ -10,7 +10,7 @@ interface WeeklyPreviewProps {
   onClose: () => void;
   colorMode: ColorMode;
   selectedFilter?: string | null;
-  onEventEdit?: (event: CalendarEvent) => void;
+  onEventEdit?: (event: UnifiedCalendarEvent) => void;
 }
 
 export function WeeklyPreview({
@@ -20,7 +20,7 @@ export function WeeklyPreview({
   selectedFilter,
   onEventEdit
 }: WeeklyPreviewProps) {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<UnifiedCalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 今後一週間の統合イベント取得

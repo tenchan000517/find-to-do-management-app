@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarEvent, EventCategory, PriorityLevel } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, EventCategory, PriorityLevel } from '@/types/calendar';
 
 interface EventEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  event: CalendarEvent | null;
-  onSave?: (event: CalendarEvent) => void;
+  event: CalendarEvent | UnifiedCalendarEvent | null;
+  onSave?: (event: CalendarEvent | UnifiedCalendarEvent) => void;
   onDataRefresh?: () => void;
 }
 
@@ -53,7 +53,7 @@ export function EventEditModal({
 
     setIsLoading(true);
     try {
-      const updatedEvent: CalendarEvent = {
+      const updatedEvent = {
         ...event,
         ...formData
       };

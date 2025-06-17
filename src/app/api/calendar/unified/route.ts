@@ -217,6 +217,7 @@ export async function GET(request: NextRequest) {
         source: 'personal_schedules',
         isPersonal: true,
         priority: schedule.priority as PriorityLevel,
+        isRecurring: false,
         userId: schedule.userId,
         users: schedule.users ? {
           id: schedule.users.id,
@@ -244,6 +245,7 @@ export async function GET(request: NextRequest) {
         location: event.location || undefined,
         source: 'calendar_events',
         isPersonal: false,
+        isRecurring: event.isRecurring || false,
         userId: event.userId || undefined,
         projectId: event.projectId || undefined,
         taskId: event.taskId || undefined,
@@ -280,6 +282,7 @@ export async function GET(request: NextRequest) {
           source: 'tasks',
           isPersonal: false,
           priority: task.priority as PriorityLevel,
+          isRecurring: false,
           userId: task.userId,
           projectId: task.projectId || undefined,
           taskId: task.id,
@@ -316,6 +319,7 @@ export async function GET(request: NextRequest) {
           source: 'appointments',
           isPersonal: false,
           priority: appointment.priority as PriorityLevel,
+          isRecurring: false,
           userId: calEvent.userId,
           appointmentId: appointment.id,
           users: calEvent.users ? {

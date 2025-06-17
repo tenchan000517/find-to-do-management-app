@@ -1,15 +1,15 @@
 'use client';
 
-import { CalendarEvent, ColorMode } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 
 interface DayEventsModalProps {
   isOpen: boolean;
   onClose: () => void;
   date: Date;
-  events: CalendarEvent[];
+  events: UnifiedCalendarEvent[];
   colorMode: ColorMode;
-  onEventEdit?: (event: CalendarEvent) => void;
+  onEventEdit?: (event: UnifiedCalendarEvent) => void;
 }
 
 export function DayEventsModal({

@@ -1,12 +1,12 @@
 'use client';
 
-import { CalendarEvent, ColorMode } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 import { getJSTDate, getJSTDateString, isToday } from '@/lib/utils/datetime-jst';
 
 interface WeekViewProps {
   currentDate: Date;
-  events: CalendarEvent[];
+  events: UnifiedCalendarEvent[];
   onDateSelect: (date: Date) => void;
   colorMode: ColorMode;
 }

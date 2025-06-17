@@ -1,0 +1,1788 @@
+{
+  "mbti_types": {
+    "INTJ": {
+      "name": "建築家",
+      "category": "分析家",
+      "population_percentage": 2,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 0,
+        "thinking": 1,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 9,
+        "strategic_thinking": 10,
+        "perfectionism": 8,
+        "innovation": 9,
+        "focus": 9,
+        "leadership": 7,
+        "social_skills": 4,
+        "adaptability": 6,
+        "detail_orientation": 7,
+        "team_collaboration": 5
+      },
+      "strengths": [
+        "戦略的思考",
+        "独創性",
+        "計画性",
+        "意志の強さ",
+        "問題解決能力",
+        "長期ビジョン",
+        "効率性重視"
+      ],
+      "weaknesses": [
+        "社交性の低さ",
+        "感情表現の苦手さ",
+        "頑固さ",
+        "細かい作業の軽視",
+        "チームワークの課題"
+      ],
+      "optimal_roles": [
+        "プロジェクトマネージャー",
+        "戦略企画",
+        "システムアーキテクト",
+        "コンサルタント",
+        "研究開発リーダー"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 10,
+        "strategic_planning": 10,
+        "independent_work": 9,
+        "creative_tasks": 8,
+        "leadership_tasks": 7,
+        "routine_tasks": 3,
+        "social_interaction_tasks": 3,
+        "detail_oriented_tasks": 6
+      },
+      "stress_factors": [
+        "micromanagement",
+        "過度な社交的要求",
+        "不明確な指示",
+        "非効率なプロセス",
+        "感情的な対立"
+      ],
+      "motivation_factors": [
+        "自主性",
+        "挑戦的な課題",
+        "長期的影響",
+        "効率性の追求",
+        "専門性の発揮"
+      ],
+      "work_environment_fit": {
+        "structured": 8,
+        "flexible": 7,
+        "collaborative": 4,
+        "competitive": 6,
+        "innovative": 9,
+        "stable": 7
+      },
+      "communication_style": {
+        "direct": 8,
+        "formal": 7,
+        "concise": 9,
+        "analytical": 10,
+        "diplomatic": 5
+      },
+      "project_phase_suitability": {
+        "planning": 10,
+        "analysis": 9,
+        "design": 9,
+        "implementation": 7,
+        "testing": 8,
+        "maintenance": 6
+      }
+    },
+    "INTP": {
+      "name": "論理学者",
+      "category": "分析家",
+      "population_percentage": 3,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 0,
+        "thinking": 1,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 9,
+        "strategic_thinking": 9,
+        "perfectionism": 6,
+        "innovation": 10,
+        "focus": 8,
+        "leadership": 5,
+        "social_skills": 4,
+        "adaptability": 8,
+        "detail_orientation": 8,
+        "team_collaboration": 5
+      },
+      "strengths": [
+        "論理的思考",
+        "創造性",
+        "柔軟性",
+        "好奇心",
+        "客観性",
+        "問題解決能力",
+        "独立性"
+      ],
+      "weaknesses": [
+        "実行力不足",
+        "感情的配慮の欠如",
+        "ルーティンワークの苦手",
+        "締切への意識の低さ",
+        "優柔不断"
+      ],
+      "optimal_roles": [
+        "研究者",
+        "システム設計者",
+        "データアナリスト",
+        "技術コンサルタント",
+        "イノベーター"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 10,
+        "strategic_planning": 8,
+        "independent_work": 9,
+        "creative_tasks": 10,
+        "leadership_tasks": 4,
+        "routine_tasks": 2,
+        "social_interaction_tasks": 3,
+        "detail_oriented_tasks": 7
+      },
+      "stress_factors": [
+        "厳格な締切",
+        "ルーティンワーク",
+        "感情的な対立",
+        "micromanagement",
+        "非論理的な決定"
+      ],
+      "motivation_factors": [
+        "知的挑戦",
+        "自由度",
+        "探究心の満足",
+        "革新的なアイデア",
+        "論理的一貫性"
+      ],
+      "work_environment_fit": {
+        "structured": 5,
+        "flexible": 9,
+        "collaborative": 5,
+        "competitive": 4,
+        "innovative": 10,
+        "stable": 6
+      },
+      "communication_style": {
+        "direct": 7,
+        "formal": 5,
+        "concise": 8,
+        "analytical": 10,
+        "diplomatic": 6
+      },
+      "project_phase_suitability": {
+        "planning": 8,
+        "analysis": 10,
+        "design": 10,
+        "implementation": 5,
+        "testing": 8,
+        "maintenance": 4
+      }
+    },
+    "ENTJ": {
+      "name": "指揮官",
+      "category": "分析家",
+      "population_percentage": 3,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 0,
+        "thinking": 1,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 8,
+        "strategic_thinking": 10,
+        "perfectionism": 7,
+        "innovation": 8,
+        "focus": 9,
+        "leadership": 10,
+        "social_skills": 7,
+        "adaptability": 7,
+        "detail_orientation": 6,
+        "team_collaboration": 8
+      },
+      "strengths": [
+        "リーダーシップ",
+        "戦略的思考",
+        "決断力",
+        "目標達成能力",
+        "効率性",
+        "チーム統率力",
+        "長期計画"
+      ],
+      "weaknesses": [
+        "感情への配慮不足",
+        "せっかち",
+        "支配的",
+        "細部への注意不足",
+        "批判的すぎる傾向"
+      ],
+      "optimal_roles": [
+        "プロジェクトマネージャー",
+        "事業責任者",
+        "戦略企画責任者",
+        "チームリーダー",
+        "経営幹部"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 9,
+        "strategic_planning": 10,
+        "independent_work": 7,
+        "creative_tasks": 7,
+        "leadership_tasks": 10,
+        "routine_tasks": 4,
+        "social_interaction_tasks": 8,
+        "detail_oriented_tasks": 5
+      },
+      "stress_factors": [
+        "非効率性",
+        "優柔不断な環境",
+        "micromanagement",
+        "感情的な対立",
+        "目標の不明確さ"
+      ],
+      "motivation_factors": [
+        "権限と責任",
+        "挑戦的な目標",
+        "成果の実現",
+        "効率性の追求",
+        "リーダーシップの発揮"
+      ],
+      "work_environment_fit": {
+        "structured": 8,
+        "flexible": 7,
+        "collaborative": 8,
+        "competitive": 9,
+        "innovative": 8,
+        "stable": 7
+      },
+      "communication_style": {
+        "direct": 10,
+        "formal": 7,
+        "concise": 9,
+        "analytical": 9,
+        "diplomatic": 6
+      },
+      "project_phase_suitability": {
+        "planning": 10,
+        "analysis": 8,
+        "design": 7,
+        "implementation": 9,
+        "testing": 7,
+        "maintenance": 6
+      }
+    },
+    "ENTP": {
+      "name": "討論者",
+      "category": "分析家",
+      "population_percentage": 3,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 0,
+        "thinking": 1,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 7,
+        "strategic_thinking": 8,
+        "perfectionism": 4,
+        "innovation": 10,
+        "focus": 6,
+        "leadership": 7,
+        "social_skills": 8,
+        "adaptability": 9,
+        "detail_orientation": 4,
+        "team_collaboration": 7
+      },
+      "strengths": [
+        "創造性",
+        "柔軟性",
+        "議論能力",
+        "エネルギッシュ",
+        "問題解決能力",
+        "新しいアイデア",
+        "社交性"
+      ],
+      "weaknesses": [
+        "継続性の不足",
+        "詳細作業の軽視",
+        "感情への配慮不足",
+        "優柔不断",
+        "ルーティンワークの苦手"
+      ],
+      "optimal_roles": [
+        "イノベーションマネージャー",
+        "ビジネス開発",
+        "戦略コンサルタント",
+        "マーケティング企画",
+        "新規事業企画"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 9,
+        "strategic_planning": 8,
+        "independent_work": 6,
+        "creative_tasks": 10,
+        "leadership_tasks": 7,
+        "routine_tasks": 2,
+        "social_interaction_tasks": 9,
+        "detail_oriented_tasks": 3
+      },
+      "stress_factors": [
+        "ルーティンワーク",
+        "厳格な規則",
+        "詳細作業",
+        "単調な環境",
+        "micromanagement"
+      ],
+      "motivation_factors": [
+        "新しい挑戦",
+        "自由度",
+        "知的刺激",
+        "多様性",
+        "議論と交流"
+      ],
+      "work_environment_fit": {
+        "structured": 4,
+        "flexible": 10,
+        "collaborative": 8,
+        "competitive": 7,
+        "innovative": 10,
+        "stable": 3
+      },
+      "communication_style": {
+        "direct": 8,
+        "formal": 4,
+        "concise": 6,
+        "analytical": 8,
+        "diplomatic": 7
+      },
+      "project_phase_suitability": {
+        "planning": 9,
+        "analysis": 8,
+        "design": 9,
+        "implementation": 5,
+        "testing": 6,
+        "maintenance": 2
+      }
+    },
+    "INFJ": {
+      "name": "提唱者",
+      "category": "外交官",
+      "population_percentage": 1,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 0,
+        "thinking": 0,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 7,
+        "strategic_thinking": 8,
+        "perfectionism": 9,
+        "innovation": 8,
+        "focus": 9,
+        "leadership": 7,
+        "social_skills": 7,
+        "adaptability": 6,
+        "detail_orientation": 8,
+        "team_collaboration": 8
+      },
+      "strengths": [
+        "洞察力",
+        "理想主義",
+        "計画性",
+        "共感力",
+        "創造性",
+        "献身性",
+        "長期ビジョン"
+      ],
+      "weaknesses": [
+        "完璧主義",
+        "燃え尽き症候群",
+        "批判への敏感さ",
+        "優柔不断",
+        "過度な理想主義"
+      ],
+      "optimal_roles": [
+        "プロダクトマネージャー",
+        "UXデザイナー",
+        "カウンセラー",
+        "戦略企画",
+        "品質管理"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 8,
+        "strategic_planning": 9,
+        "independent_work": 8,
+        "creative_tasks": 9,
+        "leadership_tasks": 6,
+        "routine_tasks": 5,
+        "social_interaction_tasks": 7,
+        "detail_oriented_tasks": 8
+      },
+      "stress_factors": [
+        "対立",
+        "批判",
+        "時間的プレッシャー",
+        "価値観の不一致",
+        "過度な社交的要求"
+      ],
+      "motivation_factors": [
+        "意義のある仕事",
+        "人助け",
+        "創造的表現",
+        "調和",
+        "成長と学習"
+      ],
+      "work_environment_fit": {
+        "structured": 7,
+        "flexible": 6,
+        "collaborative": 7,
+        "competitive": 4,
+        "innovative": 8,
+        "stable": 7
+      },
+      "communication_style": {
+        "direct": 5,
+        "formal": 6,
+        "concise": 6,
+        "analytical": 7,
+        "diplomatic": 9
+      },
+      "project_phase_suitability": {
+        "planning": 9,
+        "analysis": 8,
+        "design": 9,
+        "implementation": 7,
+        "testing": 8,
+        "maintenance": 7
+      }
+    },
+    "INFP": {
+      "name": "仲介者",
+      "category": "外交官",
+      "population_percentage": 4,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 0,
+        "thinking": 0,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 8,
+        "strategic_thinking": 6,
+        "perfectionism": 7,
+        "innovation": 9,
+        "focus": 7,
+        "leadership": 5,
+        "social_skills": 6,
+        "adaptability": 8,
+        "detail_orientation": 6,
+        "team_collaboration": 7
+      },
+      "strengths": [
+        "創造性",
+        "共感力",
+        "価値観の一貫性",
+        "適応性",
+        "個人への配慮",
+        "理想主義",
+        "柔軟性"
+      ],
+      "weaknesses": [
+        "優柔不断",
+        "批判への敏感さ",
+        "実行力不足",
+        "対立回避",
+        "細部への注意不足"
+      ],
+      "optimal_roles": [
+        "UXデザイナー",
+        "コンテンツクリエイター",
+        "カウンセラー",
+        "研究者",
+        "クリエイティブディレクター"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 7,
+        "strategic_planning": 6,
+        "independent_work": 9,
+        "creative_tasks": 10,
+        "leadership_tasks": 4,
+        "routine_tasks": 3,
+        "social_interaction_tasks": 6,
+        "detail_oriented_tasks": 5
+      },
+      "stress_factors": [
+        "対立",
+        "批判",
+        "厳格な締切",
+        "価値観の不一致",
+        "micromanagement"
+      ],
+      "motivation_factors": [
+        "創造的表現",
+        "意義のある仕事",
+        "自主性",
+        "個人の成長",
+        "調和"
+      ],
+      "work_environment_fit": {
+        "structured": 4,
+        "flexible": 9,
+        "collaborative": 6,
+        "competitive": 3,
+        "innovative": 9,
+        "stable": 6
+      },
+      "communication_style": {
+        "direct": 4,
+        "formal": 4,
+        "concise": 5,
+        "analytical": 6,
+        "diplomatic": 9
+      },
+      "project_phase_suitability": {
+        "planning": 7,
+        "analysis": 6,
+        "design": 10,
+        "implementation": 5,
+        "testing": 6,
+        "maintenance": 5
+      }
+    },
+    "ENFJ": {
+      "name": "主人公",
+      "category": "外交官",
+      "population_percentage": 3,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 0,
+        "thinking": 0,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 6,
+        "strategic_thinking": 7,
+        "perfectionism": 7,
+        "innovation": 7,
+        "focus": 8,
+        "leadership": 9,
+        "social_skills": 10,
+        "adaptability": 7,
+        "detail_orientation": 7,
+        "team_collaboration": 10
+      },
+      "strengths": [
+        "リーダーシップ",
+        "チーム統率力",
+        "共感力",
+        "コミュニケーション能力",
+        "モチベーション向上",
+        "計画性",
+        "他者の成長支援"
+      ],
+      "weaknesses": [
+        "過度な他者への関心",
+        "自己犠牲",
+        "批判への敏感さ",
+        "燃え尽き症候群",
+        "優柔不断"
+      ],
+      "optimal_roles": [
+        "プロジェクトマネージャー",
+        "チームリーダー",
+        "人事マネージャー",
+        "トレーニングマネージャー",
+        "カスタマーサクセス"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 7,
+        "strategic_planning": 8,
+        "independent_work": 5,
+        "creative_tasks": 7,
+        "leadership_tasks": 10,
+        "routine_tasks": 6,
+        "social_interaction_tasks": 10,
+        "detail_oriented_tasks": 6
+      },
+      "stress_factors": [
+        "対立",
+        "批判",
+        "他者の不調",
+        "価値観の不一致",
+        "時間的プレッシャー"
+      ],
+      "motivation_factors": [
+        "他者の成長",
+        "チームの成功",
+        "意義のある仕事",
+        "調和",
+        "影響力の行使"
+      ],
+      "work_environment_fit": {
+        "structured": 7,
+        "flexible": 7,
+        "collaborative": 10,
+        "competitive": 5,
+        "innovative": 7,
+        "stable": 7
+      },
+      "communication_style": {
+        "direct": 6,
+        "formal": 6,
+        "concise": 7,
+        "analytical": 6,
+        "diplomatic": 10
+      },
+      "project_phase_suitability": {
+        "planning": 8,
+        "analysis": 7,
+        "design": 8,
+        "implementation": 9,
+        "testing": 7,
+        "maintenance": 8
+      }
+    },
+    "ENFP": {
+      "name": "運動家",
+      "category": "外交官",
+      "population_percentage": 8,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 0,
+        "thinking": 0,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 7,
+        "strategic_thinking": 6,
+        "perfectionism": 4,
+        "innovation": 10,
+        "focus": 5,
+        "leadership": 7,
+        "social_skills": 10,
+        "adaptability": 9,
+        "detail_orientation": 4,
+        "team_collaboration": 9
+      },
+      "strengths": [
+        "創造性",
+        "エネルギッシュ",
+        "社交性",
+        "柔軟性",
+        "楽観主義",
+        "多様な興味",
+        "人のモチベーション向上"
+      ],
+      "weaknesses": [
+        "集中力不足",
+        "詳細作業の軽視",
+        "ルーティンワークの苦手",
+        "優柔不断",
+        "過度な楽観主義"
+      ],
+      "optimal_roles": [
+        "マーケティング企画",
+        "イベント企画",
+        "営業",
+        "PR",
+        "新規事業開発"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 7,
+        "strategic_planning": 6,
+        "independent_work": 6,
+        "creative_tasks": 10,
+        "leadership_tasks": 7,
+        "routine_tasks": 2,
+        "social_interaction_tasks": 10,
+        "detail_oriented_tasks": 3
+      },
+      "stress_factors": [
+        "ルーティンワーク",
+        "詳細作業",
+        "厳格な規則",
+        "単調な環境",
+        "批判"
+      ],
+      "motivation_factors": [
+        "新しい挑戦",
+        "人との交流",
+        "創造的表現",
+        "多様性",
+        "意義のある仕事"
+      ],
+      "work_environment_fit": {
+        "structured": 3,
+        "flexible": 10,
+        "collaborative": 9,
+        "competitive": 6,
+        "innovative": 10,
+        "stable": 4
+      },
+      "communication_style": {
+        "direct": 6,
+        "formal": 3,
+        "concise": 5,
+        "analytical": 5,
+        "diplomatic": 8
+      },
+      "project_phase_suitability": {
+        "planning": 8,
+        "analysis": 5,
+        "design": 9,
+        "implementation": 6,
+        "testing": 4,
+        "maintenance": 2
+      }
+    },
+    "ISTJ": {
+      "name": "ロジスティシャン",
+      "category": "番人",
+      "population_percentage": 13,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 1,
+        "thinking": 1,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 7,
+        "strategic_thinking": 6,
+        "perfectionism": 9,
+        "innovation": 4,
+        "focus": 10,
+        "leadership": 6,
+        "social_skills": 5,
+        "adaptability": 4,
+        "detail_orientation": 10,
+        "team_collaboration": 7
+      },
+      "strengths": [
+        "信頼性",
+        "責任感",
+        "詳細への注意",
+        "計画性",
+        "持続性",
+        "品質管理",
+        "ルールの遵守"
+      ],
+      "weaknesses": [
+        "変化への抵抗",
+        "柔軟性の不足",
+        "創造性の低さ",
+        "新しいアイデアへの消極性",
+        "感情表現の苦手"
+      ],
+      "optimal_roles": [
+        "プロジェクト管理",
+        "品質管理",
+        "運用管理",
+        "経理・財務",
+        "監査"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 6,
+        "strategic_planning": 7,
+        "independent_work": 8,
+        "creative_tasks": 3,
+        "leadership_tasks": 5,
+        "routine_tasks": 10,
+        "social_interaction_tasks": 5,
+        "detail_oriented_tasks": 10
+      },
+      "stress_factors": [
+        "急激な変化",
+        "不明確な指示",
+        "時間的プレッシャー",
+        "非効率なプロセス",
+        "conflict"
+      ],
+      "motivation_factors": [
+        "安定性",
+        "明確な責任",
+        "品質の追求",
+        "認知と評価",
+        "秩序"
+      ],
+      "work_environment_fit": {
+        "structured": 10,
+        "flexible": 3,
+        "collaborative": 6,
+        "competitive": 5,
+        "innovative": 3,
+        "stable": 10
+      },
+      "communication_style": {
+        "direct": 7,
+        "formal": 8,
+        "concise": 8,
+        "analytical": 8,
+        "diplomatic": 6
+      },
+      "project_phase_suitability": {
+        "planning": 8,
+        "analysis": 7,
+        "design": 6,
+        "implementation": 9,
+        "testing": 10,
+        "maintenance": 10
+      }
+    },
+    "ISFJ": {
+      "name": "擁護者",
+      "category": "番人",
+      "population_percentage": 13,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 1,
+        "thinking": 0,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 5,
+        "strategic_thinking": 5,
+        "perfectionism": 8,
+        "innovation": 5,
+        "focus": 8,
+        "leadership": 5,
+        "social_skills": 8,
+        "adaptability": 6,
+        "detail_orientation": 9,
+        "team_collaboration": 9
+      },
+      "strengths": [
+        "献身性",
+        "忠実性",
+        "サポート能力",
+        "詳細への注意",
+        "責任感",
+        "思いやり",
+        "実務処理能力"
+      ],
+      "weaknesses": [
+        "自己主張の弱さ",
+        "過度な献身",
+        "変化への抵抗",
+        "批判への敏感さ",
+        "燃え尽き症候群"
+      ],
+      "optimal_roles": [
+        "サポートスタッフ",
+        "品質管理",
+        "カスタマーサポート",
+        "人事",
+        "事務管理"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 5,
+        "strategic_planning": 5,
+        "independent_work": 6,
+        "creative_tasks": 5,
+        "leadership_tasks": 4,
+        "routine_tasks": 9,
+        "social_interaction_tasks": 8,
+        "detail_oriented_tasks": 10
+      },
+      "stress_factors": [
+        "対立",
+        "批判",
+        "急激な変化",
+        "過度な責任",
+        "認識不足"
+      ],
+      "motivation_factors": [
+        "他者への貢献",
+        "安定性",
+        "認知と感謝",
+        "調和",
+        "意義のある仕事"
+      ],
+      "work_environment_fit": {
+        "structured": 9,
+        "flexible": 4,
+        "collaborative": 8,
+        "competitive": 3,
+        "innovative": 4,
+        "stable": 9
+      },
+      "communication_style": {
+        "direct": 4,
+        "formal": 7,
+        "concise": 6,
+        "analytical": 6,
+        "diplomatic": 9
+      },
+      "project_phase_suitability": {
+        "planning": 7,
+        "analysis": 6,
+        "design": 6,
+        "implementation": 8,
+        "testing": 9,
+        "maintenance": 10
+      }
+    },
+    "ESTJ": {
+      "name": "幹部",
+      "category": "番人",
+      "population_percentage": 11,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 1,
+        "thinking": 1,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 7,
+        "strategic_thinking": 7,
+        "perfectionism": 8,
+        "innovation": 5,
+        "focus": 9,
+        "leadership": 9,
+        "social_skills": 7,
+        "adaptability": 5,
+        "detail_orientation": 8,
+        "team_collaboration": 8
+      },
+      "strengths": [
+        "リーダーシップ",
+        "組織力",
+        "効率性",
+        "決断力",
+        "責任感",
+        "実行力",
+        "目標達成能力"
+      ],
+      "weaknesses": [
+        "柔軟性の不足",
+        "感情への配慮不足",
+        "頑固さ",
+        "創造性の低さ",
+        "批判的すぎる傾向"
+      ],
+      "optimal_roles": [
+        "プロジェクトマネージャー",
+        "部門長",
+        "運用管理者",
+        "営業マネージャー",
+        "オペレーションマネージャー"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 7,
+        "strategic_planning": 8,
+        "independent_work": 6,
+        "creative_tasks": 4,
+        "leadership_tasks": 9,
+        "routine_tasks": 8,
+        "social_interaction_tasks": 8,
+        "detail_oriented_tasks": 8
+      },
+      "stress_factors": [
+        "非効率性",
+        "曖昧さ",
+        "対立",
+        "変化への抵抗",
+        "authority_challenges"
+      ],
+      "motivation_factors": [
+        "権限と責任",
+        "目標達成",
+        "効率性",
+        "認知と地位",
+        "秩序"
+      ],
+      "work_environment_fit": {
+        "structured": 10,
+        "flexible": 4,
+        "collaborative": 7,
+        "competitive": 8,
+        "innovative": 5,
+        "stable": 9
+      },
+      "communication_style": {
+        "direct": 9,
+        "formal": 8,
+        "concise": 9,
+        "analytical": 8,
+        "diplomatic": 5
+      },
+      "project_phase_suitability": {
+        "planning": 9,
+        "analysis": 7,
+        "design": 6,
+        "implementation": 10,
+        "testing": 8,
+        "maintenance": 9
+      }
+    },
+    "ESFJ": {
+      "name": "領事",
+      "category": "番人",
+      "population_percentage": 12,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 1,
+        "thinking": 0,
+        "judging": 1
+      },
+      "core_traits": {
+        "independence": 5,
+        "strategic_thinking": 5,
+        "perfectionism": 7,
+        "innovation": 5,
+        "focus": 7,
+        "leadership": 7,
+        "social_skills": 10,
+        "adaptability": 6,
+        "detail_orientation": 8,
+        "team_collaboration": 10
+      },
+      "strengths": [
+        "チームワーク",
+        "サポート能力",
+        "コミュニケーション能力",
+        "責任感",
+        "協調性",
+        "実務処理能力",
+        "他者への配慮"
+      ],
+      "weaknesses": [
+        "批判への敏感さ",
+        "対立回避",
+        "変化への抵抗",
+        "過度な他者への関心",
+        "創造性の低さ"
+      ],
+      "optimal_roles": [
+        "チームリーダー",
+        "人事マネージャー",
+        "カスタマーサービス",
+        "イベント企画",
+        "サポートマネージャー"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 5,
+        "strategic_planning": 6,
+        "independent_work": 4,
+        "creative_tasks": 5,
+        "leadership_tasks": 7,
+        "routine_tasks": 8,
+        "social_interaction_tasks": 10,
+        "detail_oriented_tasks": 8
+      },
+      "stress_factors": [
+        "対立",
+        "批判",
+        "急激な変化",
+        "認識不足",
+        "price_pressure"
+      ],
+      "motivation_factors": [
+        "他者への貢献",
+        "調和",
+        "認知と感謝",
+        "チームの成功",
+        "伝統と安定"
+      ],
+      "work_environment_fit": {
+        "structured": 8,
+        "flexible": 5,
+        "collaborative": 10,
+        "competitive": 4,
+        "innovative": 5,
+        "stable": 8
+      },
+      "communication_style": {
+        "direct": 5,
+        "formal": 7,
+        "concise": 6,
+        "analytical": 5,
+        "diplomatic": 10
+      },
+      "project_phase_suitability": {
+        "planning": 7,
+        "analysis": 6,
+        "design": 6,
+        "implementation": 8,
+        "testing": 7,
+        "maintenance": 9
+      }
+    },
+    "ISTP": {
+      "name": "巨匠",
+      "category": "探検家",
+      "population_percentage": 5,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 1,
+        "thinking": 1,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 9,
+        "strategic_thinking": 6,
+        "perfectionism": 6,
+        "innovation": 8,
+        "focus": 7,
+        "leadership": 4,
+        "social_skills": 4,
+        "adaptability": 9,
+        "detail_orientation": 8,
+        "team_collaboration": 5
+      },
+      "strengths": [
+        "問題解決能力",
+        "実用性",
+        "適応性",
+        "技術的スキル",
+        "冷静さ",
+        "効率性",
+        "独立性"
+      ],
+      "weaknesses": [
+        "感情表現の苦手",
+        "長期計画の軽視",
+        "社交性の低さ",
+        "ルーティンワークの苦手",
+        "commitmentの問題"
+      ],
+      "optimal_roles": [
+        "エンジニア",
+        "技術者",
+        "システム管理者",
+        "トラブルシューター",
+        "品質管理"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 9,
+        "strategic_planning": 5,
+        "independent_work": 9,
+        "creative_tasks": 7,
+        "leadership_tasks": 3,
+        "routine_tasks": 4,
+        "social_interaction_tasks": 3,
+        "detail_oriented_tasks": 8
+      },
+      "stress_factors": [
+        "過度な社交的要求",
+        "micromanagement",
+        "長期計画の強制",
+        "感情的な環境",
+        "厳格なスケジュール"
+      ],
+      "motivation_factors": [
+        "技術的挑戦",
+        "自主性",
+        "実用的な成果",
+        "問題解決",
+        "効率性"
+      ],
+      "work_environment_fit": {
+        "structured": 5,
+        "flexible": 9,
+        "collaborative": 4,
+        "competitive": 5,
+        "innovative": 7,
+        "stable": 6
+      },
+      "communication_style": {
+        "direct": 8,
+        "formal": 4,
+        "concise": 9,
+        "analytical": 8,
+        "diplomatic": 4
+      },
+      "project_phase_suitability": {
+        "planning": 5,
+        "analysis": 7,
+        "design": 8,
+        "implementation": 9,
+        "testing": 9,
+        "maintenance": 8
+      }
+    },
+    "ISFP": {
+      "name": "冒険家",
+      "category": "探検家",
+      "population_percentage": 9,
+      "dimensions": {
+        "extraversion": 0,
+        "sensing": 1,
+        "thinking": 0,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 8,
+        "strategic_thinking": 4,
+        "perfectionism": 6,
+        "innovation": 8,
+        "focus": 6,
+        "leadership": 3,
+        "social_skills": 6,
+        "adaptability": 9,
+        "detail_orientation": 6,
+        "team_collaboration": 7
+      },
+      "strengths": [
+        "創造性",
+        "柔軟性",
+        "共感力",
+        "美的感覚",
+        "適応性",
+        "個人への配慮",
+        "寛容性"
+      ],
+      "weaknesses": [
+        "長期計画の苦手",
+        "優柔不断",
+        "批判への敏感さ",
+        "自己主張の弱さ",
+        "ストレス管理の問題"
+      ],
+      "optimal_roles": [
+        "デザイナー",
+        "アーティスト",
+        "カウンセラー",
+        "ライター",
+        "研究者"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 6,
+        "strategic_planning": 4,
+        "independent_work": 8,
+        "creative_tasks": 10,
+        "leadership_tasks": 2,
+        "routine_tasks": 3,
+        "social_interaction_tasks": 6,
+        "detail_oriented_tasks": 5
+      },
+      "stress_factors": [
+        "対立",
+        "批判",
+        "厳格な締切",
+        "micromanagement",
+        "価値観の不一致"
+      ],
+      "motivation_factors": [
+        "創造的表現",
+        "自主性",
+        "意義のある仕事",
+        "調和",
+        "個人の成長"
+      ],
+      "work_environment_fit": {
+        "structured": 3,
+        "flexible": 10,
+        "collaborative": 6,
+        "competitive": 2,
+        "innovative": 9,
+        "stable": 5
+      },
+      "communication_style": {
+        "direct": 3,
+        "formal": 3,
+        "concise": 5,
+        "analytical": 4,
+        "diplomatic": 8
+      },
+      "project_phase_suitability": {
+        "planning": 5,
+        "analysis": 4,
+        "design": 10,
+        "implementation": 6,
+        "testing": 5,
+        "maintenance": 4
+      }
+    },
+    "ESTP": {
+      "name": "起業家",
+      "category": "探検家",
+      "population_percentage": 4,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 1,
+        "thinking": 1,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 7,
+        "strategic_thinking": 5,
+        "perfectionism": 4,
+        "innovation": 7,
+        "focus": 5,
+        "leadership": 8,
+        "social_skills": 9,
+        "adaptability": 10,
+        "detail_orientation": 4,
+        "team_collaboration": 7
+      },
+      "strengths": [
+        "適応性",
+        "エネルギッシュ",
+        "実用性",
+        "社交性",
+        "問題解決能力",
+        "リスク管理",
+        "現実主義"
+      ],
+      "weaknesses": [
+        "長期計画の苦手",
+        "衝動性",
+        "詳細作業の軽視",
+        "感情への配慮不足",
+        "継続性の問題"
+      ],
+      "optimal_roles": [
+        "営業",
+        "マーケティング",
+        "イベント企画",
+        "営業マネージャー",
+        "起業家"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 7,
+        "strategic_planning": 4,
+        "independent_work": 6,
+        "creative_tasks": 6,
+        "leadership_tasks": 8,
+        "routine_tasks": 2,
+        "social_interaction_tasks": 10,
+        "detail_oriented_tasks": 3
+      },
+      "stress_factors": [
+        "ルーティンワーク",
+        "長期計画",
+        "詳細作業",
+        "理論的議論",
+        "制約の多い環境"
+      ],
+      "motivation_factors": [
+        "即座の結果",
+        "多様性",
+        "人との交流",
+        "競争",
+        "実用的な成果"
+      ],
+      "work_environment_fit": {
+        "structured": 3,
+        "flexible": 10,
+        "collaborative": 8,
+        "competitive": 9,
+        "innovative": 7,
+        "stable": 3
+      },
+      "communication_style": {
+        "direct": 9,
+        "formal": 3,
+        "concise": 7,
+        "analytical": 5,
+        "diplomatic": 6
+      },
+      "project_phase_suitability": {
+        "planning": 4,
+        "analysis": 3,
+        "design": 6,
+        "implementation": 9,
+        "testing": 6,
+        "maintenance": 2
+      }
+    },
+    "ESFP": {
+      "name": "エンターテイナー",
+      "category": "探検家",
+      "population_percentage": 7,
+      "dimensions": {
+        "extraversion": 1,
+        "sensing": 1,
+        "thinking": 0,
+        "judging": 0
+      },
+      "core_traits": {
+        "independence": 6,
+        "strategic_thinking": 3,
+        "perfectionism": 5,
+        "innovation": 6,
+        "focus": 4,
+        "leadership": 6,
+        "social_skills": 10,
+        "adaptability": 9,
+        "detail_orientation": 4,
+        "team_collaboration": 9
+      },
+      "strengths": [
+        "エネルギッシュ",
+        "社交性",
+        "楽観主義",
+        "適応性",
+        "チームモチベーション",
+        "実用性",
+        "美的感覚"
+      ],
+      "weaknesses": [
+        "長期計画の苦手",
+        "詳細作業の軽視",
+        "批判への敏感さ",
+        "優柔不断",
+        "継続性の問題"
+      ],
+      "optimal_roles": [
+        "営業",
+        "イベント企画",
+        "PR",
+        "カスタマーサービス",
+        "エンターテイメント"
+      ],
+      "task_preferences": {
+        "complex_problem_solving": 4,
+        "strategic_planning": 3,
+        "independent_work": 5,
+        "creative_tasks": 7,
+        "leadership_tasks": 6,
+        "routine_tasks": 2,
+        "social_interaction_tasks": 10,
+        "detail_oriented_tasks": 3
+      },
+      "stress_factors": [
+        "ルーティンワーク",
+        "詳細作業",
+        "批判",
+        "対立",
+        "孤立"
+      ],
+      "motivation_factors": [
+        "人との交流",
+        "楽しさ",
+        "即座の結果",
+        "認知と賞賛",
+        "多様性"
+      ],
+      "work_environment_fit": {
+        "structured": 3,
+        "flexible": 9,
+        "collaborative": 10,
+        "competitive": 5,
+        "innovative": 6,
+        "stable": 4
+      },
+      "communication_style": {
+        "direct": 6,
+        "formal": 3,
+        "concise": 5,
+        "analytical": 3,
+        "diplomatic": 7
+      },
+      "project_phase_suitability": {
+        "planning": 4,
+        "analysis": 3,
+        "design": 7,
+        "implementation": 7,
+        "testing": 4,
+        "maintenance": 2
+      }
+    }
+  },
+  "compatibility_matrix": {
+    "INTJ": {
+      "ENTJ": 8,
+      "ENTP": 7,
+      "INFJ": 6,
+      "INTP": 7,
+      "ENFP": 5,
+      "ENFJ": 6,
+      "ISTJ": 6,
+      "ISFJ": 4,
+      "ESTJ": 5,
+      "ESFJ": 3,
+      "ISTP": 5,
+      "ISFP": 4,
+      "ESTP": 3,
+      "ESFP": 2
+    },
+    "INTP": {
+      "INTJ": 7,
+      "ENTJ": 6,
+      "ENTP": 8,
+      "INFJ": 7,
+      "ENFP": 7,
+      "ENFJ": 5,
+      "ISTJ": 4,
+      "ISFJ": 4,
+      "ESTJ": 4,
+      "ESFJ": 3,
+      "ISTP": 6,
+      "ISFP": 5,
+      "ESTP": 4,
+      "ESFP": 3
+    },
+    "ENTJ": {
+      "INTJ": 8,
+      "INTP": 6,
+      "ENTP": 7,
+      "INFJ": 6,
+      "INFP": 5,
+      "ENFJ": 7,
+      "ENFP": 6,
+      "ISTJ": 7,
+      "ISFJ": 5,
+      "ESTJ": 7,
+      "ESFJ": 6,
+      "ISTP": 4,
+      "ISFP": 3,
+      "ESTP": 6,
+      "ESFP": 4
+    },
+    "ENTP": {
+      "INTJ": 7,
+      "INTP": 8,
+      "ENTJ": 7,
+      "INFJ": 6,
+      "INFP": 6,
+      "ENFJ": 6,
+      "ENFP": 7,
+      "ISTJ": 4,
+      "ISFJ": 4,
+      "ESTJ": 5,
+      "ESFJ": 4,
+      "ISTP": 5,
+      "ISFP": 5,
+      "ESTP": 6,
+      "ESFP": 5
+    },
+    "INFJ": {
+      "INTJ": 6,
+      "INTP": 7,
+      "ENTJ": 6,
+      "ENTP": 6,
+      "INFP": 7,
+      "ENFJ": 8,
+      "ENFP": 7,
+      "ISTJ": 5,
+      "ISFJ": 6,
+      "ESTJ": 4,
+      "ESFJ": 5,
+      "ISTP": 4,
+      "ISFP": 6,
+      "ESTP": 3,
+      "ESFP": 4
+    },
+    "INFP": {
+      "INTJ": 5,
+      "INTP": 6,
+      "ENTJ": 5,
+      "ENTP": 6,
+      "INFJ": 7,
+      "ENFJ": 7,
+      "ENFP": 8,
+      "ISTJ": 4,
+      "ISFJ": 5,
+      "ESTJ": 3,
+      "ESFJ": 4,
+      "ISTP": 5,
+      "ISFP": 7,
+      "ESTP": 3,
+      "ESFP": 5
+    },
+    "ENFJ": {
+      "INTJ": 6,
+      "INTP": 5,
+      "ENTJ": 7,
+      "ENTP": 6,
+      "INFJ": 8,
+      "INFP": 7,
+      "ENFP": 7,
+      "ISTJ": 5,
+      "ISFJ": 6,
+      "ESTJ": 6,
+      "ESFJ": 7,
+      "ISTP": 4,
+      "ISFP": 5,
+      "ESTP": 5,
+      "ESFP": 6
+    },
+    "ENFP": {
+      "INTJ": 5,
+      "INTP": 7,
+      "ENTJ": 6,
+      "ENTP": 7,
+      "INFJ": 7,
+      "INFP": 8,
+      "ENFJ": 7,
+      "ISTJ": 4,
+      "ISFJ": 5,
+      "ESTJ": 4,
+      "ESFJ": 5,
+      "ISTP": 4,
+      "ISFP": 6,
+      "ESTP": 5,
+      "ESFP": 6
+    },
+    "ISTJ": {
+      "INTJ": 6,
+      "INTP": 4,
+      "ENTJ": 7,
+      "ENTP": 4,
+      "INFJ": 5,
+      "INFP": 4,
+      "ENFJ": 5,
+      "ENFP": 4,
+      "ISFJ": 7,
+      "ESTJ": 8,
+      "ESFJ": 7,
+      "ISTP": 6,
+      "ISFP": 5,
+      "ESTP": 5,
+      "ESFP": 4
+    },
+    "ISFJ": {
+      "INTJ": 4,
+      "INTP": 4,
+      "ENTJ": 5,
+      "ENTP": 4,
+      "INFJ": 6,
+      "INFP": 5,
+      "ENFJ": 6,
+      "ENFP": 5,
+      "ISTJ": 7,
+      "ESTJ": 6,
+      "ESFJ": 8,
+      "ISTP": 5,
+      "ISFP": 6,
+      "ESTP": 4,
+      "ESFP": 5
+    },
+    "ESTJ": {
+      "INTJ": 5,
+      "INTP": 4,
+      "ENTJ": 7,
+      "ENTP": 5,
+      "INFJ": 4,
+      "INFP": 3,
+      "ENFJ": 6,
+      "ENFP": 4,
+      "ISTJ": 8,
+      "ISFJ": 6,
+      "ESFJ": 7,
+      "ISTP": 5,
+      "ISFP": 4,
+      "ESTP": 6,
+      "ESFP": 5
+    },
+    "ESFJ": {
+      "INTJ": 3,
+      "INTP": 3,
+      "ENTJ": 6,
+      "ENTP": 4,
+      "INFJ": 5,
+      "INFP": 4,
+      "ENFJ": 7,
+      "ENFP": 5,
+      "ISTJ": 7,
+      "ISFJ": 8,
+      "ESTJ": 7,
+      "ISTP": 4,
+      "ISFP": 5,
+      "ESTP": 5,
+      "ESFP": 6
+    },
+    "ISTP": {
+      "INTJ": 5,
+      "INTP": 6,
+      "ENTJ": 4,
+      "ENTP": 5,
+      "INFJ": 4,
+      "INFP": 5,
+      "ENFJ": 4,
+      "ENFP": 4,
+      "ISTJ": 6,
+      "ISFJ": 5,
+      "ESTJ": 5,
+      "ESFJ": 4,
+      "ISFP": 6,
+      "ESTP": 7,
+      "ESFP": 5
+    },
+    "ISFP": {
+      "INTJ": 4,
+      "INTP": 5,
+      "ENTJ": 3,
+      "ENTP": 5,
+      "INFJ": 6,
+      "INFP": 7,
+      "ENFJ": 5,
+      "ENFP": 6,
+      "ISTJ": 5,
+      "ISFJ": 6,
+      "ESTJ": 4,
+      "ESFJ": 5,
+      "ISTP": 6,
+      "ESTP": 5,
+      "ESFP": 7
+    },
+    "ESTP": {
+      "INTJ": 3,
+      "INTP": 4,
+      "ENTJ": 6,
+      "ENTP": 6,
+      "INFJ": 3,
+      "INFP": 3,
+      "ENFJ": 5,
+      "ENFP": 5,
+      "ISTJ": 5,
+      "ISFJ": 4,
+      "ESTJ": 6,
+      "ESFJ": 5,
+      "ISTP": 7,
+      "ISFP": 5,
+      "ESFP": 7
+    },
+    "ESFP": {
+      "INTJ": 2,
+      "INTP": 3,
+      "ENTJ": 4,
+      "ENTP": 5,
+      "INFJ": 4,
+      "INFP": 5,
+      "ENFJ": 6,
+      "ENFP": 6,
+      "ISTJ": 4,
+      "ISFJ": 5,
+      "ESTJ": 5,
+      "ESFJ": 6,
+      "ISTP": 5,
+      "ISFP": 7,
+      "ESTP": 7
+    }
+  },
+  "task_weight_factors": {
+    "high_stress_multiplier": 1.5,
+    "optimal_task_multiplier": 0.8,
+    "social_interaction_bonus": {
+      "high_social_skills": 0.9,
+      "low_social_skills": 1.2
+    },
+    "leadership_bonus": {
+      "high_leadership": 0.8,
+      "low_leadership": 1.3
+    },
+    "detail_work_penalty": {
+      "low_detail_orientation": 1.4,
+      "high_detail_orientation": 0.9
+    }
+  },
+  "project_success_factors": {
+    "team_diversity_bonus": 0.1,
+    "complementary_skills_bonus": 0.15,
+    "leadership_presence_bonus": 0.2,
+    "detail_orientation_minimum": 6,
+    "innovation_minimum": 5,
+    "team_collaboration_minimum": 6
+  }
+}
