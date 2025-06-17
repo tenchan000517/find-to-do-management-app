@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     });
 
     // レスポンス用にフォーマット
-    const formattedEvents: CalendarEvent[] = events.map((event: PrismaCalendarEvent) => ({
+    const formattedEvents: CalendarEvent[] = events.map((event: any) => ({
       id: event.id,
       title: event.title,
       date: event.date,
