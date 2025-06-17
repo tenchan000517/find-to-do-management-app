@@ -379,6 +379,44 @@ export async function createTestButtonMessage(replyToken: string): Promise<boole
   return await sendFlexMessage(replyToken, 'ボタンテスト', flexContent);
 }
 
+// 日時フォーマット関数
+function formatDateTime(datetime: string): string {
+  try {
+    const date = new Date(datetime);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    // 日付部分
+    let dateStr = '';
+    if (date.toDateString() === now.toDateString()) {
+      dateStr = '今日';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      dateStr = '明日';
+    } else {
+      dateStr = `${month}/${day}`;
+      if (year !== now.getFullYear()) {
+        dateStr = `${year}/${dateStr}`;
+      }
+    }
+    
+    // 時刻部分
+    if (hours === 0 && minutes === 0) {
+      return dateStr;
+    } else {
+      return `${dateStr} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+  } catch {
+    return datetime; // フォーマットできない場合はそのまま返す
+  }
+}
+
 // 分類確認ボタンメッセージ
 export async function createClassificationConfirmMessage(replyToken: string, extractedData: any): Promise<boolean> {
   const typeMap: { [key: string]: string } = {
@@ -465,6 +503,93 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
                 }
               ]
             },
+            ...(extractedData.datetime ? [{
+              type: 'box',
+              layout: 'horizontal',
+              margin: 'sm',
+              contents: [
+                {
+                  type: 'text',
+                  text: '日時:',
+                  size: 'sm',
+                  color: '#555555',
+                  flex: 1
+                },
+                {
+                  type: 'text',
+                  text: formatDateTime(extractedData.datetime),
+                  size: 'sm',
+                  color: '#111111',
+                  flex: 2,
+                  wrap: true
+                }
+              ]
+            }] : []),
+            ...(extractedData.location ? [{
+              type: 'box',
+              layout: 'horizontal',
+              margin: 'sm',
+              contents: [
+                {
+                  type: 'text',
+                  text: '場所:',
+                  size: 'sm',
+                  color: '#555555',
+                  flex: 1
+                },
+                {
+                  type: 'text',
+                  text: extractedData.location,
+                  size: 'sm',
+                  color: '#111111',
+                  flex: 2,
+                  wrap: true
+                }
+              ]
+            }] : []),
+            ...(extractedData.description && extractedData.description !== extractedData.title ? [{
+              type: 'box',
+              layout: 'horizontal',
+              margin: 'sm',
+              contents: [
+                {
+                  type: 'text',
+                  text: '説明:',
+                  size: 'sm',
+                  color: '#555555',
+                  flex: 1
+                },
+                {
+                  type: 'text',
+                  text: extractedData.description.length > 50 ? extractedData.description.substring(0, 50) + '...' : extractedData.description,
+                  size: 'sm',
+                  color: '#111111',
+                  flex: 2,
+                  wrap: true
+                }
+              ]
+            }] : []),
+            ...(extractedData.priority ? [{
+              type: 'box',
+              layout: 'horizontal',
+              margin: 'sm',
+              contents: [
+                {
+                  type: 'text',
+                  text: '優先度:',
+                  size: 'sm',
+                  color: '#555555',
+                  flex: 1
+                },
+                {
+                  type: 'text',
+                  text: extractedData.priority === 'high' ? '高' : extractedData.priority === 'medium' ? '中' : '低',
+                  size: 'sm',
+                  color: extractedData.priority === 'high' ? '#FF4444' : extractedData.priority === 'medium' ? '#FF8800' : '#00C851',
+                  flex: 2
+                }
+              ]
+            }] : []),
             {
               type: 'box',
               layout: 'horizontal',
@@ -1424,6 +1549,11 @@ export async function createQuestionMessage(replyToken: string, type: string, qu
 export async function createFieldInputMessage(replyToken: string, type: string, fieldKey: string): Promise<boolean> {
   const fieldConfigs: Record<string, Record<string, { question: string; placeholder: string; examples: string[] }>> = {
     personal_schedule: {
+      title: {
+        question: '📋 予定のタイトルを教えてください',
+        placeholder: 'タイトルを入力してください',
+        examples: ['歯医者の予約', '会議', '買い物']
+      },
       datetime: {
         question: '📅 予定の日時を教えてください',
         placeholder: '日時を入力してください',
@@ -1447,6 +1577,11 @@ export async function createFieldInputMessage(replyToken: string, type: string, 
     },
     personal: {
       // personal_scheduleの別名として同じ設定
+      title: {
+        question: '📋 予定のタイトルを教えてください',
+        placeholder: 'タイトルを入力してください',
+        examples: ['歯医者の予約', '会議', '買い物']
+      },
       datetime: {
         question: '📅 予定の日時を教えてください',
         placeholder: '日時を入力してください',
@@ -1469,6 +1604,11 @@ export async function createFieldInputMessage(replyToken: string, type: string, 
       }
     },
     schedule: {
+      title: {
+        question: '📋 予定のタイトルを教えてください',
+        placeholder: 'タイトルを入力してください',
+        examples: ['月次会議', 'プロジェクト打ち合わせ', 'チーム懇親会']
+      },
       datetime: {
         question: '📅 予定の日時を教えてください',
         placeholder: '日時を入力してください',
@@ -1491,6 +1631,11 @@ export async function createFieldInputMessage(replyToken: string, type: string, 
       }
     },
     task: {
+      title: {
+        question: '📋 タスクのタイトルを教えてください',
+        placeholder: 'タスク名を入力してください',
+        examples: ['資料作成', 'メール返信', 'プレゼン準備']
+      },
       deadline: {
         question: '⏰ 完了期限を教えてください',
         placeholder: '期限を入力してください',
@@ -1513,6 +1658,16 @@ export async function createFieldInputMessage(replyToken: string, type: string, 
       }
     },
     project: {
+      title: {
+        question: '📋 プロジェクト名を教えてください',
+        placeholder: 'プロジェクト名を入力してください',
+        examples: ['新商品開発', 'システム改修', 'マーケティング企画']
+      },
+      name: {
+        question: '📋 プロジェクト名を教えてください',
+        placeholder: 'プロジェクト名を入力してください',
+        examples: ['新商品開発', 'システム改修', 'マーケティング企画']
+      },
       duration: {
         question: '📆 プロジェクト期間を教えてください',
         placeholder: '期間を入力してください',
@@ -1535,6 +1690,11 @@ export async function createFieldInputMessage(replyToken: string, type: string, 
       }
     },
     contact: {
+      name: {
+        question: '👤 お名前を教えてください',
+        placeholder: '名前を入力してください',
+        examples: ['田中太郎', '山田花子', '佐藤次郎']
+      },
       company: {
         question: '🏢 会社名を教えてください',
         placeholder: '会社名を入力してください',
@@ -1556,7 +1716,49 @@ export async function createFieldInputMessage(replyToken: string, type: string, 
         examples: ['取引先', '友人', '元同僚']
       }
     },
+    appointment: {
+      companyName: {
+        question: '🏢 会社名を教えてください',
+        placeholder: '会社名を入力してください',
+        examples: ['ABC商事', '株式会社○○', 'フリーランス']
+      },
+      contactName: {
+        question: '👤 担当者名を教えてください',
+        placeholder: '担当者名を入力してください',
+        examples: ['田中部長', '山田さん', '佐藤課長']
+      },
+      phone: {
+        question: '📞 電話番号を教えてください',
+        placeholder: '電話番号を入力してください',
+        examples: ['03-1234-5678', '090-1234-5678', '未定']
+      },
+      email: {
+        question: '📧 メールアドレスを教えてください',
+        placeholder: 'メールアドレスを入力してください',
+        examples: ['tanaka@company.com', '未定', 'LINE交換済み']
+      },
+      nextAction: {
+        question: '📋 面談の目的を教えてください',
+        placeholder: '目的・内容を入力してください',
+        examples: ['商談', '情報交換', '提案説明']
+      },
+      notes: {
+        question: '📝 備考があれば教えてください',
+        placeholder: '備考を入力してください',
+        examples: ['初回面談', '継続案件', '至急対応']
+      },
+      priority: {
+        question: '🎯 優先度を教えてください',
+        placeholder: '優先度を入力してください',
+        examples: ['高', '中', '低']
+      }
+    },
     memo: {
+      title: {
+        question: '📋 メモのタイトルを教えてください',
+        placeholder: 'タイトルを入力してください',
+        examples: ['会議議事録', '新アイデア', '学習メモ']
+      },
       category: {
         question: '📂 メモのカテゴリを教えてください',
         placeholder: 'カテゴリを入力してください',

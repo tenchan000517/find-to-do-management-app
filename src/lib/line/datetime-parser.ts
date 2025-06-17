@@ -38,6 +38,57 @@ export class DateTimeParser {
     return normalized;
   }
   private patterns = [
+    // スラッシュ区切り日付系 (例: 6/20 14時) - より具体的なパターンを先に
+    {
+      regex: /^(\d{1,2})\/(\d{1,2})\s+(\d{1,2})(?:時|:(\d{2}))?$/,
+      handler: (match: RegExpMatchArray) => {
+        const month = parseInt(match[1]);
+        const day = parseInt(match[2]);
+        const hour = parseInt(match[3]);
+        const minute = match[4] ? parseInt(match[4]) : 0;
+        
+        const today = this.getJSTDate();
+        const currentYear = today.getFullYear();
+        const targetDate = new Date(currentYear, month - 1, day);
+        
+        // 過去の日付の場合は来年にする
+        if (targetDate < today) {
+          targetDate.setFullYear(currentYear + 1);
+        }
+        
+        return {
+          date: targetDate.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+    
+    // スラッシュ区切り日付のみ (例: 6/20)
+    {
+      regex: /^(\d{1,2})\/(\d{1,2})$/,
+      handler: (match: RegExpMatchArray) => {
+        const month = parseInt(match[1]);
+        const day = parseInt(match[2]);
+        
+        const today = this.getJSTDate();
+        const currentYear = today.getFullYear();
+        const targetDate = new Date(currentYear, month - 1, day);
+        
+        // 過去の日付の場合は来年にする
+        if (targetDate < today) {
+          targetDate.setFullYear(currentYear + 1);
+        }
+        
+        return {
+          date: targetDate.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.8,
+          method: 'pattern' as const
+        };
+      }
+    },
     // 明日系（時刻なし）
     { 
       regex: /^明日(?:の)?(?!.*\d).*$/,
@@ -89,11 +140,11 @@ export class DateTimeParser {
     
     // 今日系（時刻あり）
     {
-      regex: /今日(?:の)?(\d{1,2})(?:時|:(\d{2}))?/,
+      regex: /今日(?:の)?(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
       handler: (match: RegExpMatchArray) => {
         const hour = parseInt(match[1]);
         const minute = match[2] ? parseInt(match[2]) : 0;
-        const today = new Date();
+        const today = this.getJSTDate();
         
         return {
           date: today.toISOString().split('T')[0],
@@ -129,16 +180,16 @@ export class DateTimeParser {
       }
     },
     
-    // 数値日付系
+    // 数値日付系 (例: 6月20日14時 または 12月25日 18時)
     {
-      regex: /(\d{1,2})月(\d{1,2})日(?:の)?(\d{1,2})(?:時|:(\d{2}))?/,
+      regex: /(\d{1,2})月(\d{1,2})日(?:の)?(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
       handler: (match: RegExpMatchArray) => {
         const month = parseInt(match[1]);
         const day = parseInt(match[2]);
         const hour = parseInt(match[3]);
         const minute = match[4] ? parseInt(match[4]) : 0;
         
-        const today = new Date();
+        const today = this.getJSTDate();
         const targetDate = new Date(today.getFullYear(), month - 1, day);
         
         // 過去の日付の場合は来年にする

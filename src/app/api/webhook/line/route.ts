@@ -175,11 +175,19 @@ async function handleSessionInput(event: LineWebhookEvent, inputText: string): P
   // 保存完了メッセージ
   if (event.replyToken) {
     const fieldNames: Record<string, string> = {
+      title: '📋 タイトル',
+      name: '📋 名前',
+      summary: '📋 概要',
       datetime: '📅 日時',
+      date: '📅 日付',
+      time: '🕐 時刻',
       location: '📍 場所',
       attendees: '👥 参加者',
+      participants: '👥 参加者',
       description: '📝 内容',
+      content: '📝 内容',
       deadline: '⏰ 期限',
+      dueDate: '⏰ 期限',
       priority: '🎯 優先度',
       assignee: '👤 担当者',
       duration: '📆 期間',
@@ -187,13 +195,22 @@ async function handleSessionInput(event: LineWebhookEvent, inputText: string): P
       budget: '💰 予算',
       goals: '🎯 目標',
       company: '🏢 会社名',
+      companyName: '🏢 会社名',
       position: '💼 役職',
       contact: '📞 連絡先',
+      contactName: '👤 担当者名',
+      phone: '📞 電話',
+      email: '📧 メール',
       relation: '🤝 関係性',
       category: '📂 カテゴリ',
       importance: '⭐ 重要度',
       tags: '🏷️ タグ',
-      details: '📝 詳細'
+      details: '📝 詳細',
+      notes: '📝 メモ',
+      nextAction: '🎯 次のアクション',
+      type: '📂 種別',
+      eventType: '📂 イベント種別',
+      status: '📊 ステータス'
     };
     
     const fieldName = fieldNames[sessionInfo.currentField] || sessionInfo.currentField;
@@ -605,6 +622,9 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       // セッション情報を取得（終了前）
       const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
       
+      // セッション情報のコピーを作成（表示用）
+      const savedSessionInfo = sessionInfo ? { ...sessionInfo } : null;
+      
       if (sessionInfo) {
         // 🔧 FIX: 保存済みかチェック
         if (sessionInfo.savedToDb) {
@@ -616,6 +636,10 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
           const recordId = await saveClassifiedData(null, sessionInfo, userId);
           if (recordId) {
             sessionManager.markAsSaved(event.source.userId, event.source.groupId, recordId);
+            // 保存されたIDを表示用データにも記録
+            if (savedSessionInfo) {
+              savedSessionInfo.dbRecordId = recordId;
+            }
           }
         }
       }
@@ -625,16 +649,112 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       
       if (event.replyToken) {
         let savedFields = '';
-        if (sessionData && Object.keys(sessionData.data).length > 0) {
-          const meaningfulFields = Object.entries(sessionData.data)
-            .filter(([, value]) => {
+        
+        // 実際に保存されたレコードのデータを取得
+        let actualSavedData = null;
+        if (savedSessionInfo?.dbRecordId) {
+          console.log('📊 実際のデータ取得開始:', savedSessionInfo.dbRecordId);
+          try {
+            const { PrismaClient } = await import('@prisma/client');
+            const prisma = new PrismaClient();
+            
+            // recordIdからタイプを推定してデータを取得
+            const recordId = savedSessionInfo.dbRecordId;
+            if (recordId.startsWith('ps_')) {
+              actualSavedData = await prisma.personal_schedules.findUnique({ where: { id: recordId } });
+            } else if (recordId.startsWith('evt_')) {
+              actualSavedData = await prisma.calendar_events.findUnique({ where: { id: recordId } });
+            } else if (recordId.startsWith('task_')) {
+              actualSavedData = await prisma.tasks.findUnique({ where: { id: recordId } });
+            } else if (recordId.startsWith('proj_')) {
+              actualSavedData = await prisma.projects.findUnique({ where: { id: recordId } });
+            } else if (recordId.startsWith('conn_')) {
+              actualSavedData = await prisma.connections.findUnique({ where: { id: recordId } });
+            } else if (recordId.startsWith('appt_')) {
+              actualSavedData = await prisma.appointments.findUnique({ where: { id: recordId } });
+            } else if (recordId.startsWith('know_')) {
+              actualSavedData = await prisma.knowledge_items.findUnique({ where: { id: recordId } });
+            }
+            
+            console.log('📊 取得したデータ:', actualSavedData ? Object.keys(actualSavedData) : 'null');
+            await prisma.$disconnect();
+          } catch (error) {
+            console.error('❌ 保存されたデータ取得エラー:', error);
+          }
+        } else {
+          console.log('⚠️ dbRecordIdがありません');
+        }
+        
+        // 表示用データ（実際の保存データ優先、セッションデータをフォールバック）
+        const displayData = actualSavedData || savedSessionInfo?.data || sessionData?.data || {};
+        
+        if (Object.keys(displayData).length > 0) {
+          const meaningfulFields = Object.entries(displayData)
+            .filter(([key, value]) => {
+              // 内部フィールドを除外
+              const internalFields = ['confidence', 'method', 'id', 'createdAt', 'updatedAt', 'userId', 'createdBy', 'assignedTo', 'projectId', 'estimatedHours', 'resourceWeight', 'aiIssueLevel'];
+              if (internalFields.includes(key)) return false;
               // 空、null、'null'文字列、undefined、空配列を除外
               if (!value || value === 'null' || value === null || value === undefined) return false;
               if (Array.isArray(value) && value.length === 0) return false;
               if (typeof value === 'string' && value.trim() === '') return false;
               return true;
             })
-            .map(([key, value]) => `• ${key}: ${value}`);
+            .map(([key, value]) => {
+              // フィールド名の日本語マッピング
+              const fieldNames: Record<string, string> = {
+                title: 'タイトル',
+                name: '名前',
+                summary: '概要',
+                datetime: '日時',
+                date: '日付',
+                time: '時刻',
+                location: '場所',
+                attendees: '参加者',
+                participants: '参加者',
+                description: '内容',
+                content: '内容',
+                deadline: '期限',
+                dueDate: '期限',
+                priority: '優先度',
+                assignee: '担当者',
+                duration: '期間',
+                members: 'メンバー',
+                budget: '予算',
+                goals: '目標',
+                company: '会社名',
+                companyName: '会社名',
+                position: '役職',
+                contact: '連絡先',
+                contactName: '担当者名',
+                phone: '電話',
+                email: 'メール',
+                relation: '関係性',
+                category: 'カテゴリ',
+                importance: '重要度',
+                tags: 'タグ',
+                details: '詳細',
+                notes: 'メモ',
+                nextAction: '次のアクション',
+                type: '種別',
+                eventType: 'イベント種別',
+                status: 'ステータス'
+              };
+              
+              const displayName = fieldNames[key] || key;
+              
+              // 値の表示形式を調整
+              let displayValue = value;
+              if (key === 'priority' && typeof value === 'string') {
+                // 優先度を日本語に変換
+                const priorityMap: Record<string, string> = { 'A': '高', 'B': '中', 'C': '低', 'D': '最低' };
+                displayValue = priorityMap[value] || value;
+              } else if (key === 'isAllDay' && typeof value === 'boolean') {
+                displayValue = value ? '終日' : '時間指定';
+              }
+              
+              return `• ${displayName}: ${displayValue}`;
+            });
           
           if (meaningfulFields.length > 0) {
             savedFields = '\n\n保存された項目:\n' + meaningfulFields.join('\n');
@@ -919,12 +1039,30 @@ async function saveClassifiedData(
             location: finalData.location || null,
             // 担当者システム統合: イベント担当者
             createdBy: systemUserId,
-            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
+                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
+                       : systemUserId,
           },
         });
         break;
         
       case 'task':
+        // deadline/datetimeフィールドがある場合はパース
+        let taskParsedDueDate = finalData.dueDate;
+        
+        if (finalData.deadline || finalData.datetime) {
+          const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+          const deadlineText = finalData.deadline || finalData.datetime;
+          const parsed = await dateTimeParser.parse(deadlineText);
+          
+          if (parsed.confidence >= 0.5) {
+            taskParsedDueDate = parsed.date;
+            console.log(`📅 タスク期限解析成功: "${deadlineText}" → ${taskParsedDueDate} (${parsed.method}, confidence: ${parsed.confidence})`);
+          } else {
+            console.warn(`⚠️ タスク期限解析信頼度低: "${deadlineText}" (confidence: ${parsed.confidence})`);
+          }
+        }
+        
         createdRecordId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.tasks.create({
           data: {
@@ -934,14 +1072,16 @@ async function saveClassifiedData(
             projectId: finalData.projectId || null,
             userId: systemUserId,
             status: 'IDEA',
-            priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : finalData.priority,
-            dueDate: finalData.dueDate || null,
+            priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : convertPriority(finalData.priority),
+            dueDate: taskParsedDueDate,
             estimatedHours: finalData.estimatedHours || 0,
             resourceWeight: finalData.resourceWeight || 0.5,
             aiIssueLevel: finalData.issueLevel || 'MEDIUM',
             // 担当者システム統合: デフォルトで作成者=担当者
             createdBy: systemUserId,
-            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
+                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
+                       : systemUserId,
           },
         });
         break;
@@ -960,7 +1100,9 @@ async function saveClassifiedData(
             teamMembers: finalData.teamMembers || [],
             // 担当者システム統合: デフォルトで作成者=担当者（プロジェクトマネージャー）
             createdBy: systemUserId,
-            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
+                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
+                       : systemUserId,
           },
         });
         break;
@@ -983,7 +1125,9 @@ async function saveClassifiedData(
             updatedAt: new Date(getJSTNow()),
             // 担当者システム統合: 人脈管理者
             createdBy: systemUserId,
-            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
+                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
+                       : systemUserId,
           },
         });
         break;
@@ -1002,7 +1146,9 @@ async function saveClassifiedData(
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'B' : convertPriority(finalData.priority),
             // 担当者システム統合: 営業担当者
             createdBy: systemUserId,
-            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
+                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
+                       : systemUserId,
           },
         });
         break;
@@ -1063,18 +1209,54 @@ async function updateExistingRecord(
     switch (type) {
       case 'personal_schedule':
       case 'personal':
+        // datetimeフィールドがある場合はパース
+        let personalUpdatedDate;
+        let personalUpdatedTime;
+        
+        if (updateData.datetime) {
+          const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+          const parsed = await dateTimeParser.parse(updateData.datetime);
+          
+          if (parsed.confidence >= 0.5) {
+            personalUpdatedDate = parsed.date;
+            personalUpdatedTime = parsed.time;
+            console.log(`📅 個人予定日時更新解析成功: "${updateData.datetime}" → ${personalUpdatedDate} ${personalUpdatedTime} (${parsed.method}, confidence: ${parsed.confidence})`);
+          } else {
+            console.warn(`⚠️ 個人予定日時更新解析信頼度低: "${updateData.datetime}" (confidence: ${parsed.confidence})`);
+          }
+        }
+        
         await prisma.personal_schedules.update({
           where: { id: recordId },
           data: {
             title: updateData.title || undefined,
             description: updateData.description || undefined,
             location: updateData.location || undefined,
-            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : updateData.priority,
+            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : convertPriority(updateData.priority),
+            date: personalUpdatedDate || undefined,
+            time: personalUpdatedTime || undefined,
           },
         });
         break;
         
       case 'schedule':
+        // datetimeフィールドがある場合はパース
+        let scheduleUpdatedDate;
+        let scheduleUpdatedTime;
+        
+        if (updateData.datetime) {
+          const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+          const parsed = await dateTimeParser.parse(updateData.datetime);
+          
+          if (parsed.confidence >= 0.5) {
+            scheduleUpdatedDate = parsed.date;
+            scheduleUpdatedTime = parsed.time;
+            console.log(`📅 予定日時更新解析成功: "${updateData.datetime}" → ${scheduleUpdatedDate} ${scheduleUpdatedTime} (${parsed.method}, confidence: ${parsed.confidence})`);
+          } else {
+            console.warn(`⚠️ 予定日時更新解析信頼度低: "${updateData.datetime}" (confidence: ${parsed.confidence})`);
+          }
+        }
+        
         await prisma.calendar_events.update({
           where: { id: recordId },
           data: {
@@ -1082,20 +1264,38 @@ async function updateExistingRecord(
             description: updateData.description || undefined,
             location: updateData.location || undefined,
             type: (updateData.eventType === 'null' || !updateData.eventType) ? undefined : updateData.eventType,
+            date: scheduleUpdatedDate || undefined,
+            time: scheduleUpdatedTime || undefined,
           },
         });
         break;
         
       case 'task':
+        // deadline/datetimeフィールドがある場合はパース
+        let taskUpdatedDueDate;
+        
+        if (updateData.deadline || updateData.datetime) {
+          const { dateTimeParser } = await import('@/lib/line/datetime-parser');
+          const deadlineText = updateData.deadline || updateData.datetime;
+          const parsed = await dateTimeParser.parse(deadlineText);
+          
+          if (parsed.confidence >= 0.5) {
+            taskUpdatedDueDate = parsed.date;
+            console.log(`📅 タスク期限更新解析成功: "${deadlineText}" → ${taskUpdatedDueDate} (${parsed.method}, confidence: ${parsed.confidence})`);
+          } else {
+            console.warn(`⚠️ タスク期限更新解析信頼度低: "${deadlineText}" (confidence: ${parsed.confidence})`);
+          }
+        }
+        
         await prisma.tasks.update({
           where: { id: recordId },
           data: {
             title: updateData.title || undefined,
             description: updateData.description || undefined,
-            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : updateData.priority,
+            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : convertPriority(updateData.priority),
             // assignee maps to userId field in database
             // userId: updateData.assignee || undefined, // Commented - cannot change userId after creation
-            dueDate: updateData.deadline || undefined,
+            dueDate: taskUpdatedDueDate || updateData.deadline || undefined,
             estimatedHours: updateData.estimatedHours ? parseInt(updateData.estimatedHours) : undefined,
           },
         });
@@ -1122,6 +1322,21 @@ async function updateExistingRecord(
             position: updateData.position || undefined,
             description: updateData.description || undefined,
             type: (updateData.type === 'null' || !updateData.type) ? undefined : updateData.type,
+          },
+        });
+        break;
+        
+      case 'appointment':
+        await prisma.appointments.update({
+          where: { id: recordId },
+          data: {
+            companyName: updateData.companyName || updateData.company || undefined,
+            contactName: updateData.contactName || updateData.name || undefined,
+            phone: updateData.phone || undefined,
+            email: updateData.email || undefined,
+            nextAction: updateData.nextAction || updateData.title || updateData.summary || undefined,
+            notes: updateData.notes || updateData.description || undefined,
+            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : convertPriority(updateData.priority),
           },
         });
         break;

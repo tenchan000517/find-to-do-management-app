@@ -24,8 +24,15 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
   try {
     const aiCallManager = getAICallManager();
     
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
     const prompt = `
 以下のLINEメッセージから、プロジェクト管理に必要な情報を抽出してください。
+
+今日の日付: ${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}
+明日の日付: ${tomorrow.getFullYear()}-${(tomorrow.getMonth()+1).toString().padStart(2,'0')}-${tomorrow.getDate().toString().padStart(2,'0')}
 
 メッセージ: "${text}"
 
@@ -37,13 +44,16 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 - contact: 人脈、連絡先情報
 - memo: メモ、記録、ナレッジ
 
-注意: メッセージで「予定」という言葉が使われたら personal_schedule、「イベント」という言葉が使われたら schedule として分類する
+注意: 
+- メッセージで「予定」という言葉が使われたら personal_schedule、「イベント」という言葉が使われたら schedule として分類する
+- 「明日」という言葉が含まれている場合は、明日の日付 (${tomorrow.toISOString().split('T')[0]}) を使用する
+- 時刻が指定されていない場合は、00:00:00 を使用する
 
 抽出すべき情報:
 1. 種類 (personal_schedule/schedule/task/project/contact/memo)
-2. タイトル
+2. タイトル (日時情報を除いた内容部分)
 3. 説明
-4. 日時 (ISO 8601形式)
+4. 日時 (ISO 8601形式、相対日付は具体的な日付に変換)
 5. 参加者
 6. 場所
 7. 優先度 (high/medium/low)
