@@ -298,3 +298,96 @@ export interface AIEvaluation {
   modelVersion: string;
   createdAt: string;
 }
+
+// Phase 5: AI営業支援・分析システム型定義
+export interface SalesPrediction {
+  appointmentId: string;
+  closingProbability: number;        // 0-100%
+  predictedRevenue: number;          // 予測売上
+  recommendedActions: string[];      // 推奨アクション
+  competitorRisk: 'low' | 'medium' | 'high';
+  optimalFollowUpTiming: string;     // 最適フォロータイミング
+  confidenceScore: number;           // 予測信頼度
+  lastUpdated: string;
+  factors: PredictionFactors;
+}
+
+export interface PredictionFactors {
+  salesPhaseScore: number;           // 営業フェーズ評価
+  relationshipScore: number;         // 関係性評価
+  engagementScore: number;          // エンゲージメント評価
+  competitionScore: number;         // 競合状況評価
+  businessValueScore: number;       // 案件価値評価
+  timelinePressure: number;         // タイムライン圧力
+}
+
+export interface SalesMetrics {
+  conversionRate: number;           // 成約率
+  averageDealSize: number;         // 平均案件規模
+  salesCycleLength: number;        // 営業サイクル長
+  pipelineVelocity: number;        // パイプライン速度
+  customerLifetimeValue: number;   // 顧客生涯価値
+  monthlyRecurringRevenue: number; // 月次売上
+  totalPipelineValue: number;      // パイプライン総額
+  winRate: number;                 // 勝率
+  lossRate: number;                // 失注率
+  activeDeals: number;             // アクティブ案件数
+  averageTimeToClose: number;      // 平均成約時間
+}
+
+export interface CustomerSegment {
+  segmentId: string;
+  name: string;
+  size: number;
+  averageValue: number;
+  conversionRate: number;
+  recommendedStrategy: string;
+  keyCharacteristics: string[];
+  customers: CustomerProfile[];
+  growthTrend: 'increasing' | 'stable' | 'decreasing';
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface CustomerProfile {
+  appointmentId: string;
+  companyName: string;
+  industryCategory: string;
+  companySize: 'small' | 'medium' | 'large' | 'enterprise';
+  budgetRange: 'low' | 'medium' | 'high' | 'premium';
+  decisionSpeed: 'fast' | 'medium' | 'slow';
+  relationshipStage: RelationshipStatus;
+  engagementLevel: number;
+  businessPotential: number;
+}
+
+export interface SalesAnalyticsData {
+  overview: SalesMetrics;
+  predictions: SalesPrediction[];
+  segments: CustomerSegment[];
+  trends: {
+    revenueGrowth: TrendData[];
+    pipelineHealth: TrendData[];
+    conversionRates: TrendData[];
+    averageDealSizes: TrendData[];
+  };
+  actionItems: ActionItem[];
+}
+
+export interface TrendData {
+  period: string;
+  value: number;
+  previousValue?: number;
+  change?: number;
+  changePercent?: number;
+}
+
+export interface ActionItem {
+  id: string;
+  type: 'follow_up' | 'proposal' | 'contract' | 'risk_mitigation';
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  appointmentId?: string;
+  dueDate?: string;
+  estimatedImpact: number;
+}
