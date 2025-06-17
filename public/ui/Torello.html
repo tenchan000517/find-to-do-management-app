@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Kanban Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .board-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .board-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .board-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-size: 0.9rem;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .board-container {
+            padding: 2rem;
+            height: calc(100vh - 80px);
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .board {
+            display: flex;
+            gap: 1.5rem;
+            min-width: fit-content;
+            height: 100%;
+            padding-bottom: 2rem;
+        }
+
+        .list {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            width: 280px;
+            height: fit-content;
+            max-height: calc(100vh - 160px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .list:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .list-header {
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .list-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .list-count {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .list-menu {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            color: #718096;
+            transition: all 0.2s ease;
+        }
+
+        .list-menu:hover {
+            background: #f7fafc;
+            color: #2d3748;
+        }
+
+        .cards-container {
+            padding: 0.75rem 1.25rem 1.25rem;
+            max-height: calc(100vh - 240px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e0;
+        }
+
+        .card-labels {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-label {
+            height: 6px;
+            border-radius: 3px;
+            min-width: 40px;
+        }
+
+        .label-green { background: #48bb78; }
+        .label-blue { background: #4299e1; }
+        .label-orange { background: #ed8936; }
+        .label-red { background: #f56565; }
+        .label-purple { background: #9f7aea; }
+
+        .card-title {
+            font-size: 0.9rem;
+            color: #2d3748;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: #f7fafc;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #4a5568;
+        }
+
+        .card-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .add-card-btn {
+            background: rgba(45, 55, 72, 0.05);
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .add-card-btn:hover {
+            background: rgba(45, 55, 72, 0.08);
+            border-color: #a0aec0;
+            color: #4a5568;
+        }
+
+        .add-list-btn {
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px dashed rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            width: 280px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #4a5568;
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .add-list-btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .priority-high { border-left: 4px solid #f56565; }
+        .priority-medium { border-left: 4px solid #ed8936; }
+        .priority-low { border-left: 4px solid #48bb78; }
+
+        .card-completion-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-completion-btn:hover {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .card-completion-btn.completed {
+            background: #48bb78;
+            border-color: #48bb78;
+            color: white;
+        }
+
+        .completed-card {
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: slideIn 0.3s ease;
+        }
+
+        /* スクロールバースタイル */
+        .cards-container::-webkit-scrollbar,
+        .board-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .cards-container::-webkit-scrollbar-track,
+        .board-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .cards-container::-webkit-scrollbar-thumb,
+        .board-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .cards-container::-webkit-scrollbar-thumb:hover,
+        .board-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="board-header">
+        <h1 class="board-title">📋 FIND to DO</h1>
+        <div class="board-actions">
+            <button class="header-btn">🎨 カスタマイズ</button>
+            <button class="header-btn">👥 共有</button>
+            <button class="header-btn">⚡ 自動化</button>
+            <button class="header-btn">🔍 フィルター</button>
+        </div>
+    </div>
+
+    <div class="board-container">
+        <div class="board" id="board">
+            <!-- IIDA リスト -->
+            <div class="list">
+                <div class="list-header">
+                    <h3 class="list-title">IIDA</h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="list-count">2</span>
+                        <button class="list-menu">⋯</button>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card priority-high">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-labels">
+                            <div class="card-label label-green"></div>
+                        </div>
+                        <div class="card-title">企業の学生団体をまとめる組織</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">💼 ビジネス</div>
+                            </div>
+                            <div class="card-avatar">I</div>
+                        </div>
+                    </div>
+                    <div class="card priority-medium">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-title">修行営業</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">📈 営業</div>
+                            </div>
+                            <div class="card-avatar">I</div>
+                        </div>
+                    </div>
+                    <div class="add-card-btn" onclick="addCard(this)">
+                        ➕ カードを追加
+                    </div>
+                </div>
+            </div>
+
+            <!-- KAZUMA リスト -->
+            <div class="list">
+                <div class="list-header">
+                    <h3 class="list-title">KAZUMA</h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="list-count">2</span>
+                        <button class="list-menu">⋯</button>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card priority-high">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-title">YouTube ドキュメンタリー 社長に話してもらう</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">🎥 動画</div>
+                                <div class="badge">📅 今週</div>
+                            </div>
+                            <div class="card-avatar">K</div>
+                        </div>
+                    </div>
+                    <div class="card priority-medium">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-labels">
+                            <div class="card-label label-green"></div>
+                        </div>
+                        <div class="card-title">学生団体と連携を取る 動画編集サークル</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">🤝 連携</div>
+                            </div>
+                            <div class="card-avatar">K</div>
+                        </div>
+                    </div>
+                    <div class="add-card-btn" onclick="addCard(this)">
+                        ➕ カードを追加
+                    </div>
+                </div>
+            </div>
+
+            <!-- タスク リスト -->
+            <div class="list">
+                <div class="list-header">
+                    <h3 class="list-title">タスク</h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="list-count">1</span>
+                        <button class="list-menu">⋯</button>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card priority-medium">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-title">久野商事動画打ち合わせ</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">💼 会議</div>
+                                <div class="badge">📅 明日</div>
+                            </div>
+                            <div class="card-avatar">T</div>
+                        </div>
+                    </div>
+                    <div class="add-card-btn" onclick="addCard(this)">
+                        ➕ カードを追加
+                    </div>
+                </div>
+            </div>
+
+            <!-- YUMIKINO リスト -->
+            <div class="list">
+                <div class="list-header">
+                    <h3 class="list-title">YUMIKINO</h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="list-count">2</span>
+                        <button class="list-menu">⋯</button>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="card priority-low">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-title">FIND to DOのNotionを作成する</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">📝 Notion</div>
+                            </div>
+                            <div class="card-avatar">Y</div>
+                        </div>
+                    </div>
+                    <div class="card priority-high">
+                        <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                        <div class="card-labels">
+                            <div class="card-label label-blue"></div>
+                            <div class="card-label label-orange"></div>
+                        </div>
+                        <div class="card-title">学生を集めるアクションをする</div>
+                        <div class="card-meta">
+                            <div class="card-badges">
+                                <div class="badge">👥 採用</div>
+                                <div class="badge">🎯 重要</div>
+                            </div>
+                            <div class="card-avatar">Y</div>
+                        </div>
+                    </div>
+                    <div class="add-card-btn" onclick="addCard(this)">
+                        ➕ カードを追加
+                    </div>
+                </div>
+            </div>
+
+            <!-- URUSHIBATA リスト -->
+            <div class="list">
+                <div class="list-header">
+                    <h3 class="list-title">URUSHIBATA</h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="list-count">0</span>
+                        <button class="list-menu">⋯</button>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="add-card-btn" onclick="addCard(this)">
+                        ➕ カードを追加
+                    </div>
+                </div>
+            </div>
+
+            <!-- 新しいリスト追加ボタン -->
+            <div class="add-list-btn" onclick="addList()">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">➕</div>
+                <div>リストを追加</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCompletion(btn) {
+            const card = btn.closest('.card');
+            const title = card.querySelector('.card-title');
+            
+            btn.classList.toggle('completed');
+            card.classList.toggle('completed-card');
+            
+            if (btn.classList.contains('completed')) {
+                btn.innerHTML = '✓';
+                // 完了アニメーション
+                card.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    card.style.transform = 'scale(1)';
+                }, 200);
+            } else {
+                btn.innerHTML = '✓';
+            }
+        }
+
+        function addCard(btn) {
+            const container = btn.parentElement;
+            const listTitle = btn.closest('.list').querySelector('.list-title').textContent;
+            
+            const newCard = document.createElement('div');
+            newCard.className = 'card priority-low';
+            newCard.innerHTML = `
+                <button class="card-completion-btn" onclick="toggleCompletion(this)">✓</button>
+                <div class="card-title">新しいタスク</div>
+                <div class="card-meta">
+                    <div class="card-badges">
+                        <div class="badge">📝 新規</div>
+                    </div>
+                    <div class="card-avatar">${listTitle.charAt(0)}</div>
+                </div>
+            `;
+            
+            container.insertBefore(newCard, btn);
+            updateListCount(btn.closest('.list'));
+        }
+
+        function addList() {
+            const board = document.getElementById('board');
+            const addListBtn = board.querySelector('.add-list-btn');
+            
+            const newList = document.createElement('div');
+            newList.className = 'list';
+            newList.innerHTML = `
+                <div class="list-header">
+                    <h3 class="list-title">新しいリスト</h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="list-count">0</span>
+                        <button class="list-menu">⋯</button>
+                    </div>
+                </div>
+                <div class="cards-container">
+                    <div class="add-card-btn" onclick="addCard(this)">
+                        ➕ カードを追加
+                    </div>
+                </div>
+            `;
+            
+            board.insertBefore(newList, addListBtn);
+        }
+
+        function updateListCount(list) {
+            const cards = list.querySelectorAll('.card:not(.add-card-btn)');
+            const countSpan = list.querySelector('.list-count');
+            countSpan.textContent = cards.length;
+        }
+
+        // ドラッグ&ドロップ機能（基本実装）
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card:not(.add-card-btn)');
+            
+            cards.forEach(card => {
+                card.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', '');
+                    this.style.opacity = '0.5';
+                });
+                
+                card.addEventListener('dragend', function() {
+                    this.style.opacity = '1';
+                });
+                
+                card.setAttribute('draggable', 'true');
+            });
+        });
+
+        // リアルタイム更新アニメーション
+        setInterval(() => {
+            const cards = document.querySelectorAll('.card:not(.completed-card)');
+            cards.forEach(card => {
+                if (Math.random() < 0.02) { // 2%の確率で微細なアニメーション
+                    card.style.transform = 'scale(1.02)';
+                    setTimeout(() => {
+                        card.style.transform = 'scale(1)';
+                    }, 300);
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レスポンシブカレンダーレイアウト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* メインコンテナ - ビューポート全体を使用 */
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ヘッダー */
+        .calendar-header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        /* メインカレンダー領域 */
+        .calendar-main {
+            flex: 1;
+            display: flex;
+            min-height: 0; /* フレックス子要素の高さ制御 */
+        }
+
+        /* サイドバー */
+        .calendar-sidebar {
+            width: 256px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        /* カレンダーグリッド */
+        .calendar-grid-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .calendar-grid {
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            min-height: 0;
+        }
+
+        /* 曜日ヘッダー */
+        .calendar-header-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .calendar-header-cell {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 500;
+            color: #5f6368;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        /* カレンダー本体 */
+        .calendar-body {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            flex: 1;
+            min-height: 0;
+        }
+
+        .calendar-week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .calendar-day {
+            border-right: 1px solid #e0e0e0;
+            padding: 8px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 120px;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: #f8f9fa;
+        }
+
+        .day-number {
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #202124;
+        }
+
+        .today {
+            background: #e8f0fe;
+        }
+
+        .today .day-number {
+            background: #1a73e8;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .other-month {
+            color: #9aa0a6;
+            background: #fafafa;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .calendar-sidebar {
+                width: 200px;
+            }
+            
+            .calendar-header-cell {
+                padding: 8px 4px;
+                font-size: 14px;
+            }
+            
+            .calendar-day {
+                min-height: 80px;
+                padding: 4px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .calendar-main {
+                flex-direction: column;
+            }
+            
+            .calendar-sidebar {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .calendar-day {
+                min-height: 60px;
+            }
+        }
+
+        /* 動的サイズ調整のためのCSS変数 */
+        :root {
+            --calendar-cell-height: calc((100vh - 140px) / 6);
+        }
+
+        .dynamic-height .calendar-day {
+            min-height: var(--calendar-cell-height);
+        }
+
+        /* トランジション */
+        .calendar-day {
+            transition: background-color 0.2s ease;
+        }
+
+        .resize-animation {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <!-- ヘッダー -->
+        <div class="calendar-header">
+            <h1>2025年 6月</h1>
+        </div>
+
+        <!-- メインコンテンツ -->
+        <div class="calendar-main">
+            <!-- サイドバー -->
+            <div class="calendar-sidebar">
+                <div style="padding: 16px;">
+                    <h3>マイカレンダー</h3>
+                    <div style="margin-top: 16px;">
+                        <div style="padding: 8px 0;">📅 メインカレンダー</div>
+                        <div style="padding: 8px 0;">🎂 誕生日</div>
+                        <div style="padding: 8px 0;">🏢 仕事</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- カレンダーグリッド -->
+            <div class="calendar-grid-container">
+                <div class="calendar-grid dynamic-height">
+                    <!-- 曜日ヘッダー -->
+                    <div class="calendar-header-row">
+                        <div class="calendar-header-cell">日</div>
+                        <div class="calendar-header-cell">月</div>
+                        <div class="calendar-header-cell">火</div>
+                        <div class="calendar-header-cell">水</div>
+                        <div class="calendar-header-cell">木</div>
+                        <div class="calendar-header-cell">金</div>
+                        <div class="calendar-header-cell">土</div>
+                    </div>
+
+                    <!-- カレンダー本体 -->
+                    <div class="calendar-body" id="calendarBody">
+                        <!-- 1週目 -->
+                        <div class="calendar-week">
+                            <div class="calendar-day">
+                                <div class="day-number">1</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">2</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">3</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">4</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">5</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">6</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">7</div>
+                            </div>
+                        </div>
+
+                        <!-- 2週目 -->
+                        <div class="calendar-week">
+                            <div class="calendar-day">
+                                <div class="day-number">8</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">9</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">10</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">11</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">12</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">13</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">14</div>
+                            </div>
+                        </div>
+
+                        <!-- 3週目 -->
+                        <div class="calendar-week">
+                            <div class="calendar-day">
+                                <div class="day-number">15</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">16</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">17</div>
+                            </div>
+                            <div class="calendar-day today">
+                                <div class="day-number">18</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">19</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">20</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">21</div>
+                            </div>
+                        </div>
+
+                        <!-- 4週目 -->
+                        <div class="calendar-week">
+                            <div class="calendar-day">
+                                <div class="day-number">22</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">23</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">24</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">25</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">26</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">27</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">28</div>
+                            </div>
+                        </div>
+
+                        <!-- 5週目 -->
+                        <div class="calendar-week">
+                            <div class="calendar-day">
+                                <div class="day-number">29</div>
+                            </div>
+                            <div class="calendar-day">
+                                <div class="day-number">30</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">1</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">2</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">3</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">4</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">5</div>
+                            </div>
+                        </div>
+
+                        <!-- 6週目 -->
+                        <div class="calendar-week">
+                            <div class="calendar-day other-month">
+                                <div class="day-number">6</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">7</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">8</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">9</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">10</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">11</div>
+                            </div>
+                            <div class="calendar-day other-month">
+                                <div class="day-number">12</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 動的リサイズ対応
+        function adjustCalendarHeight() {
+            const headerHeight = document.querySelector('.calendar-header').offsetHeight;
+            const dayHeaderHeight = document.querySelector('.calendar-header-row').offsetHeight;
+            const availableHeight = window.innerHeight - headerHeight - dayHeaderHeight - 40; // マージン調整
+            
+            document.documentElement.style.setProperty(
+                '--calendar-cell-height', 
+                Math.floor(availableHeight / 6) + 'px'
+            );
+        }
+
+        // リサイズイベントの監視
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            // アニメーションクラスを追加
+            document.body.classList.add('resize-animation');
+            
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                adjustCalendarHeight();
+                document.body.classList.remove('resize-animation');
+            }, 100);
+        });
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            adjustCalendarHeight();
+        });
+
+        // ウィンドウサイズ変更時の追加処理
+        const mediaQuery = window.matchMedia('(max-width: 640px)');
+        function handleTabletChange(e) {
+            if (e.matches) {
+                // モバイルレイアウト
+                console.log('モバイルレイアウトに切り替え');
+            } else {
+                // デスクトップレイアウト
+                console.log('デスクトップレイアウトに切り替え');
+            }
+            adjustCalendarHeight();
+        }
+
+        mediaQuery.addListener(handleTabletChange);
+        handleTabletChange(mediaQuery);
+    </script>
+</body>
+</html>
