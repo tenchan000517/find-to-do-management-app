@@ -8,6 +8,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { Project, User } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { BarChart3, FileText } from 'lucide-react';
 import Tabs from '@/components/Tabs';
 import ProjectsTable from '@/components/ProjectsTable';
 import GanttChart from '@/components/GanttChart';
@@ -59,8 +60,8 @@ export default function ProjectsPage() {
   });
 
   const tabs = [
-    { id: 'table', label: 'プロジェクト一覧', icon: '📋' },
-    { id: 'gantt', label: 'ガントチャート', icon: '📊' },
+    { id: 'table', label: 'プロジェクト一覧', icon: <FileText className="w-4 h-4" /> },
+    { id: 'gantt', label: 'ガントチャート', icon: <BarChart3 className="w-4 h-4" /> },
   ];
 
   const filteredProjects = filter === 'all' 
