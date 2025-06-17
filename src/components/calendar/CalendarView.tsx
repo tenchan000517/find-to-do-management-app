@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { CalendarEvent, UnifiedCalendarEvent, ViewMode, ColorMode } from '@/types/calendar';
 import { User } from '@/lib/types';
 import { MonthView } from './MonthView';
@@ -15,6 +16,7 @@ import ProjectDetailModal from '@/components/ProjectDetailModal';
 import { AppointmentEditModal } from './AppointmentEditModal';
 import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { DraggableEvent } from './DraggableEvent';
 
 interface CalendarViewProps {
   className?: string;
@@ -39,6 +41,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const [editingAppointment, setEditingAppointment] = useState<UnifiedCalendarEvent | null>(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [draggedEvent, setDraggedEvent] = useState<UnifiedCalendarEvent | null>(null);
 
   // 表示期間を計算
   const getDateRange = () => {
@@ -324,6 +327,101 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     }
   };
 
+  // イベント移動処理
+  const handleEventMove = async (eventId: string, newDate: string) => {
+    try {
+      setLoading(true);
+      
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+      
+      let apiUrl = '';
+      let requestBody = {};
+      
+      switch (event.source) {
+        case 'tasks':
+          const taskId = event.taskId || event.id.replace(/^task_/, '');
+          apiUrl = `/api/tasks`;
+          requestBody = { 
+            id: taskId,
+            dueDate: newDate 
+          };
+          break;
+        case 'appointments':
+          const appointmentMatch = event.id.match(/^appointment_(\d+)_(.+)$/);
+          if (appointmentMatch) {
+            const [, appointmentId] = appointmentMatch;
+            apiUrl = `/api/appointments/${appointmentId}`;
+            requestBody = { date: newDate };
+          }
+          break;
+        case 'personal_schedules':
+          const personalId = event.id.startsWith('personal_') 
+            ? event.id.replace('personal_', '') 
+            : event.id;
+          apiUrl = `/api/schedules/${personalId}`;
+          requestBody = { date: newDate };
+          break;
+        case 'calendar_events':
+        default:
+          apiUrl = `/api/calendar/events/${event.id}`;
+          requestBody = { date: newDate };
+          break;
+      }
+      
+      const response = await fetch(apiUrl, {
+        method: event.source === 'tasks' ? 'PUT' : 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // イベントデータを再取得
+      await fetchEvents();
+      
+    } catch (error) {
+      console.error('Failed to move event:', error);
+      alert('イベントの移動に失敗しました。もう一度お試しください。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ドラッグ開始処理
+  const handleDragStart = (event: DragStartEvent) => {
+    const draggedData = event.active.data.current;
+    if (draggedData?.type === 'calendar-event') {
+      setDraggedEvent(draggedData.event);
+    }
+  };
+
+  // ドラッグ終了処理
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !draggedEvent) {
+      setDraggedEvent(null);
+      return;
+    }
+    
+    const overData = over.data.current;
+    if (overData?.type === 'calendar-cell') {
+      const newDate = overData.date;
+      const currentDate = draggedEvent.date;
+      
+      if (newDate !== currentDate) {
+        handleEventMove(draggedEvent.id, newDate);
+      }
+    }
+    
+    setDraggedEvent(null);
+  };
+
 
   const { userCounts, categoryCounts, priorityCounts, importanceCounts } = getColorStats();
 
@@ -348,62 +446,75 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   });
 
   return (
-    <div className={`${className} flex flex-col h-screen overflow-hidden`}>
-      {/* 統合ヘッダー: 色分けタブ + 日付ナビ + 表示モード */}
-      <div className="flex-shrink-0">
-        <ColorTabs
-          selectedMode={colorMode}
-          onModeChange={setColorMode}
-          userCounts={userCounts}
-          categoryCounts={categoryCounts}
-          priorityCounts={priorityCounts}
-          importanceCounts={importanceCounts}
-          users={users}
-          currentDate={currentDate}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onDateNavigate={navigateDate}
-          onTodayClick={goToToday}
-          onWeeklyPreviewClick={() => setShowWeeklyPreview(true)}
-          loading={loading}
-          selectedFilter={selectedFilter}
-          onFilterChange={setSelectedFilter}
-        />
-      </div>
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className={`${className} flex flex-col h-screen overflow-hidden`}>
+        {/* 統合ヘッダー: 色分けタブ + 日付ナビ + 表示モード */}
+        <div className="flex-shrink-0">
+          <ColorTabs
+            selectedMode={colorMode}
+            onModeChange={setColorMode}
+            userCounts={userCounts}
+            categoryCounts={categoryCounts}
+            priorityCounts={priorityCounts}
+            importanceCounts={importanceCounts}
+            users={users}
+            currentDate={currentDate}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onDateNavigate={navigateDate}
+            onTodayClick={goToToday}
+            onWeeklyPreviewClick={() => setShowWeeklyPreview(true)}
+            loading={loading}
+            selectedFilter={selectedFilter}
+            onFilterChange={setSelectedFilter}
+          />
+        </div>
 
-      {/* カレンダー本体 */}
-      <div className="flex-1 relative overflow-hidden">
-        {loading && (
-          <LoadingSpinner overlay message="カレンダーデータを読み込んでいます..." />
-        )}
+        {/* カレンダー本体 */}
+        <div className="flex-1 relative overflow-hidden">
+          {loading && (
+            <LoadingSpinner overlay message="カレンダーデータを読み込んでいます..." />
+          )}
 
-        {viewMode === 'month' && (
-          <MonthView 
-            currentDate={currentDate} 
-            events={filteredEvents} 
-            onDateSelect={handleDayClick}
-            colorMode={colorMode}
-            onEventEdit={handleEventEdit}
-          />
-        )}
-        
-        {viewMode === 'week' && (
-          <WeekView 
-            currentDate={currentDate} 
-            events={filteredEvents}
-            onDateSelect={setCurrentDate}
-            colorMode={colorMode}
-          />
-        )}
-        
-        {viewMode === 'day' && (
-          <DayView 
-            currentDate={currentDate} 
-            events={filteredEvents}
-            colorMode={colorMode}
-          />
-        )}
-      </div>
+          {viewMode === 'month' && (
+            <MonthView 
+              currentDate={currentDate} 
+              events={filteredEvents} 
+              onDateSelect={handleDayClick}
+              colorMode={colorMode}
+              onEventEdit={handleEventEdit}
+              onEventMove={handleEventMove}
+            />
+          )}
+          
+          {viewMode === 'week' && (
+            <WeekView 
+              currentDate={currentDate} 
+              events={filteredEvents}
+              onDateSelect={setCurrentDate}
+              colorMode={colorMode}
+            />
+          )}
+          
+          {viewMode === 'day' && (
+            <DayView 
+              currentDate={currentDate} 
+              events={filteredEvents}
+              colorMode={colorMode}
+            />
+          )}
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {draggedEvent ? (
+            <DraggableEvent
+              event={draggedEvent}
+              onEdit={() => {}}
+              onMove={() => {}}
+            />
+          ) : null}
+        </DragOverlay>
 
       {/* 今後一週間サイドバー */}
       <WeeklyPreview
@@ -461,6 +572,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         onSave={() => {}}
         onDataRefresh={fetchEvents}
       />
-    </div>
+      </div>
+    </DndContext>
   );
 }
