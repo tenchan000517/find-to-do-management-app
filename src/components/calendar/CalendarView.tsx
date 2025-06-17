@@ -9,6 +9,9 @@ import { ColorTabs } from './ColorTabs';
 import { WeeklyPreview } from './WeeklyPreview';
 import { DayEventsModal } from './DayEventsModal';
 import { EventEditModal } from './EventEditModal';
+import TaskModal from '@/components/TaskModal';
+import ProjectDetailModal from '@/components/ProjectDetailModal';
+import { AppointmentEditModal } from './AppointmentEditModal';
 import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -28,6 +31,12 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const [showDayModal, setShowDayModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<UnifiedCalendarEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<UnifiedCalendarEvent | null>(null);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   // 表示期間を計算
@@ -184,8 +193,39 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
   // イベント編集処理
   const handleEventEdit = (event: UnifiedCalendarEvent) => {
-    setEditingEvent(event);
-    setShowEditModal(true);
+    switch (event.source) {
+      case 'tasks':
+        // タスクの場合は専用モーダルを開く
+        const taskData = {
+          id: event.taskId || event.id.replace(/^task_/, ''),
+          title: event.title.replace(/^📋 /, ''),
+          description: event.description || '',
+          dueDate: event.date,
+          priority: event.priority || 'C',
+          status: 'IDEA',
+          userId: event.userId,
+          projectId: event.projectId,
+          assignedTo: event.userId,
+          isArchived: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setEditingTask(taskData);
+        setShowTaskModal(true);
+        break;
+      
+      case 'appointments':
+        // アポイントメントの場合は専用モーダルを開く
+        setEditingAppointment(event);
+        setShowAppointmentModal(true);
+        break;
+      
+      default:
+        // その他のイベントは今まで通り統合モーダルを使用
+        setEditingEvent(event);
+        setShowEditModal(true);
+        break;
+    }
   };
 
   const handleEventDelete = async (eventId: string) => {
@@ -206,9 +246,10 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
           apiUrl = `/api/schedules/${personalId}`;
           break;
         case 'tasks':
-          const taskId = event.id.replace(/^task_/, '');
-          apiUrl = `/api/tasks/${taskId}`;
-          break;
+          // タスクの削除はタスクページでのみ可能
+          alert('タスクの期限削除はタスクページで行ってください。');
+          setLoading(false);
+          return;
         case 'appointments':
           const appointmentMatch = event.id.match(/^appointment_(\d+)_(.+)$/);
           if (appointmentMatch) {
@@ -252,6 +293,33 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       setEditingEvent(null);
     } catch (error) {
       console.error('Failed to save event:', error);
+    }
+  };
+
+  // タスク保存処理
+  const handleTaskSave = async (taskData: any) => {
+    try {
+      const response = await fetch(`/api/tasks`, {
+        method: editingTask?.id ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editingTask?.id ? { id: editingTask.id, ...taskData } : taskData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // カレンダーデータを再取得
+      await fetchEvents();
+      
+      // モーダルを閉じる
+      setShowTaskModal(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Failed to save task:', error);
+      alert('タスクの保存に失敗しました。もう一度お試しください。');
     }
   };
 
@@ -359,6 +427,32 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         }}
         event={editingEvent}
         onSave={(event: any) => handleEventSave(event)}
+        onDataRefresh={fetchEvents}
+      />
+
+      {/* タスク編集モーダル */}
+      <TaskModal
+        isOpen={showTaskModal}
+        onClose={() => {
+          setShowTaskModal(false);
+          setEditingTask(null);
+        }}
+        editingTask={editingTask}
+        users={users}
+        projects={[]}
+        onSubmit={handleTaskSave}
+        onDataRefresh={fetchEvents}
+      />
+
+      {/* アポイントメント編集モーダル */}
+      <AppointmentEditModal
+        isOpen={showAppointmentModal}
+        onClose={() => {
+          setShowAppointmentModal(false);
+          setEditingAppointment(null);
+        }}
+        event={editingAppointment}
+        onSave={() => {}}
         onDataRefresh={fetchEvents}
       />
     </div>

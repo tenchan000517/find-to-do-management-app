@@ -183,7 +183,7 @@ export function EventCard({
               {label.text}
             </span>
           ))}
-          {onEventDelete && (
+          {onEventDelete && event.source !== 'tasks' && (
             <button
               onClick={handleDelete}
               className="p-0.5 bg-red-500 hover:bg-red-600 rounded transition-colors"
