@@ -12,7 +12,7 @@ let lineClient: any = null;
 // クライアントの初期化（遅延ロード）
 async function initializeLineClient() {
   if (lineClient) return lineClient;
-  
+
   if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
     console.warn('LINE_CHANNEL_ACCESS_TOKEN not found, notifications disabled');
     return null;
@@ -21,11 +21,11 @@ async function initializeLineClient() {
   try {
     // 動的インポートでLINE Bot SDKを読み込み
     const { Client } = await import('@line/bot-sdk');
-    
+
     lineClient = new Client({
       channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
     });
-    
+
     return lineClient;
   } catch (error) {
     console.error('Failed to initialize LINE client:', error);
@@ -35,7 +35,7 @@ async function initializeLineClient() {
 
 // グループに通知を送信
 export async function sendGroupNotification(
-  groupId: string, 
+  groupId: string,
   message: string
 ): Promise<boolean> {
   try {
@@ -49,7 +49,7 @@ export async function sendGroupNotification(
       type: 'text',
       text: message
     });
-    
+
     console.log('Notification sent to group:', groupId);
     return true;
   } catch (error) {
@@ -60,7 +60,7 @@ export async function sendGroupNotification(
 
 // 返信メッセージを送信
 export async function sendReplyMessage(
-  replyToken: string, 
+  replyToken: string,
   message: string
 ): Promise<boolean> {
   try {
@@ -74,7 +74,7 @@ export async function sendReplyMessage(
       type: 'text',
       text: message
     });
-    
+
     console.log('Reply sent');
     return true;
   } catch (error) {
@@ -102,11 +102,11 @@ export async function sendFlexMessage(
       altText: altText,
       contents: flexContent
     };
-    
+
     console.log('🔍 Sending Flex message to LINE API:');
     console.log('Alt text:', altText);
     console.log('Flex content JSON:', JSON.stringify(flexContent, null, 2));
-    
+
     // Validate JSON structure before sending
     try {
       JSON.parse(JSON.stringify(flexContent));
@@ -115,7 +115,7 @@ export async function sendFlexMessage(
       console.error('❌ JSON validation failed:', jsonError);
       throw new Error(`Invalid JSON structure: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
     }
-    
+
     // Normalize Unicode characters for LINE API compatibility
     const normalizeUnicode = (obj: any): any => {
       if (typeof obj === 'string') {
@@ -131,7 +131,7 @@ export async function sendFlexMessage(
       }
       return obj;
     };
-    
+
     const normalizedContent = normalizeUnicode(flexContent);
     const normalizedPayload = {
       type: 'flex',
@@ -140,24 +140,24 @@ export async function sendFlexMessage(
     };
 
     await client.replyMessage(replyToken, normalizedPayload);
-    
+
     console.log('✅ Flex message sent successfully');
     return true;
   } catch (error) {
     console.error('❌ Flex message send error:', error);
-    
+
     // Enhanced error logging for debugging
     if (error instanceof Error) {
       console.error('Error name:', error.name);
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
-    
+
     // Log additional details about the error
     if (error && typeof error === 'object' && 'response' in error) {
       console.error('LINE API response error:', error.response);
     }
-    
+
     return false;
   }
 }
@@ -166,20 +166,20 @@ export async function sendFlexMessage(
 export async function scheduleReminder(schedule: NotificationSchedule): Promise<void> {
   // 実際の実装では、バックグラウンドジョブシステム（Node-cron、Bull Queue等）を使用
   // ここでは簡易的な実装
-  
+
   const reminderMessage = formatReminderMessage(schedule);
-  
+
   // 現在時刻との差分を計算
   const targetTime = new Date(schedule.targetTime);
   const currentTime = new Date();
   const delay = targetTime.getTime() - currentTime.getTime();
-  
+
   if (delay > 0) {
     // 将来の時刻の場合、setTimeoutでスケジュール
     setTimeout(async () => {
       await sendGroupNotification(schedule.groupId, reminderMessage);
     }, delay);
-    
+
     console.log(`Reminder scheduled for ${schedule.targetTime}`);
   } else {
     // 過去の時刻の場合、即座に送信
@@ -195,19 +195,19 @@ function formatReminderMessage(schedule: NotificationSchedule): string {
 ${schedule.data.title}
 期限: ${schedule.data.dueDate}
 担当: ${schedule.data.assignee}`;
-      
+
     case 'meeting_reminder':
       return `🕐 会議リマインダー
 ${schedule.data.title}
 開始: ${schedule.data.datetime}
 場所: ${schedule.data.location || 'オンライン'}`;
-      
+
     case 'project_update':
       return `📊 プロジェクト更新
 ${schedule.data.name}
 進捗: ${schedule.data.progress}%
 ステータス: ${schedule.data.status}`;
-      
+
     default:
       return schedule.message;
   }
@@ -223,9 +223,9 @@ export function createSuccessMessage(type: string, title: string): string {
     contact: '👤 人脈',
     memo: '📝 メモ'
   };
-  
+
   const typeText = typeMap[type] || '📝 データ';
-  
+
   return `✅ ${typeText}を登録しました！
 
 タイトル: ${title}
@@ -389,10 +389,10 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
     contact: '👤 人脈',
     memo: '📝 メモ'
   };
-  
+
   const typeText = typeMap[extractedData.type] || '📝 データ';
   const confidence = Math.round(extractedData.confidence * 100);
-  
+
   const flexContent = {
     type: 'bubble',
     body: {
@@ -641,7 +641,7 @@ export async function createReclassificationMessage(replyToken: string): Promise
 }
 
 // 完了メッセージ（ダッシュボードリンク付き）
-export async function createCompletionMessage(replyToken: string, type: string, itemData?: { title?: string; [key: string]: any }): Promise<boolean> {
+export async function createCompletionMessage(replyToken: string, type: string, itemData?: { title?: string;[key: string]: any }): Promise<boolean> {
   const typeMap: { [key: string]: string } = {
     personal_schedule: '📅 予定',
     schedule: '🎯 イベント',
@@ -650,15 +650,15 @@ export async function createCompletionMessage(replyToken: string, type: string, 
     contact: '👤 人脈',
     memo: '📝 メモ'
   };
-  
+
   const typeText = typeMap[type] || '📝 データ';
-  
+
   // タイトル情報がある場合はより詳細なメッセージを作成
   const titleInfo = itemData?.title || '';
-  const mainMessage = titleInfo 
+  const mainMessage = titleInfo
     ? `${typeText}「${titleInfo}」を保存しました！`
     : `${typeText}として登録しました！`;
-  
+
   const flexContent = {
     type: 'bubble',
     body: {
@@ -755,7 +755,7 @@ export async function createCompletionMessage(replyToken: string, type: string, 
 // 詳細入力開始メッセージ - 項目選択式
 export async function startDetailedInputFlow(replyToken: string, type: string): Promise<boolean> {
   console.log(`🚀 Starting detailed input flow for type: ${type}`);
-  
+
   const flowConfigs = {
     personal_schedule: {
       title: '📅 個人予定の詳細入力',
@@ -856,7 +856,7 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
     console.error(`❌ Unsupported type: ${type}`);
     return await sendReplyMessage(replyToken, 'サポートされていないタイプです');
   }
-  
+
   console.log(`📋 Using config for ${type}:`, {
     title: config.title,
     fieldCount: config.fields.length,
@@ -870,7 +870,7 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
     if (postbackData.length > 300) {
       console.warn(`⚠️ Field ${index} postback data might be too long: ${postbackData.length} chars`);
     }
-    
+
     // Check for problematic characters
     const problematicChars = ['\n', '\r', '\t', '"', '\\'];
     problematicChars.forEach(char => {
@@ -1012,7 +1012,7 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
     }
   } catch (error) {
     console.error('❌ Flex message failed, sending simple fallback message:', error);
-    
+
     // Enhanced error logging
     if (error instanceof Error) {
       console.error('Error details:', {
@@ -1021,7 +1021,7 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
         stack: error.stack?.substring(0, 500)
       });
     }
-    
+
     // フォールバック: シンプルなテキストメッセージ
     try {
       await sendReplyMessage(replyToken, `📝 ${config.title}\n\n追加したい項目があれば、詳細を入力してください。\n\n完了したら「保存」と送信してください。`);
@@ -1142,7 +1142,8 @@ export async function createMenuMessage(replyToken: string): Promise<boolean> {
                 type: 'postback',
                 label: '📝 メモ・ナレッジ',
                 data: 'start_classification_memo'
-              }
+              },
+              color: '#F7ADC3'
             }
           ]
         },
@@ -1168,15 +1169,15 @@ export async function createMenuMessage(replyToken: string): Promise<boolean> {
               flex: 1
             }
           ]
-        },
-        {
-          type: 'text',
-          text: '💡 ヒント: 直接メッセージを送信することもできます\n例: "明日14時に会議"',
-          size: 'xs',
-          color: '#999999',
-          wrap: true,
-          margin: 'md'
         }
+        // {
+        //   type: 'text',
+        //   text: '💡 ヒント: 直接メッセージを送信することもできます\n例: "明日14時に会議"',
+        //   size: 'xs',
+        //   color: '#999999',
+        //   wrap: true,
+        //   margin: 'md'
+        // }
       ]
     }
   };
@@ -1190,7 +1191,7 @@ export async function createAssigneeSelectionMessage(replyToken: string, type: s
     // 既存ユーザーを取得
     const { prismaDataService } = await import('@/lib/database/prisma-service');
     const users = await prismaDataService.getUsers();
-    
+
     if (users.length === 0) {
       return await sendReplyMessage(replyToken, '❌ 登録済みユーザーが見つかりません。');
     }
