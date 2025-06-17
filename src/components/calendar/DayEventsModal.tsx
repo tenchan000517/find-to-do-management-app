@@ -94,6 +94,7 @@ export function DayEventsModal({
                           colorMode={colorMode}
                           onEventEdit={onEventEdit}
                           onEventDelete={onEventDelete}
+                          isModal={true}
                         />
                       ))
                     }
@@ -119,6 +120,7 @@ export function DayEventsModal({
                           colorMode={colorMode}
                           onEventEdit={onEventEdit}
                           onEventDelete={onEventDelete}
+                          isModal={true}
                         />
                       ))
                     }

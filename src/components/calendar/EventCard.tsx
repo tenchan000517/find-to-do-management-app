@@ -1,15 +1,16 @@
 'use client';
 
-import { CalendarEvent, UnifiedCalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, ColorMode, PriorityLevel } from '@/types/calendar';
+import { UnifiedCalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, ColorMode, PriorityLevel } from '@/types/calendar';
 
 interface EventCardProps {
-  event: CalendarEvent | UnifiedCalendarEvent;
+  event: UnifiedCalendarEvent;
   compact?: boolean;
   showTime?: boolean;
   colorMode?: ColorMode;
   onClick?: (e: React.MouseEvent) => void;
   onEventEdit?: (event: any) => void;
   onEventDelete?: (eventId: string) => void;
+  isModal?: boolean; // ポップアップモーダル内での表示かどうか
 }
 
 export function EventCard({ 
@@ -19,32 +20,51 @@ export function EventCard({
   colorMode = 'category',
   onClick,
   onEventEdit,
-  onEventDelete
+  onEventDelete,
+  isModal = false
 }: EventCardProps) {
   
-  // 色を決定（色分けモードに基づく）
+  // 色を決定（色分けモードとフィルタリング状態に基づく）
   const getEventColor = () => {
+    const hasFilter = Boolean(onClick && colorMode); // フィルタリング状態を判定
+    
     switch (colorMode) {
       case 'user':
-        // 担当者システム優先: assignee > users > creator
-        return event.assignee?.color || event.users?.color || event.creator?.color || event.colorCode || '#FF9F40';
+        if (hasFilter) {
+          // ユーザー別フィルタリング時はカテゴリ色を表示
+          return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.EVENT;
+        } else {
+          // 全表示時はユーザー色を表示
+          return event.assignee?.color || event.users?.color || event.creator?.color || event.colorCode || '#FF9F40';
+        }
         
       case 'category':
-        return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.EVENT;
+        if (hasFilter) {
+          // カテゴリ別フィルタリング時はユーザー色を表示
+          return event.assignee?.color || event.users?.color || event.creator?.color || event.colorCode || '#FF9F40';
+        } else {
+          // 全表示時はカテゴリ色を表示
+          return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.EVENT;
+        }
         
       case 'importance':
-        // Use priority (A/B/C/D) system if available, fallback to importance numbers
-        const priority = event.priority || event.tasks?.priority || event.appointments?.priority;
-        if (priority) {
-          return PRIORITY_COLORS[priority] || PRIORITY_COLORS.C;
-        }
-        // Fallback to legacy importance system
-        if (event.importance >= 0.7) {
-          return IMPORTANCE_COLORS.HIGH;
-        } else if (event.importance >= 0.4) {
-          return IMPORTANCE_COLORS.MEDIUM;
+        if (hasFilter) {
+          // 重要度別フィルタリング時はユーザー色を表示
+          return event.assignee?.color || event.users?.color || event.creator?.color || event.colorCode || '#FF9F40';
         } else {
-          return IMPORTANCE_COLORS.LOW;
+          // 全表示時は重要度色を表示
+          const priority = event.priority || event.tasks?.priority || event.appointments?.priority;
+          if (priority) {
+            return PRIORITY_COLORS[priority] || PRIORITY_COLORS.C;
+          }
+          // Fallback to legacy importance system
+          if (event.importance >= 0.7) {
+            return IMPORTANCE_COLORS.HIGH;
+          } else if (event.importance >= 0.4) {
+            return IMPORTANCE_COLORS.MEDIUM;
+          } else {
+            return IMPORTANCE_COLORS.LOW;
+          }
         }
         
       default:
@@ -134,9 +154,17 @@ export function EventCard({
 
   // タイトルの省略処理
   const getTruncatedTitle = () => {
-    const maxLength = compact ? 20 : 50;
-    if (event.title.length <= maxLength) return event.title;
-    return event.title.slice(0, maxLength) + '...';
+    if (isModal) {
+      // モーダル内では長めに表示
+      const maxLength = compact ? 30 : 50;
+      if (event.title.length <= maxLength) return event.title;
+      return event.title.slice(0, maxLength) + '...';
+    } else {
+      // 通常のカレンダーグリッドではモバイルで4文字程度
+      const maxLength = compact ? 4 : 50;
+      if (event.title.length <= maxLength) return event.title;
+      return event.title.slice(0, maxLength) + '...';
+    }
   };
 
   const eventColor = getEventColor();
@@ -160,29 +188,37 @@ export function EventCard({
 
   return (
     <div
-      className={`group rounded-md cursor-pointer transition-all duration-200 hover:shadow-md font-medium ${
-        compact ? 'p-1 text-xs h-6' : 'p-2 text-sm h-8'
+      className={`group rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md font-medium ${
+        isModal ? 'mx-px' : 'mx-0 md:mx-px'
+      } ${
+        compact ? 'p-0.5 md:p-1 text-xs md:text-xs min-h-[16px] md:min-h-[20px]' : 'p-2 text-sm min-h-[32px]'
       }`}
       style={{ 
         backgroundColor: eventColor,
         color: '#FFFFFF'
       }}
       onClick={handleClick}
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', JSON.stringify({ eventId: event.id, eventDate: event.date }));
+      }}
     >
       <div className="flex items-center justify-between truncate">
-        <span className="truncate flex-1">
-          {showTime && event.time && `${event.time} `}
+        <span className={`truncate flex-1 leading-tight ${isModal ? 'text-xs md:text-xs' : 'text-xs md:text-xs'}`} style={!isModal ? { fontSize: '10px' } : {}}>
+          {showTime && event.time && (isModal ? `${event.time} ` : <span className="hidden md:inline">{event.time} </span>)}
           {getTruncatedTitle()}
         </span>
         <div className="flex items-center space-x-1 ml-1 flex-shrink-0">
-          {labels.map((label, index) => (
-            <span
-              key={index}
-              className={`inline-flex items-center justify-center w-4 h-4 text-xs font-medium rounded-full ${label.color}`}
-            >
-              {label.text}
-            </span>
-          ))}
+          <div className={isModal ? "flex items-center space-x-1" : "hidden md:flex items-center space-x-1"}>
+            {labels.map((label, index) => (
+              <span
+                key={index}
+                className={`inline-flex items-center justify-center w-4 h-4 text-xs font-medium rounded-full ${label.color}`}
+              >
+                {label.text}
+              </span>
+            ))}
+          </div>
           {onEventDelete && event.source !== 'tasks' && (
             <button
               onClick={handleDelete}

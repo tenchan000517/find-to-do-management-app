@@ -1,6 +1,6 @@
 'use client';
 
-import { ColorMode, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, PriorityLevel } from '@/types/calendar';
+import { ColorMode, CATEGORY_COLORS, PRIORITY_COLORS, PriorityLevel } from '@/types/calendar';
 
 interface ColorTabsProps {
   selectedMode: ColorMode;
@@ -75,23 +75,25 @@ export function ColorTabs({
     if (users.length === 0) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-2">
+      <div className="flex flex-wrap gap-1 md:gap-2 mt-2">
         <button
           onClick={() => handleFilterChange(null)}
-          className={`px-3 py-1 text-xs rounded-full border transition-all ${
+          className={`px-2 md:px-3 py-1 text-xs rounded-full border transition-all ${
             selectedFilter === null
               ? 'bg-orange-500 text-white border-orange-500'
               : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
           }`}
         >
-          全て ({Object.values(categoryCounts).reduce((sum, count) => sum + count, 0)})
+          <span className="md:hidden">全</span>
+          <span className="hidden md:inline">全て</span>
+          <span className="ml-1">({Object.values(categoryCounts).reduce((sum, count) => sum + count, 0)})</span>
         </button>
         
         {users.map(user => (
           <button
             key={user.id}
             onClick={() => handleFilterChange(user.id)}
-            className={`px-3 py-1 text-xs rounded-full border transition-all flex items-center space-x-1 text-white ${
+            className={`px-2 md:px-3 py-1 text-xs rounded-full border transition-all flex items-center space-x-1 text-white ${
               selectedFilter === user.id
                 ? 'ring-2 ring-offset-2 ring-gray-400'
                 : 'hover:opacity-90'
@@ -101,7 +103,8 @@ export function ColorTabs({
               borderColor: user.color
             }}
           >
-            <span>{user.name}</span>
+            <span className="md:hidden">{user.name.charAt(0)}</span>
+            <span className="hidden md:inline">{user.name}</span>
             <span className="text-xs opacity-90">({userCounts[user.id] || 0})</span>
           </button>
         ))}
@@ -121,24 +124,34 @@ export function ColorTabs({
       PERSONAL: '個人'
     };
 
+    const categoryShortLabels: { [key in keyof typeof CATEGORY_COLORS]: string } = {
+      APPOINTMENT: 'ア',
+      TASK_DUE: 'タ',
+      PROJECT: 'プ',
+      EVENT: 'イ',
+      PERSONAL: '予'
+    };
+
     return (
-      <div className="flex flex-wrap gap-2 mt-2">
+      <div className="flex flex-wrap gap-1 md:gap-2 mt-2">
         <button
           onClick={() => handleFilterChange(null)}
-          className={`px-3 py-1 text-xs rounded-full border transition-all ${
+          className={`px-2 md:px-3 py-1 text-xs rounded-full border transition-all ${
             selectedFilter === null
               ? 'bg-gray-800 text-white border-gray-800'
               : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
           }`}
         >
-          全て ({Object.values(categoryCounts).reduce((sum, count) => sum + count, 0)})
+          <span className="md:hidden">全</span>
+          <span className="hidden md:inline">全て</span>
+          <span className="ml-1">({Object.values(categoryCounts).reduce((sum, count) => sum + count, 0)})</span>
         </button>
         
         {categories.map(([category, color]) => (
           <button
             key={category}
             onClick={() => handleFilterChange(category)}
-            className={`px-3 py-1 text-xs rounded-full border transition-all flex items-center space-x-1 ${
+            className={`px-2 md:px-3 py-1 text-xs rounded-full border transition-all flex items-center space-x-1 ${
               selectedFilter === category
                 ? 'text-white border-transparent'
                 : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
@@ -149,10 +162,11 @@ export function ColorTabs({
             }}
           >
             <div 
-              className="w-2 h-2 rounded-full" 
+              className="w-2 h-2 rounded-full hidden md:block" 
               style={{ backgroundColor: color }}
             />
-            <span>{categoryLabels[category]}</span>
+            <span className="md:hidden">{categoryShortLabels[category]}</span>
+            <span className="hidden md:inline">{categoryLabels[category]}</span>
             <span className="text-xs opacity-75">({categoryCounts[category] || 0})</span>
           </button>
         ))}
@@ -172,23 +186,25 @@ export function ColorTabs({
     const totalCount = priorityCounts.A + priorityCounts.B + priorityCounts.C + priorityCounts.D;
 
     return (
-      <div className="flex flex-wrap gap-2 mt-2">
+      <div className="flex flex-wrap gap-1 md:gap-2 mt-2">
         <button
           onClick={() => handleFilterChange(null)}
-          className={`px-3 py-1 text-xs rounded-full border transition-all ${
+          className={`px-2 md:px-3 py-1 text-xs rounded-full border transition-all ${
             selectedFilter === null
               ? 'bg-gray-800 text-white border-gray-800'
               : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
           }`}
         >
-          全て ({totalCount})
+          <span className="md:hidden">全</span>
+          <span className="hidden md:inline">全て</span>
+          <span className="ml-1">({totalCount})</span>
         </button>
         
         {priorityItems.map(item => (
           <button
             key={item.key}
             onClick={() => handleFilterChange(item.key)}
-            className={`px-3 py-1 text-xs rounded-full border transition-all flex items-center space-x-1 ${
+            className={`px-2 md:px-3 py-1 text-xs rounded-full border transition-all flex items-center space-x-1 ${
               selectedFilter === item.key
                 ? 'text-white border-transparent'
                 : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
@@ -199,10 +215,11 @@ export function ColorTabs({
             }}
           >
             <div 
-              className="w-2 h-2 rounded-full" 
+              className="w-2 h-2 rounded-full hidden md:block" 
               style={{ backgroundColor: item.color }}
             />
-            <span>{item.label}</span>
+            <span className="md:hidden">{item.key}</span>
+            <span className="hidden md:inline">{item.label}</span>
             <span className="text-xs opacity-75">({priorityCounts[item.key]})</span>
           </button>
         ))}
@@ -214,7 +231,7 @@ export function ColorTabs({
     <div className={`bg-white border-b border-gray-200 ${className}`}>
       <div className="px-4 py-3">
         {/* 統合ヘッダー: モード選択 + 日付ナビ + 表示モード */}
-        <div className="flex items-center justify-between space-x-4 mb-2">
+        <div className="flex items-center justify-between space-x-2 md:space-x-4 mb-2">
           {/* 左: モード選択タブ */}
           <div className="flex items-center space-x-1">
             {([
@@ -228,48 +245,48 @@ export function ColorTabs({
                   onModeChange(mode);
                   handleFilterChange(null);
                 }}
-                className={`px-3 py-2 text-sm rounded-lg transition-all flex items-center space-x-2 ${
+                className={`px-2 md:px-3 py-2 text-sm rounded-lg transition-all flex items-center space-x-1 md:space-x-2 ${
                   selectedMode === mode
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 <span>{icon}</span>
-                <span>{label}</span>
+                <span className="hidden md:inline">{label}</span>
               </button>
             ))}
           </div>
 
           {/* 中央: 日付ナビゲーション */}
           {currentDate && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 md:space-x-2">
               <button
                 onClick={() => onDateNavigate?.('prev')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1 md:p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 disabled={loading}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               
-              <h2 className="text-lg font-semibold text-gray-900 min-w-[150px] text-center">
+              <h2 className="text-sm md:text-lg font-semibold text-gray-900 min-w-[120px] md:min-w-[150px] text-center">
                 {formatDate(currentDate, viewMode)}
               </h2>
               
               <button
                 onClick={() => onDateNavigate?.('next')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1 md:p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 disabled={loading}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
               
               <button
                 onClick={onTodayClick}
-                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="px-2 md:px-3 py-1 text-xs md:text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors hidden md:inline-block"
                 disabled={loading}
               >
                 今日
@@ -277,7 +294,7 @@ export function ColorTabs({
               
               <button
                 onClick={onWeeklyPreviewClick}
-                className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                className="px-2 md:px-3 py-1 text-xs md:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors hidden md:inline-block"
                 disabled={loading}
               >
                 今後一週間
@@ -287,12 +304,12 @@ export function ColorTabs({
 
           {/* 右: 表示モード切り替え */}
           {viewMode && onViewModeChange && (
-            <div className="flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-1">
               {(['month', 'week', 'day'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => onViewModeChange(mode)}
-                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  className={`px-2 md:px-3 py-1 text-xs md:text-sm rounded-md transition-colors ${
                     viewMode === mode
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'

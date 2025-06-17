@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
+import { UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
 
@@ -78,7 +78,7 @@ export function WeeklyPreview({
     }
     groups[date].push(event);
     return groups;
-  }, {} as { [date: string]: CalendarEvent[] });
+  }, {} as { [date: string]: UnifiedCalendarEvent[] });
 
   // 日付をソート
   const sortedDates = Object.keys(groupedEvents).sort();
@@ -169,6 +169,7 @@ export function WeeklyPreview({
                           showTime={true}
                           colorMode={colorMode}
                           onEventEdit={onEventEdit}
+                          isModal={true}
                         />
                       ))
                     }

@@ -332,10 +332,13 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
     switch (colorMode) {
       case 'user':
+        // ユーザー別の場合はカテゴリ色を使用
         return event.userId === selectedFilter;
       case 'category':
+        // カテゴリ別の場合はユーザー色を使用
         return event.category === selectedFilter;
       case 'importance':
+        // 重要度別の場合はユーザー色を使用
         const priority = event.priority || 'C';
         return priority === selectedFilter;
       default:
@@ -344,29 +347,31 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   });
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border ${className}`}>
+    <div className={`${className} flex flex-col h-screen overflow-hidden`}>
       {/* 統合ヘッダー: 色分けタブ + 日付ナビ + 表示モード */}
-      <ColorTabs
-        selectedMode={colorMode}
-        onModeChange={setColorMode}
-        userCounts={userCounts}
-        categoryCounts={categoryCounts}
-        priorityCounts={priorityCounts}
-        importanceCounts={importanceCounts}
-        users={users}
-        currentDate={currentDate}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onDateNavigate={navigateDate}
-        onTodayClick={goToToday}
-        onWeeklyPreviewClick={() => setShowWeeklyPreview(true)}
-        loading={loading}
-        selectedFilter={selectedFilter}
-        onFilterChange={setSelectedFilter}
-      />
+      <div className="flex-shrink-0">
+        <ColorTabs
+          selectedMode={colorMode}
+          onModeChange={setColorMode}
+          userCounts={userCounts}
+          categoryCounts={categoryCounts}
+          priorityCounts={priorityCounts}
+          importanceCounts={importanceCounts}
+          users={users}
+          currentDate={currentDate}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onDateNavigate={navigateDate}
+          onTodayClick={goToToday}
+          onWeeklyPreviewClick={() => setShowWeeklyPreview(true)}
+          loading={loading}
+          selectedFilter={selectedFilter}
+          onFilterChange={setSelectedFilter}
+        />
+      </div>
 
       {/* カレンダー本体 */}
-      <div className="relative">
+      <div className="flex-1 relative overflow-hidden">
         {loading && (
           <LoadingSpinner overlay message="カレンダーデータを読み込んでいます..." />
         )}
