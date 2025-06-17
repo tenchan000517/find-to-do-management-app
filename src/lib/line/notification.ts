@@ -96,16 +96,45 @@ export async function sendFlexMessage(
       return false;
     }
 
-    await client.replyMessage(replyToken, {
+    // Debug: Log the exact JSON being sent to LINE API
+    const messagePayload = {
       type: 'flex',
       altText: altText,
       contents: flexContent
-    });
+    };
     
-    console.log('Flex message sent');
+    console.log('🔍 Sending Flex message to LINE API:');
+    console.log('Alt text:', altText);
+    console.log('Flex content JSON:', JSON.stringify(flexContent, null, 2));
+    
+    // Validate JSON structure before sending
+    try {
+      JSON.parse(JSON.stringify(flexContent));
+      console.log('✅ JSON validation passed');
+    } catch (jsonError) {
+      console.error('❌ JSON validation failed:', jsonError);
+      throw new Error(`Invalid JSON structure: ${jsonError.message}`);
+    }
+
+    await client.replyMessage(replyToken, messagePayload);
+    
+    console.log('✅ Flex message sent successfully');
     return true;
   } catch (error) {
-    console.error('Flex message send error:', error);
+    console.error('❌ Flex message send error:', error);
+    
+    // Enhanced error logging for debugging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
+    // Log additional details about the error
+    if (error && typeof error === 'object' && 'response' in error) {
+      console.error('LINE API response error:', error.response);
+    }
+    
     return false;
   }
 }
@@ -589,7 +618,7 @@ export async function createReclassificationMessage(replyToken: string): Promise
 }
 
 // 完了メッセージ（ダッシュボードリンク付き）
-export async function createCompletionMessage(replyToken: string, type: string): Promise<boolean> {
+export async function createCompletionMessage(replyToken: string, type: string, itemData?: { title?: string; [key: string]: any }): Promise<boolean> {
   const typeMap: { [key: string]: string } = {
     personal_schedule: '📅 予定',
     schedule: '🎯 イベント',
@@ -600,6 +629,12 @@ export async function createCompletionMessage(replyToken: string, type: string):
   };
   
   const typeText = typeMap[type] || '📝 データ';
+  
+  // タイトル情報がある場合はより詳細なメッセージを作成
+  const titleInfo = itemData?.title || '';
+  const mainMessage = titleInfo 
+    ? `${typeText}「${titleInfo}」を保存しました！`
+    : `${typeText}として登録しました！`;
   
   const flexContent = {
     type: 'bubble',
@@ -617,7 +652,7 @@ export async function createCompletionMessage(replyToken: string, type: string):
         },
         {
           type: 'text',
-          text: `${typeText}として登録しました！`,
+          text: mainMessage,
           wrap: true,
           color: '#333333',
           size: 'md',
@@ -696,6 +731,8 @@ export async function createCompletionMessage(replyToken: string, type: string):
 
 // 詳細入力開始メッセージ - 項目選択式
 export async function startDetailedInputFlow(replyToken: string, type: string): Promise<boolean> {
+  console.log(`🚀 Starting detailed input flow for type: ${type}`);
+  
   const flowConfigs = {
     schedule: {
       title: '📅 予定の詳細入力',
@@ -765,8 +802,32 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
 
   const config = flowConfigs[type as keyof typeof flowConfigs];
   if (!config) {
+    console.error(`❌ Unsupported type: ${type}`);
     return await sendReplyMessage(replyToken, 'サポートされていないタイプです');
   }
+  
+  console.log(`📋 Using config for ${type}:`, {
+    title: config.title,
+    fieldCount: config.fields.length,
+    fieldKeys: config.fields.map(f => f.key)
+  });
+
+  // Validate field data for potentially problematic characters
+  console.log('🔍 Validating field data for LINE API compatibility...');
+  config.fields.forEach((field, index) => {
+    const postbackData = `add_field_${type}_${field.key}`;
+    if (postbackData.length > 300) {
+      console.warn(`⚠️ Field ${index} postback data might be too long: ${postbackData.length} chars`);
+    }
+    
+    // Check for problematic characters
+    const problematicChars = ['\n', '\r', '\t', '"', '\\'];
+    problematicChars.forEach(char => {
+      if (field.name.includes(char) || field.key.includes(char)) {
+        console.warn(`⚠️ Field ${index} contains potentially problematic character: ${char}`);
+      }
+    });
+  });
 
   const flexContent = {
     type: 'bubble',
@@ -855,11 +916,33 @@ export async function startDetailedInputFlow(replyToken: string, type: string): 
   };
 
   try {
-    return await sendFlexMessage(replyToken, '詳細入力', flexContent);
+    console.log('🚀 Attempting to send Flex message...');
+    const result = await sendFlexMessage(replyToken, '詳細入力', flexContent);
+    if (result) {
+      console.log('✅ Flex message sent successfully');
+      return true;
+    } else {
+      throw new Error('sendFlexMessage returned false');
+    }
   } catch (error) {
-    console.error('Flex message failed, sending simple message:', error);
+    console.error('❌ Flex message failed, sending simple fallback message:', error);
+    
+    // Enhanced error logging
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.substring(0, 500)
+      });
+    }
+    
     // フォールバック: シンプルなテキストメッセージ
-    await sendReplyMessage(replyToken, `📝 ${config.title}\n\n追加したい項目があれば、詳細を入力してください。\n\n完了したら「保存」と送信してください。`);
+    try {
+      await sendReplyMessage(replyToken, `📝 ${config.title}\n\n追加したい項目があれば、詳細を入力してください。\n\n完了したら「保存」と送信してください。`);
+      console.log('✅ Fallback text message sent successfully');
+    } catch (fallbackError) {
+      console.error('❌ Even fallback message failed:', fallbackError);
+    }
     return true;
   }
 }
