@@ -877,6 +877,231 @@ export async function createCompletionMessage(replyToken: string, type: string, 
   return await sendFlexMessage(replyToken, '登録完了', flexContent);
 }
 
+// 包括的修正UIメニュー（すべての項目を編集可能）
+export async function createDetailedModificationMenu(replyToken: string, sessionData: any): Promise<boolean> {
+  console.log(`🎯 Creating detailed modification menu for:`, sessionData);
+
+  const typeMap: { [key: string]: string } = {
+    personal_schedule: '📅 個人予定',
+    schedule: '🎯 イベント',
+    task: '📋 タスク',
+    project: '📊 プロジェクト',
+    contact: '👤 人脈',
+    memo: '📝 メモ'
+  };
+
+  const currentData = sessionData.pendingItem || {};
+  const typeText = typeMap[sessionData.currentType] || '📝 データ';
+
+  const flexContent = {
+    type: 'carousel',
+    contents: [
+      // 基本情報編集バブル
+      {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '📝 基本情報編集',
+              weight: 'bold',
+              size: 'md',
+              color: '#1DB446'
+            },
+            {
+              type: 'text',
+              text: typeText,
+              size: 'sm',
+              color: '#666666'
+            }
+          ]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📋 タイトル',
+                data: `modify_field_${sessionData.currentType}_title`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📝 説明',
+                data: `modify_field_${sessionData.currentType}_description`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '🎯 優先度',
+                data: `modify_field_${sessionData.currentType}_priority`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '👤 担当者',
+                data: `modify_field_${sessionData.currentType}_assignee`
+              }
+            }
+          ]
+        }
+      },
+      // 日時・場所編集バブル
+      {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '🕒 日時・場所編集',
+              weight: 'bold',
+              size: 'md',
+              color: '#FF6B6B'
+            },
+            {
+              type: 'text',
+              text: '日程と場所を修正',
+              size: 'sm',
+              color: '#666666'
+            }
+          ]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📅 日時',
+                data: `modify_field_${sessionData.currentType}_datetime`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📍 場所',
+                data: `modify_field_${sessionData.currentType}_location`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '⏰ 期限',
+                data: `modify_field_${sessionData.currentType}_deadline`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '⏱️ 工数',
+                data: `modify_field_${sessionData.currentType}_estimatedHours`
+              }
+            }
+          ]
+        }
+      },
+      // タイプ変更・完了バブル
+      {
+        type: 'bubble',
+        header: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '🔄 タイプ・完了',
+              weight: 'bold',
+              size: 'md',
+              color: '#4ECDC4'
+            },
+            {
+              type: 'text',
+              text: '種類変更と保存',
+              size: 'sm',
+              color: '#666666'
+            }
+          ]
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '🔄 種類変更',
+                data: `modify_type_${sessionData.currentType}`
+              }
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '💾 保存',
+                data: `confirm_save_${sessionData.currentType}`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '❌ キャンセル',
+                data: 'cancel_modification'
+              }
+            }
+          ]
+        }
+      }
+    ]
+  };
+
+  return await sendFlexMessage(replyToken, '詳細編集メニュー', flexContent);
+}
+
 // 詳細入力開始メッセージ - 項目選択式
 export async function startDetailedInputFlow(replyToken: string, type: string): Promise<boolean> {
   console.log(`🚀 Starting detailed input flow for type: ${type}`);

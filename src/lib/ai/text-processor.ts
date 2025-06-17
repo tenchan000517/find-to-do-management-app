@@ -61,6 +61,13 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 9. 期限
 10. 信頼度 (0-1)
 
+タイトル抽出の重要な注意事項:
+- 「明日 池本さんとの会議」→ タイトル: 「池本さんとの会議」
+- 「6月20日企画会議」→ タイトル: 「6月20日企画会議」（日付がタイトルの一部）
+- 「明後日 14時 歯医者」→ タイトル: 「歯医者」
+- 「来週火曜日 打ち合わせ」→ タイトル: 「打ち合わせ」
+- 日時が文の最初にある場合は除去、日時がタイトルに含まれる場合は保持
+
 以下のJSON形式でのみ回答してください:
 {
   "type": "personal_schedule|schedule|task|project|contact|memo",
@@ -281,6 +288,51 @@ function extractTitle(text: string, command?: string): string {
   if (command) {
     title = title.replace(new RegExp(`^${command}\\s*`), '');
   }
+  
+  // 日時表現を除去（但し、タイトルの一部の場合は保持）
+  const dateTimePatterns = [
+    /\b\d{1,2}\/\d{1,2}\s+\d{1,2}時\b/g,  // 6/20 14時
+    /\b\d{1,2}月\d{1,2}日\s+\d{1,2}時\b/g,  // 6月20日 14時
+    /\b明日\s+\d{1,2}時\b/g,  // 明日 14時
+    /\b今日\s+\d{1,2}時\b/g,  // 今日 14時
+    /\b明後日\s+\d{1,2}時\b/g,  // 明後日 14時
+    /\b\d{1}日後\s+\d{1,2}時\b/g,  // 3日後 14時
+    /\b来週\w+\s+\d{1,2}時\b/g,  // 来週火曜 14時
+    /\b午前\s*\d{1,2}時\b/g,  // 午前10時
+    /\b午後\s*\d{1,2}時\b/g,  // 午後2時
+  ];
+  
+  // コンテキストを考慮した除去ロジック
+  for (const pattern of dateTimePatterns) {
+    // 日時表現が文の最初にある場合のみ除去
+    if (title.match(new RegExp(`^${pattern.source.replace(/\\b/g, '').replace(/\//g, '\\/')}`))) {
+      title = title.replace(pattern, '').trim();
+    }
+  }
+  
+  // 単体日時パターンを除去（文中位置問わず）
+  const singleTimePatterns = [
+    /^\d{1,2}時$/,  // 14時（単体）
+    /^\d{1,2}:\d{2}$/,  // 14:30（単体）
+    /^明日$/,  // 明日（単体）
+    /^今日$/,  // 今日（単体）
+    /^明後日$/,  // 明後日（単体）
+    /^\d{1}日後$/,  // 3日後（単体）
+  ];
+  
+  for (const pattern of singleTimePatterns) {
+    if (pattern.test(title.trim())) {
+      // 単体日時表現の場合は元テキストからコンテキストを抽出
+      const contextMatch = text.match(/(?:明日|今日|明後日|\d{1}日後).+?([ぁ-んァ-ヶー\w\s]+)/);
+      if (contextMatch && contextMatch[1]) {
+        title = contextMatch[1].trim();
+      }
+      break;
+    }
+  }
+  
+  // 余分な空白を削除
+  title = title.replace(/\s+/g, ' ').trim();
   
   // 長すぎる場合は最初の50文字
   if (title.length > 50) {

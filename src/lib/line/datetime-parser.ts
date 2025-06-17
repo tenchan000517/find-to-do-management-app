@@ -28,10 +28,16 @@ export class DateTimeParser {
       .replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
       })
+      // 全角記号→半角記号
+      .replace(/／/g, '/')
+      .replace(/　/g, ' ')
       // 自然言語正規化
       .replace(/あした|アシタ/g, '明日')
       .replace(/きょう|キョウ/g, '今日')
       .replace(/らいしゅう|ライシュウ/g, '来週')
+      .replace(/あさって|アサッテ/g, '明後日')
+      .replace(/ごぜん|ゴゼン/g, '午前')
+      .replace(/ごご|ゴゴ/g, '午後')
       .trim();
     
     console.log(`🔄 正規化: "${input}" → "${normalized}"`);
@@ -154,6 +160,110 @@ export class DateTimeParser {
         };
       }
     },
+
+    // 明後日系（時刻なし）
+    {
+      regex: /^明後日(?:の)?(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const dayAfterTomorrow = this.getJSTDate();
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+        
+        return {
+          date: dayAfterTomorrow.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // 明後日系（時刻あり）
+    {
+      regex: /明後日(?:の)?(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
+      handler: (match: RegExpMatchArray) => {
+        const hour = parseInt(match[1]);
+        const minute = match[2] ? parseInt(match[2]) : 0;
+        const dayAfterTomorrow = this.getJSTDate();
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+        
+        return {
+          date: dayAfterTomorrow.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          confidence: 0.9,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // N日後系（時刻なし）
+    {
+      regex: /^(\d{1})日後(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const daysLater = parseInt(match[1]);
+        const targetDate = this.getJSTDate();
+        targetDate.setDate(targetDate.getDate() + daysLater);
+        
+        return {
+          date: targetDate.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // N日後系（時刻あり）
+    {
+      regex: /(\d{1})日後(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
+      handler: (match: RegExpMatchArray) => {
+        const daysLater = parseInt(match[1]);
+        const hour = parseInt(match[2]);
+        const minute = match[3] ? parseInt(match[3]) : 0;
+        const targetDate = this.getJSTDate();
+        targetDate.setDate(targetDate.getDate() + daysLater);
+        
+        return {
+          date: targetDate.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          confidence: 0.9,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // あす・あした系（時刻なし）
+    {
+      regex: /^(?:あす|あした)(?:の)?(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const tomorrow = this.getJSTDate();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        return {
+          date: tomorrow.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // あす・あした系（時刻あり）
+    {
+      regex: /(?:あす|あした)(?:の)?(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
+      handler: (match: RegExpMatchArray) => {
+        const hour = parseInt(match[1]);
+        const minute = match[2] ? parseInt(match[2]) : 0;
+        const tomorrow = this.getJSTDate();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        return {
+          date: tomorrow.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          confidence: 0.9,
+          method: 'pattern' as const
+        };
+      }
+    },
     
     // 来週系
     {
@@ -206,18 +316,100 @@ export class DateTimeParser {
       }
     },
     
-    // 時間のみ
+    // 時間のみ（単体）
     {
       regex: /^(\d{1,2})(?:時|:(\d{2}))$/,
       handler: (match: RegExpMatchArray) => {
         const hour = parseInt(match[1]);
         const minute = match[2] ? parseInt(match[2]) : 0;
-        const today = new Date();
+        const today = this.getJSTDate();
         
         return {
           date: today.toISOString().split('T')[0],
           time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
           confidence: 0.7,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // 午前/午後 時刻
+    {
+      regex: /(午前|午後)(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
+      handler: (match: RegExpMatchArray) => {
+        const period = match[1];
+        let hour = parseInt(match[2]);
+        const minute = match[3] ? parseInt(match[3]) : 0;
+        
+        // 午後の場合は12時間加算（12時は除く）
+        if (period === '午後' && hour !== 12) {
+          hour += 12;
+        } else if (period === '午前' && hour === 12) {
+          hour = 0;
+        }
+        
+        const today = this.getJSTDate();
+        
+        return {
+          date: today.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          confidence: 0.8,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // N時半
+    {
+      regex: /^(\d{1,2})時半$/,
+      handler: (match: RegExpMatchArray) => {
+        const hour = parseInt(match[1]);
+        const today = this.getJSTDate();
+        
+        return {
+          date: today.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:30`,
+          confidence: 0.8,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // 来週のみ（曜日なし）
+    {
+      regex: /^来週(?!.*[月火水木金土日]).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const today = this.getJSTDate();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+        
+        return {
+          date: nextWeek.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.6,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // 来週の曜日（時刻なし）
+    {
+      regex: /^来週(?:の)?(月|火|水|木|金|土|日)(?:曜日)?(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        const targetDay = dayNames.indexOf(match[1]);
+        
+        const today = this.getJSTDate();
+        const currentDay = today.getDay();
+        const daysUntil = (targetDay - currentDay + 7) % 7 || 7;
+        
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntil + 7);
+        
+        return {
+          date: targetDate.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.8,
           method: 'pattern' as const
         };
       }
