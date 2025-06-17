@@ -347,8 +347,21 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
   }
   
   const data = event.postback.data;
-  const userId = event.source.userId || '';
+  const userId = event.source.userId;
   const groupId = event.source.groupId;
+  
+  // Debug logging for session key consistency
+  console.log('🔍 POSTBACK DEBUG:', {
+    userId,
+    groupId,
+    userIdType: typeof userId,
+    groupIdType: typeof groupId
+  });
+  
+  if (!userId) {
+    console.error('❌ No userId in postback event');
+    return;
+  }
   
   try {
     if (data === 'test_yes') {
@@ -364,7 +377,17 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       const [, action, type] = data.split('_');
       if (action === 'confirm') {
         // セッションからデータ取得して保存
+        const sessionDetails = sessionManager.getSessionDetails(userId, groupId);
+        const activeSessionCount = sessionManager.getActiveSessionCount();
+        console.log('🔍 Session Debug Info:', {
+          sessionDetails,
+          activeSessionCount,
+          hasActiveSession: sessionManager.hasActiveSession(userId, groupId)
+        });
+        
         const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
+        console.log('🔍 Session lookup result:', sessionInfo ? 'Found' : 'Not Found');
+        
         if (sessionInfo) {
           console.log('🔄 Saving classified data with session info:', sessionInfo);
           const recordId = await saveClassifiedData(null, sessionInfo, userId);
@@ -380,7 +403,7 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
           
           if (event.replyToken) {
             const { createCompletionMessage } = await import('@/lib/line/notification');
-            await createCompletionMessage(event.replyToken, type);
+            await createCompletionMessage(event.replyToken, type, { title: sessionInfo.data.title || sessionInfo.data.name || sessionInfo.data.summary });
           }
         } else {
           console.error('❌ No session found for classification confirmation');
@@ -412,7 +435,7 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         
         if (event.replyToken) {
           const { createCompletionMessage } = await import('@/lib/line/notification');
-          await createCompletionMessage(event.replyToken, newType);
+          await createCompletionMessage(event.replyToken, newType, { title: sessionInfo.data.title || sessionInfo.data.name || sessionInfo.data.summary });
         }
       } else {
         console.error('❌ No session found for reclassification');
@@ -522,10 +545,34 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       if (event.replyToken) {
         let savedFields = '';
         if (sessionData && Object.keys(sessionData.data).length > 0) {
-          savedFields = '\n\n保存された項目:\n' + Object.entries(sessionData.data).map(([key, value]) => `• ${key}: ${value}`).join('\n');
+          const meaningfulFields = Object.entries(sessionData.data)
+            .filter(([key, value]) => {
+              // 空、null、'null'文字列、undefined、空配列を除外
+              if (!value || value === 'null' || value === null || value === undefined) return false;
+              if (Array.isArray(value) && value.length === 0) return false;
+              if (typeof value === 'string' && value.trim() === '') return false;
+              return true;
+            })
+            .map(([key, value]) => `• ${key}: ${value}`);
+          
+          if (meaningfulFields.length > 0) {
+            savedFields = '\n\n保存された項目:\n' + meaningfulFields.join('\n');
+          }
         }
         
-        await sendReplyMessage(event.replyToken, `💾 ${type}の情報をデータベースに保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
+        const typeMap: { [key: string]: string } = {
+          personal_schedule: '📅 予定',
+          schedule: '🎯 イベント',
+          task: '📋 タスク',
+          project: '📊 プロジェクト',
+          contact: '👤 人脈',
+          memo: '📝 メモ'
+        };
+        const typeText = typeMap[type] || type;
+        const title = sessionData?.data?.title || sessionData?.data?.name || sessionData?.data?.summary || '';
+        const itemName = title ? `「${title}」` : '';
+        
+        await sendReplyMessage(event.replyToken, `✅ ${typeText}${itemName}を保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
       }
     } else if (data === 'cancel_detailed_input') {
       // 詳細入力キャンセル
@@ -697,7 +744,7 @@ async function saveClassifiedData(
             description: finalData.description || '',
             location: finalData.location || null,
             userId: systemUserId,
-            priority: convertPriority(finalData.priority || 'C'),
+            priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : convertPriority(finalData.priority),
             isAllDay: finalData.isAllDay || false,
           },
         });
@@ -729,7 +776,7 @@ async function saveClassifiedData(
             title: finalData.title || finalData.summary || '新しい予定',
             date: parsedDate,
             time: parsedTime,
-            type: finalData.eventType || 'MEETING',
+            type: (finalData.eventType === 'null' || !finalData.eventType) ? 'MEETING' : finalData.eventType,
             description: finalData.description || '',
             participants: finalData.participants || [],
             location: finalData.location || null,
@@ -747,7 +794,7 @@ async function saveClassifiedData(
             projectId: finalData.projectId || null,
             userId: systemUserId,
             status: 'IDEA',
-            priority: finalData.priority || 'C',
+            priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : finalData.priority,
             dueDate: finalData.dueDate || null,
             estimatedHours: finalData.estimatedHours || 0,
             resourceWeight: finalData.resourceWeight || 0.5,
@@ -766,7 +813,7 @@ async function saveClassifiedData(
             status: 'PLANNING',
             startDate: finalData.startDate || new Date().toISOString().split('T')[0],
             endDate: finalData.endDate || null,
-            priority: finalData.priority || 'C',
+            priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : finalData.priority,
             teamMembers: finalData.teamMembers || [],
           },
         });
@@ -782,7 +829,7 @@ async function saveClassifiedData(
             location: finalData.location || '',
             company: finalData.company || '',
             position: finalData.position || '',
-            type: finalData.type || 'COMPANY',
+            type: (finalData.type === 'null' || !finalData.type) ? 'COMPANY' : finalData.type,
             description: finalData.description || '',
             conversation: finalData.conversation || '',
             potential: finalData.potential || '',
@@ -798,7 +845,7 @@ async function saveClassifiedData(
           data: {
             id: createdRecordId,
             title: finalData.title || finalData.summary || '新しいナレッジ',
-            category: finalData.category || 'BUSINESS',
+            category: (finalData.category === 'null' || !finalData.category) ? 'BUSINESS' : finalData.category,
             content: finalData.content || finalData.description || '',
             author: systemUserId,
             tags: finalData.tags || [],
@@ -853,7 +900,7 @@ async function updateExistingRecord(
             title: updateData.title || undefined,
             description: updateData.description || undefined,
             location: updateData.location || undefined,
-            // 他の更新可能フィールドも追加
+            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : updateData.priority,
           },
         });
         break;
@@ -865,6 +912,7 @@ async function updateExistingRecord(
             title: updateData.title || undefined,
             description: updateData.description || undefined,
             location: updateData.location || undefined,
+            type: (updateData.eventType === 'null' || !updateData.eventType) ? undefined : updateData.eventType,
           },
         });
         break;
@@ -875,7 +923,11 @@ async function updateExistingRecord(
           data: {
             title: updateData.title || undefined,
             description: updateData.description || undefined,
-            priority: updateData.priority || undefined,
+            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : updateData.priority,
+            // assignee maps to userId field in database
+            // userId: updateData.assignee || undefined, // Commented - cannot change userId after creation
+            deadline: updateData.deadline || undefined,
+            estimatedHours: updateData.estimatedHours ? parseInt(updateData.estimatedHours) : undefined,
           },
         });
         break;
@@ -886,6 +938,8 @@ async function updateExistingRecord(
           data: {
             name: updateData.title || updateData.name || undefined,
             description: updateData.description || undefined,
+            priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : updateData.priority,
+            status: (updateData.status === 'null' || !updateData.status) ? undefined : updateData.status,
           },
         });
         break;
@@ -898,6 +952,7 @@ async function updateExistingRecord(
             company: updateData.company || undefined,
             position: updateData.position || undefined,
             description: updateData.description || undefined,
+            type: (updateData.type === 'null' || !updateData.type) ? undefined : updateData.type,
           },
         });
         break;
@@ -909,6 +964,7 @@ async function updateExistingRecord(
             title: updateData.title || undefined,
             content: updateData.content || updateData.description || undefined,
             tags: updateData.tags || undefined,
+            category: (updateData.category === 'null' || !updateData.category) ? undefined : updateData.category,
             updatedAt: new Date(getJSTNow()),
           },
         });
