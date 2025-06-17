@@ -1151,6 +1151,25 @@ export async function createMenuMessage(replyToken: string): Promise<boolean> {
           margin: 'lg'
         },
         {
+          type: 'box',
+          layout: 'horizontal',
+          spacing: 'sm',
+          margin: 'md',
+          contents: [
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '🔚 セッション終了',
+                data: 'end_menu_session'
+              },
+              flex: 1
+            }
+          ]
+        },
+        {
           type: 'text',
           text: '💡 ヒント: 直接メッセージを送信することもできます\n例: "明日14時に会議"',
           size: 'xs',

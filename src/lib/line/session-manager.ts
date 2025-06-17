@@ -11,6 +11,8 @@ interface InputSession {
   lastActivity: number;
   savedToDb?: boolean; // データベース保存済みフラグ
   dbRecordId?: string; // 保存されたレコードID
+  isMenuSession?: boolean; // メニューセッション状態
+  menuTimeout?: number; // メニューセッション自動終了時刻
 }
 
 class SessionManager {
@@ -28,12 +30,33 @@ class SessionManager {
       type,
       data: existingSession?.data || {},  // 既存データを保持
       startTime: existingSession?.startTime || Date.now(),
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
+      isMenuSession: false // 通常セッション
     };
     
     this.sessions.set(sessionKey, session);
     console.log(`📝 Session ${existingSession ? 'resumed' : 'started'} for ${sessionKey}: ${type}`, 
                 existingSession ? `with existing data: ${JSON.stringify(session.data)}` : '');
+  }
+
+  // メニューセッション開始（2分タイムアウト）
+  startMenuSession(userId: string, groupId: string | undefined): void {
+    const sessionKey = this.getSessionKey(userId, groupId);
+    const now = Date.now();
+    
+    const session: InputSession = {
+      userId,
+      groupId,
+      type: 'menu',
+      data: {},
+      startTime: now,
+      lastActivity: now,
+      isMenuSession: true,
+      menuTimeout: now + (2 * 60 * 1000) // 2分後にタイムアウト
+    };
+    
+    this.sessions.set(sessionKey, session);
+    console.log(`📋 Menu session started for ${sessionKey} with 2min timeout`);
   }
   
   // セッション再開専用メソッド（明示的にデータ引き継ぎ）
@@ -62,14 +85,24 @@ class SessionManager {
     const session = this.sessions.get(sessionKey);
     
     if (session) {
-      // 30分でタイムアウト
-      if (Date.now() - session.lastActivity > 30 * 60 * 1000) {
+      const now = Date.now();
+      
+      // メニューセッションのタイムアウトチェック（2分）
+      if (session.isMenuSession && session.menuTimeout && now > session.menuTimeout) {
+        console.log(`⏰ Menu session timeout for ${sessionKey}`);
+        this.endSession(userId, groupId);
+        return null;
+      }
+      
+      // 通常セッション：30分でタイムアウト
+      if (!session.isMenuSession && now - session.lastActivity > 30 * 60 * 1000) {
+        console.log(`⏰ Regular session timeout for ${sessionKey}`);
         this.endSession(userId, groupId);
         return null;
       }
       
       // 最終活動時刻更新
-      session.lastActivity = Date.now();
+      session.lastActivity = now;
     }
     
     return session || null;
@@ -124,7 +157,7 @@ class SessionManager {
   }
   
   // セッション情報取得
-  getSessionInfo(userId: string, groupId: string | undefined): { type: string; currentField?: string; data: Record<string, any>; savedToDb?: boolean; dbRecordId?: string } | null {
+  getSessionInfo(userId: string, groupId: string | undefined): { type: string; currentField?: string; data: Record<string, any>; savedToDb?: boolean; dbRecordId?: string; isMenuSession?: boolean } | null {
     const session = this.getSession(userId, groupId);
     if (!session) return null;
     
@@ -133,8 +166,26 @@ class SessionManager {
       currentField: session.currentField,
       data: { ...session.data },
       savedToDb: session.savedToDb,
-      dbRecordId: session.dbRecordId
+      dbRecordId: session.dbRecordId,
+      isMenuSession: session.isMenuSession
     };
+  }
+
+  // メニューセッション状態確認
+  isMenuSession(userId: string, groupId: string | undefined): boolean {
+    const session = this.getSession(userId, groupId);
+    return session?.isMenuSession === true;
+  }
+
+  // メニューセッション→通常セッション変換
+  convertToDataSession(userId: string, groupId: string | undefined, type: string): void {
+    const session = this.getSession(userId, groupId);
+    if (session && session.isMenuSession) {
+      session.type = type;
+      session.isMenuSession = false;
+      session.menuTimeout = undefined;
+      console.log(`🔄 Menu session converted to data session: ${type} for ${this.getSessionKey(userId, groupId)}`);
+    }
   }
 
   // データベース保存済みマーク

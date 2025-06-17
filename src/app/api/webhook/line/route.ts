@@ -244,8 +244,10 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
   // セッション状態をチェック
   const hasActiveSession = sessionManager.hasActiveSession(event.source.userId, event.source.groupId);
   const isWaitingForInput = sessionManager.isWaitingForInput(event.source.userId, event.source.groupId);
+  const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
+  const isMenuSession = sessionInfo?.isMenuSession === true;
   
-  console.log('Session status:', { hasActiveSession, isWaitingForInput });
+  console.log('Session status:', { hasActiveSession, isWaitingForInput, isMenuSession });
   
   // 入力待ち状態の場合は@メンションなしでも処理
   if (isWaitingForInput) {
@@ -254,8 +256,12 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     return;
   }
   
-  // セッション中でない場合は通常の処理（メンション必須）
-  if (!mentioned && !command) {
+  // メニューセッション中の場合は@メンションなしでも処理
+  if (isMenuSession) {
+    console.log('Processing message in menu session (no mention required)');
+    // メニューセッション中は直接AI処理に進む
+  } else if (!mentioned && !command) {
+    // 通常状態では@メンション必須
     console.log('Message ignored - no mention or command detected');
     return;
   }
@@ -285,6 +291,8 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     // メニューコマンドの処理
     if (command === 'menu') {
       console.log('📋 Menu command detected');
+      // メニューセッション開始
+      sessionManager.startMenuSession(event.source.userId, event.source.groupId);
       if (event.replyToken) {
         const { createMenuMessage } = await import('@/lib/line/notification');
         await createMenuMessage(event.replyToken);
@@ -298,9 +306,20 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
     
     console.log('Extracted data:', extractedData);
     
-    // 🔧 FIX: セッションを作成して抽出データを保存
-    console.log('📝 Creating session with extracted data');
-    sessionManager.startSession(event.source.userId, event.source.groupId, extractedData.type);
+    // メニューセッション中の場合は既存セッションを変換
+    if (isMenuSession) {
+      console.log('🔄 Converting menu session to data session');
+      const session = sessionManager.getSession(event.source.userId, event.source.groupId);
+      if (session) {
+        session.type = extractedData.type;
+        session.isMenuSession = false;
+        session.menuTimeout = undefined;
+      }
+    } else {
+      // 🔧 FIX: セッションを作成して抽出データを保存
+      console.log('📝 Creating session with extracted data');
+      sessionManager.startSession(event.source.userId, event.source.groupId, extractedData.type);
+    }
     
     // 抽出されたデータをセッションに保存
     const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
@@ -386,6 +405,22 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
     } else if (data === 'test_no') {
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, '❌ NOボタンが押されました！テスト成功です 🎉');
+      }
+    } else if (data.startsWith('start_classification_')) {
+      // メニューからの分類選択
+      const type = data.replace('start_classification_', '');
+      console.log('📋 Menu classification selected:', type);
+      
+      // メニューセッションを通常セッションに変換
+      const session = sessionManager.getSession(event.source.userId, event.source.groupId);
+      if (session) {
+        session.type = type;
+        session.isMenuSession = false;
+        session.menuTimeout = undefined;
+      }
+      
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, `✅ ${type === 'personal_schedule' ? '個人予定' : type === 'schedule' ? 'イベント・予定' : type === 'task' ? 'タスク' : type === 'project' ? 'プロジェクト' : type === 'contact' ? '人脈・コネクション' : type === 'appointment' ? 'アポイントメント' : 'メモ・ナレッジ'}モードに切り替わりました！\n\n内容を直接メッセージで送信してください。\n例: 「明日14時に会議」「企画書作成 来週まで」`);
       }
     } else if (data.startsWith('classification_')) {
       // 分類確認ボタン
@@ -569,7 +604,7 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         let savedFields = '';
         if (sessionData && Object.keys(sessionData.data).length > 0) {
           const meaningfulFields = Object.entries(sessionData.data)
-            .filter(([key, value]) => {
+            .filter(([, value]) => {
               // 空、null、'null'文字列、undefined、空配列を除外
               if (!value || value === 'null' || value === null || value === undefined) return false;
               if (Array.isArray(value) && value.length === 0) return false;
@@ -641,6 +676,13 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, '❌ 詳細入力をキャンセルしました。\nまた必要な時にご利用ください！');
+      }
+    } else if (data === 'end_menu_session') {
+      // メニューセッション終了
+      sessionManager.endSession(event.source.userId, event.source.groupId);
+      
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '🔚 セッションを終了しました。\n\nまた利用する場合は「メニュー」と送信してください。');
       }
     } else {
       console.log('Unknown postback data:', data);
@@ -843,7 +885,7 @@ async function saveClassifiedData(
             location: finalData.location || null,
             // 担当者システム統合: イベント担当者
             createdBy: systemUserId,
-            assignedTo: finalData.assignedTo || systemUserId,
+            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -865,7 +907,7 @@ async function saveClassifiedData(
             aiIssueLevel: finalData.issueLevel || 'MEDIUM',
             // 担当者システム統合: デフォルトで作成者=担当者
             createdBy: systemUserId,
-            assignedTo: finalData.assignedTo || systemUserId,
+            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -884,7 +926,7 @@ async function saveClassifiedData(
             teamMembers: finalData.teamMembers || [],
             // 担当者システム統合: デフォルトで作成者=担当者（プロジェクトマネージャー）
             createdBy: systemUserId,
-            assignedTo: finalData.assignedTo || systemUserId,
+            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -907,7 +949,7 @@ async function saveClassifiedData(
             updatedAt: new Date(getJSTNow()),
             // 担当者システム統合: 人脈管理者
             createdBy: systemUserId,
-            assignedTo: finalData.assignedTo || systemUserId,
+            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -926,7 +968,7 @@ async function saveClassifiedData(
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'B' : convertPriority(finalData.priority),
             // 担当者システム統合: 営業担当者
             createdBy: systemUserId,
-            assignedTo: finalData.assignedTo || systemUserId,
+            assignedTo: finalData.assignee || finalData.assignedTo || systemUserId,
           },
         });
         break;
@@ -973,7 +1015,7 @@ async function updateExistingRecord(
   recordId: string,
   sessionInfo: { type: string; data: Record<string, any> },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userId: string
+  _userId: string
 ): Promise<void> {
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
