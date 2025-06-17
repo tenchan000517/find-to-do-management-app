@@ -636,8 +636,8 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
           height: 'sm',
           action: {
             type: 'postback',
-            label: '🔄 修正',
-            data: 'classification_change'
+            label: '🔧 修正',
+            data: 'show_modification_ui'
           }
         }
       ]
@@ -925,6 +925,16 @@ export async function createDetailedModificationMenu(replyToken: string, session
           contents: [
             {
               type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '🔄 種類選択',
+                data: 'classification_change'
+              }
+            },
+            {
+              type: 'button',
               style: 'secondary',
               height: 'sm',
               action: {
@@ -961,6 +971,26 @@ export async function createDetailedModificationMenu(replyToken: string, session
                 type: 'postback',
                 label: '👤 担当者',
                 data: `modify_field_${sessionData.currentType}_assignee`
+              }
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '💾 保存',
+                data: `confirm_save_${sessionData.currentType}`
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '❌ キャンセル',
+                data: 'cancel_modification'
               }
             }
           ]
@@ -1031,66 +1061,6 @@ export async function createDetailedModificationMenu(replyToken: string, session
                 type: 'postback',
                 label: '⏱️ 工数',
                 data: `modify_field_${sessionData.currentType}_estimatedHours`
-              }
-            }
-          ]
-        }
-      },
-      // タイプ変更・完了バブル
-      {
-        type: 'bubble',
-        header: {
-          type: 'box',
-          layout: 'vertical',
-          contents: [
-            {
-              type: 'text',
-              text: '🔄 タイプ・完了',
-              weight: 'bold',
-              size: 'md',
-              color: '#4ECDC4'
-            },
-            {
-              type: 'text',
-              text: '種類変更と保存',
-              size: 'sm',
-              color: '#666666'
-            }
-          ]
-        },
-        body: {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'sm',
-          contents: [
-            {
-              type: 'button',
-              style: 'secondary',
-              height: 'sm',
-              action: {
-                type: 'postback',
-                label: '🔄 種類変更',
-                data: `modify_type_${sessionData.currentType}`
-              }
-            },
-            {
-              type: 'button',
-              style: 'primary',
-              height: 'sm',
-              action: {
-                type: 'postback',
-                label: '💾 保存',
-                data: `confirm_save_${sessionData.currentType}`
-              }
-            },
-            {
-              type: 'button',
-              style: 'secondary',
-              height: 'sm',
-              action: {
-                type: 'postback',
-                label: '❌ キャンセル',
-                data: 'cancel_modification'
               }
             }
           ]

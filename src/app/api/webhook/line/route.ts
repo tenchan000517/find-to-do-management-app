@@ -487,6 +487,23 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
           await createReclassificationMessage(event.replyToken);
         }
       }
+    } else if (data === 'show_modification_ui') {
+      // 修正UIカルーセル表示
+      if (event.replyToken) {
+        const { createDetailedModificationMenu } = await import('@/lib/line/notification');
+        const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
+        const mockSessionData = {
+          currentType: sessionInfo?.type || 'task',
+          pendingItem: sessionInfo?.data || {}
+        };
+        await createDetailedModificationMenu(event.replyToken, mockSessionData);
+      }
+    } else if (data === 'classification_change') {
+      // 種類選択画面表示
+      if (event.replyToken) {
+        const { createReclassificationMessage } = await import('@/lib/line/notification');
+        await createReclassificationMessage(event.replyToken);
+      }
     } else if (data.startsWith('reclassify_')) {
       // 再分類ボタン
       const newType = data.replace('reclassify_', '');
@@ -685,8 +702,12 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
           console.log('⚠️ dbRecordIdがありません');
         }
         
-        // 表示用データ（実際の保存データ優先、セッションデータをフォールバック）
-        const displayData = actualSavedData || savedSessionInfo?.data || sessionData?.data || {};
+        // 表示用データ（セッションデータ優先、保存データをフォールバック）
+        const sessionUpdateData = savedSessionInfo?.data || sessionData?.data || {};
+        const displayData = { 
+          ...(actualSavedData || {}), 
+          ...sessionUpdateData  // セッションデータで上書き
+        };
         
         if (Object.keys(displayData).length > 0) {
           const meaningfulFields = Object.entries(displayData)
@@ -822,6 +843,11 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
         } catch (error) {
           console.log('担当者スキップ後の項目選択メニュー送信をスキップ:', error);
         }
+      }
+    } else if (data === 'cancel_modification') {
+      // 修正キャンセル
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '❌ 修正をキャンセルしました。');
       }
     } else if (data === 'cancel_detailed_input') {
       // 詳細入力キャンセル
