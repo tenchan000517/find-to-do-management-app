@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { AIJsonParser } from '@/lib/utils/ai-json-parser'; // この行を追加
 
 interface MeetingNote {
   id: string;
@@ -142,7 +143,7 @@ export default function MeetingNotesPage() {
         // extracted_tasksからアクションアイテムを抽出（AIJsonParserを使用）
         let actionItems: string[] = [];
         try {
-          const { AIJsonParser } = require('@/lib/utils/ai-json-parser');
+          // 修正: require()ではなくimportしたAIJsonParserを使用
           const tasks = AIJsonParser.parseFromAIResponse(analysis.extracted_tasks || '[]', []);
           actionItems = tasks.map((task: any) => task.title || task.description).slice(0, 5);
         } catch (e) {
@@ -473,8 +474,18 @@ export default function MeetingNotesPage() {
                 return matchesSearch && matchesStatus && matchesCategory;
               })
               .sort((a, b) => {
-                if (sortBy === 'date' && a.extractedDate && b.extractedDate) {
-                  return new Date(b.extractedDate).getTime() - new Date(a.extractedDate).getTime();
+                if (sortBy === 'date') {
+                  // タブ番号順でソート（降順: 新しい→古い）
+                  const getTabNumber = (sourceDocumentId: string | undefined) => {
+                    const tabMatch = sourceDocumentId?.match(/_tab_(\d+)$/);
+                    const recentMatch = sourceDocumentId?.match(/_recent_(\d+)$/);
+                    if (tabMatch) return parseInt(tabMatch[1]);
+                    if (recentMatch) return 1000 + parseInt(recentMatch[1]); // recentは最初に
+                    return 9999; // その他は最後
+                  };
+                  const tabA = getTabNumber(a.sourceDocumentId);
+                  const tabB = getTabNumber(b.sourceDocumentId);
+                  return tabB - tabA; // 降順: 大きい番号→小さい番号
                 } else if (sortBy === 'title') {
                   return a.title.localeCompare(b.title);
                 } else {
@@ -568,19 +579,6 @@ export default function MeetingNotesPage() {
                 </div>
               )}
 
-              {note.notes && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2 text-sm md:text-base flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    詳細内容
-                  </h4>
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <pre className="whitespace-pre-wrap text-xs md:text-sm text-gray-700 font-sans">{note.notes}</pre>
-                  </div>
-                </div>
-              )}
 
               {note.participants.length > 0 && (
                 <div className="mb-4">

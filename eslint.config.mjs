@@ -14,6 +14,7 @@ const eslintConfig = [
   {
     rules: {
       // 開発中は警告レベルに変更
+      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
     },

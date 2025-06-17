@@ -147,7 +147,7 @@ export interface EntityMention {
 // 高精度分析エンジンクラス
 export class AdvancedContentAnalyzer {
   private static instance: AdvancedContentAnalyzer;
-  
+
   // 高精度分析の閾値設定
   private static readonly THRESHOLDS = {
     TASK_CONFIDENCE: 0.7,
@@ -461,21 +461,21 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
 
       // 高精度フィルタリング適用
       const entities: HighConfidenceEntities = {
-        tasks: (parsed.tasks || []).filter((task: any) => 
+        tasks: (parsed.tasks || []).filter((task: any) =>
           task.confidence >= AdvancedContentAnalyzer.THRESHOLDS.TASK_CONFIDENCE
         ).map((task: any) => ({
           ...task,
           sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, task.confidence || 0)
         })),
-        appointments: (parsed.appointments || []).filter((appt: any) => 
+        appointments: (parsed.appointments || []).filter((appt: any) =>
           appt.confidence >= AdvancedContentAnalyzer.THRESHOLDS.APPOINTMENT_CONFIDENCE
         ).map((appt: any) => ({
           ...appt,
           sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, appt.confidence || 0)
         })),
-        connections: (parsed.connections || []).filter((conn: any) => 
+        connections: (parsed.connections || []).filter((conn: any) =>
           conn.confidence >= AdvancedContentAnalyzer.THRESHOLDS.CONNECTION_CONFIDENCE
         ).map((conn: any) => ({
           ...conn,
@@ -483,14 +483,14 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
           existsInSystem: false, // 後で照合
           confidence: Math.min(1.0, conn.confidence || 0)
         })),
-        events: (parsed.events || []).filter((event: any) => 
+        events: (parsed.events || []).filter((event: any) =>
           event.confidence >= AdvancedContentAnalyzer.THRESHOLDS.EVENT_CONFIDENCE
         ).map((event: any) => ({
           ...event,
           sourceSection: 'unified_extraction',
           confidence: Math.min(1.0, event.confidence || 0)
         })),
-        personalSchedules: (parsed.personalSchedules || []).filter((schedule: any) => 
+        personalSchedules: (parsed.personalSchedules || []).filter((schedule: any) =>
           schedule.confidence >= AdvancedContentAnalyzer.THRESHOLDS.PERSONAL_SCHEDULE_CONFIDENCE
         ).map((schedule: any) => ({
           ...schedule,
@@ -525,7 +525,7 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
           ].filter(Boolean) as any
         }
       });
-      
+
       connection.existsInSystem = !!existing;
       if (existing) {
         connection.confidence *= 0.8; // 既存の場合は信頼度を下げる
@@ -542,11 +542,11 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
 
     for (const cluster of clusters) {
       // クラスター内のエンティティ数計算
-      const relatedTasks = entities.tasks.filter(t => 
+      const relatedTasks = entities.tasks.filter(t =>
         cluster.sections.includes(t.sourceSection)
       ).length;
-      
-      const relatedAppointments = entities.appointments.filter(a => 
+
+      const relatedAppointments = entities.appointments.filter(a =>
         cluster.sections.includes(a.sourceSection)
       ).length;
 
@@ -559,9 +559,9 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
 
       // 高閾値チェック
       if (cluster.densityScore >= AdvancedContentAnalyzer.THRESHOLDS.PROJECT_DENSITY &&
-          cluster.monetizationPotential >= AdvancedContentAnalyzer.THRESHOLDS.PROJECT_MONETIZATION &&
-          cluster.executabilityScore >= AdvancedContentAnalyzer.THRESHOLDS.PROJECT_EXECUTABILITY &&
-          totalEntities >= AdvancedContentAnalyzer.THRESHOLDS.MIN_CLUSTER_ENTITIES) {
+        cluster.monetizationPotential >= AdvancedContentAnalyzer.THRESHOLDS.PROJECT_MONETIZATION &&
+        cluster.executabilityScore >= AdvancedContentAnalyzer.THRESHOLDS.PROJECT_EXECUTABILITY &&
+        totalEntities >= AdvancedContentAnalyzer.THRESHOLDS.MIN_CLUSTER_ENTITIES) {
 
         candidates.push({
           name: `プロジェクト候補: ${cluster.commonTopics[0] || 'unnamed'}`,
@@ -594,10 +594,10 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
     projectCandidates: ProjectCandidate[]
   ): Promise<OverallInsights> {
     const totalActionItems = entities.tasks.length + entities.appointments.length + entities.events.length;
-    
+
     // 要約のみを生成（タイトルはGoogle Docsから使用）
     const summary = await this.generateSummary(content, entities);
-    
+
     return {
       documentType: this.detectDocumentType(content),
       businessValue: this.calculateBusinessValue(entities, projectCandidates),
@@ -613,23 +613,23 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
 
   // ユーティリティ関数群
   private parseJSONResponse(responseText: string): any {
-    const defaultValue = { 
-      sections: [], 
-      clusters: [], 
-      tasks: [], 
-      appointments: [], 
-      connections: [], 
-      events: [], 
-      personalSchedules: [] 
+    const defaultValue = {
+      sections: [],
+      clusters: [],
+      tasks: [],
+      appointments: [],
+      connections: [],
+      events: [],
+      personalSchedules: []
     };
-    
+
     return AIJsonParser.parseFromAIResponse(responseText, defaultValue);
   }
 
   private fallbackSectionSplit(content: string): ContentSection[] {
     // 段落ベースの簡易分割
     const paragraphs = content.split(/\n\s*\n/).filter(p => p.trim().length > 100);
-    
+
     return paragraphs.map((para, index) => ({
       id: `section_${index}`,
       title: undefined,
@@ -660,7 +660,7 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
   private detectUrgencyLevel(entities: HighConfidenceEntities): 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' {
     const urgentTasks = entities.tasks.filter(t => t.priority === 'A').length;
     const urgentAppts = entities.appointments.filter(a => a.urgency === 'HIGH').length;
-    
+
     if (urgentTasks >= 3 || urgentAppts >= 2) return 'CRITICAL';
     if (urgentTasks >= 2 || urgentAppts >= 1) return 'HIGH';
     if (urgentTasks >= 1 || entities.tasks.length >= 3) return 'MEDIUM';
@@ -671,34 +671,34 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
     // 簡易キーワード抽出
     const words = content.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]{3,8}/g) || [];
     const frequency = new Map<string, number>();
-    
+
     words.forEach(word => {
       frequency.set(word, (frequency.get(word) || 0) + 1);
     });
 
     return Array.from(frequency.entries())
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([word]) => word);
   }
 
   // 要約のみを生成（タイトルはGoogle Docsから取得）
   private async generateSummary(content: string, entities: HighConfidenceEntities): Promise<string> {
-    const totalEntities = entities.tasks.length + entities.events.length + 
-                         entities.appointments.length + entities.connections.length;
-    
+    const totalEntities = entities.tasks.length + entities.events.length +
+      entities.appointments.length + entities.connections.length;
+
     // コンテンツが短い場合（800文字以下）は原文をそのまま返す
     if (content.trim().length <= 800) {
       console.log(`📄 短いコンテンツ(${content.trim().length}文字) - 原文保存`);
       return content.trim();
     }
-    
+
     // エンティティが抽出されていない場合は原文から直接要約を生成
     if (totalEntities === 0) {
       console.log('🔄 エンティティ未検出 - 原文から直接要約生成');
       return await this.generateSummaryFromRawContent(content);
     }
-    
+
     // エンティティが抽出されている場合は従来の方法で要約生成
     return await this.generateSummaryFromEntities(content, entities);
   }
@@ -725,28 +725,28 @@ ${content.substring(0, 3000)}${content.length > 3000 ? '...' : ''}
 
     try {
       console.log('🔍 Raw Content Summary - Prompt:', prompt.substring(0, 200) + '...');
-      
+
       // API呼び出し前に遅延（Rate Limit対策）
       await new Promise(resolve => setTimeout(resolve, 3000));
-      
+
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
-      
+
       console.log('🔍 Gemini Raw Response:', responseText);
       console.log('🔍 Response Length:', responseText.length);
-      
+
       const parsed = this.parseJSONResponse(responseText);
       console.log('🔍 Parsed Result:', parsed);
-      
+
       if (!parsed.summary) {
         console.warn('⚠️ No summary field in parsed response:', parsed);
       }
-      
+
       return parsed.summary || '要約を生成できませんでした';
     } catch (error) {
       console.error('❌ Raw content summary error:', error);
       console.error('❌ Error details:', {
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         contentLength: content.length
       });
       return '要約を生成できませんでした';
@@ -783,28 +783,28 @@ ${content.substring(0, 2000)}...
         events: entities.events.length,
         appointments: entities.appointments.length
       });
-      
+
       // API呼び出し前に遅延（Rate Limit対策）
       await new Promise(resolve => setTimeout(resolve, 3000));
-      
+
       const result = await model.generateContent(prompt);
       const responseText = result.response.text();
-      
+
       console.log('🔍 Gemini Entity Response:', responseText);
       console.log('🔍 Response Length:', responseText.length);
-      
+
       const parsed = this.parseJSONResponse(responseText);
       console.log('🔍 Entity Parsed Result:', parsed);
-      
+
       if (!parsed.summary) {
         console.warn('⚠️ No summary field in entity response:', parsed);
       }
-      
+
       return parsed.summary || '要約を生成できませんでした';
     } catch (error) {
       console.error('❌ Entity summary error:', error);
       console.error('❌ Error details:', {
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         entityCount: entities.tasks.length + entities.events.length + entities.appointments.length
       });
       return '要約を生成できませんでした';
