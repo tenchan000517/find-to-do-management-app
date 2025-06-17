@@ -6,7 +6,10 @@ import { useUsers } from '@/hooks/useUsers';
 import { Appointment } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import AppointmentKanbanBoard from '@/components/AppointmentKanbanBoard';
+import EnhancedAppointmentKanban from '@/components/appointments/EnhancedAppointmentKanban';
+import AppointmentFlowModal from '@/components/appointments/AppointmentFlowModal';
+import ContractProcessingForm from '@/components/appointments/ContractProcessingForm';
+import AppointmentCompletionForm from '@/components/appointments/AppointmentCompletionForm';
 
 
 const getStatusStyle = (status: string) => {
@@ -68,6 +71,33 @@ export default function AppointmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // New modal states for Phase 4
+  const [appointmentModal, setAppointmentModal] = useState<{
+    isOpen: boolean;
+    type: 'schedule' | 'complete' | 'contract';
+    appointment: Appointment | null;
+  }>({
+    isOpen: false,
+    type: 'schedule',
+    appointment: null
+  });
+  
+  const [contractForm, setContractForm] = useState<{
+    isOpen: boolean;
+    appointment: Appointment | null;
+  }>({
+    isOpen: false,
+    appointment: null
+  });
+  
+  const [completionForm, setCompletionForm] = useState<{
+    isOpen: boolean;
+    appointment: Appointment | null;
+  }>({
+    isOpen: false,
+    appointment: null
+  });
 
   const filteredAppointments = appointments.filter(appointment => {
     const matchesFilter = filter === 'all' || appointment.status === filter;
@@ -117,8 +147,30 @@ export default function AppointmentsPage() {
     }
   };
 
-  const handleAppointmentMove = async (appointmentId: string, newStatus: string) => {
+  const handleAppointmentMove = async (appointmentId: string, newStatus: string, kanbanType: string) => {
     try {
+      // Sales phase automation logic
+      if (kanbanType === 'phase') {
+        const salesPhaseFlow = {
+          CONTACT: { next: 'MEETING', autoActions: ['createCalendarEvent'] },
+          MEETING: { next: 'PROPOSAL', autoActions: ['generateMeetingNote'] },
+          PROPOSAL: { next: 'CONTRACT', autoActions: ['createProposal'] },
+          CONTRACT: { next: 'CLOSED', autoActions: ['generateBackofficeTasks'] }
+        };
+
+        // Contract phase requires special handling
+        if (newStatus === 'CONTRACT') {
+          const appointment = appointments.find(a => a.id === appointmentId);
+          if (appointment) {
+            setContractForm({
+              isOpen: true,
+              appointment
+            });
+            return;
+          }
+        }
+      }
+
       // Update appointment details via API
       await fetch(`/api/appointments/${appointmentId}/details`, {
         method: 'POST',
@@ -129,6 +181,8 @@ export default function AppointmentsPage() {
            kanbanType === 'phase' ? 'phaseStatus' : 'sourceType']: newStatus
         })
       });
+
+      await refetchAppointments();
     } catch (error) {
       console.error('Failed to move appointment:', error);
     }
@@ -156,20 +210,99 @@ export default function AppointmentsPage() {
   };
 
   const handleAppointmentComplete = async (appointmentId: string) => {
+    const appointment = appointments.find(a => a.id === appointmentId);
+    if (appointment) {
+      setCompletionForm({
+        isOpen: true,
+        appointment
+      });
+    }
+  };
+
+  const handleAppointmentSchedule = async (appointmentId: string) => {
+    const appointment = appointments.find(a => a.id === appointmentId);
+    if (appointment) {
+      setAppointmentModal({
+        isOpen: true,
+        type: 'schedule',
+        appointment
+      });
+    }
+  };
+
+  const handleAppointmentContract = async (appointmentId: string) => {
+    const appointment = appointments.find(a => a.id === appointmentId);
+    if (appointment) {
+      setContractForm({
+        isOpen: true,
+        appointment
+      });
+    }
+  };
+
+  // Modal submit handlers
+  const handleFlowModalSubmit = async (data: any) => {
     try {
-      const result = await fetch(`/api/appointments/${appointmentId}/complete`, {
+      const { appointment, type } = appointmentModal;
+      if (!appointment) return;
+
+      let endpoint = '';
+      switch (type) {
+        case 'schedule':
+          endpoint = `/api/appointments/${appointment.id}/schedule`;
+          break;
+        case 'complete':
+          endpoint = `/api/appointments/${appointment.id}/complete`;
+          break;
+        case 'contract':
+          endpoint = `/api/appointments/${appointment.id}/contract`;
+          break;
+      }
+
+      await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          outcome: 'アポイントメント完了',
-          createConnection: true,
-          connectionData: {}
-        })
+        body: JSON.stringify(data)
       });
-      
-      if (result.ok) {
-        alert('アポイントメントが完了しました');
-      }
+
+      await refetchAppointments();
+      setAppointmentModal({ isOpen: false, type: 'schedule', appointment: null });
+    } catch (error) {
+      console.error('Failed to submit appointment flow:', error);
+    }
+  };
+
+  const handleContractFormSubmit = async (contractData: any) => {
+    try {
+      if (!contractForm.appointment) return;
+
+      await fetch(`/api/appointments/${contractForm.appointment.id}/contract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contractData)
+      });
+
+      await refetchAppointments();
+      setContractForm({ isOpen: false, appointment: null });
+      alert('契約処理が完了しました！プロジェクトとタスクが自動生成されました。');
+    } catch (error) {
+      console.error('Failed to process contract:', error);
+    }
+  };
+
+  const handleCompletionFormSubmit = async (completionData: any) => {
+    try {
+      if (!completionForm.appointment) return;
+
+      await fetch(`/api/appointments/${completionForm.appointment.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(completionData)
+      });
+
+      await refetchAppointments();
+      setCompletionForm({ isOpen: false, appointment: null });
+      alert('アポイントメントが完了しました！');
     } catch (error) {
       console.error('Failed to complete appointment:', error);
     }
@@ -499,11 +632,13 @@ export default function AppointmentsPage() {
         ) : (
           /* カンバンビュー */
           <div className="bg-white rounded-lg shadow-lg p-4">
-            <AppointmentKanbanBoard
+            <EnhancedAppointmentKanban
               kanbanType={kanbanType}
               onAppointmentMove={handleAppointmentMove}
               onAppointmentEdit={handleAppointmentEdit}
               onAppointmentComplete={handleAppointmentComplete}
+              onAppointmentSchedule={handleAppointmentSchedule}
+              onAppointmentContract={handleAppointmentContract}
               onDataRefresh={refetchAppointments}
             />
           </div>
@@ -674,6 +809,39 @@ export default function AppointmentsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Phase 4 New Modals */}
+        <AppointmentFlowModal
+          isOpen={appointmentModal.isOpen}
+          type={appointmentModal.type}
+          appointment={appointmentModal.appointment}
+          onClose={() => setAppointmentModal({ isOpen: false, type: 'schedule', appointment: null })}
+          onSubmit={handleFlowModalSubmit}
+        />
+
+        {contractForm.isOpen && contractForm.appointment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+              <ContractProcessingForm
+                appointment={contractForm.appointment}
+                onSubmit={handleContractFormSubmit}
+                onCancel={() => setContractForm({ isOpen: false, appointment: null })}
+              />
+            </div>
+          </div>
+        )}
+
+        {completionForm.isOpen && completionForm.appointment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-6xl max-h-[95vh] overflow-y-auto">
+              <AppointmentCompletionForm
+                appointment={completionForm.appointment}
+                onSubmit={handleCompletionFormSubmit}
+                onCancel={() => setCompletionForm({ isOpen: false, appointment: null })}
+              />
             </div>
           </div>
         )}

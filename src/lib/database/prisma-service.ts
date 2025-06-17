@@ -750,11 +750,17 @@ class PrismaDataService {
   }
 
   async addAppointment(appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> {
-    const { creator, assignee, assignedToId, ...appointmentData } = appointment;
+    const { creator, assignee, assignedToId, details, ...appointmentData } = appointment;
     const newAppointment = await prisma.appointments.create({
       data: {
         id: `appt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...appointmentData,
+        companyName: appointment.companyName,
+        contactName: appointment.contactName,
+        phone: appointment.phone,
+        email: appointment.email,
+        lastContact: appointment.lastContact,
+        nextAction: appointment.nextAction,
+        notes: appointment.notes,
         status: appointmentStatusMap[appointment.status],
         priority: priorityMap[appointment.priority],
         updatedAt: new Date(),

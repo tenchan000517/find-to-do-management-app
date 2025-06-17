@@ -152,7 +152,40 @@ export interface Appointment {
   assignedTo?: string | null; // 営業担当者
   creator?: User;
   assignee?: User;
+  // Phase 4 拡張フィールド
+  details?: AppointmentDetails;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  meetingLocation?: string;
+  salesPhase?: SalesPhase;
+  contractAmount?: number;
+  contractStatus?: ContractStatus;
 }
+
+export interface AppointmentDetails {
+  processingStatus?: ProcessingStatus;
+  relationshipStatus?: RelationshipStatus;
+  phaseStatus?: SalesPhase;
+  sourceType?: SourceType;
+  importance?: number;
+  businessValue?: number;
+  closingProbability?: number;
+  contractValue?: number; 
+  followUpActions?: string[];
+  meetingNotes?: string[];
+  proposalSent?: boolean;
+  proposalDate?: string;
+  contractTerms?: string;
+  decisionMakers?: string[];
+  competitors?: string[];
+  timeline?: string;
+}
+
+export type ProcessingStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FOLLOW_UP' | 'CLOSED';
+export type RelationshipStatus = 'FIRST_CONTACT' | 'RAPPORT_BUILDING' | 'TRUST_ESTABLISHED' | 'STRATEGIC_PARTNER' | 'LONG_TERM_CLIENT';
+export type SalesPhase = 'CONTACT' | 'MEETING' | 'PROPOSAL' | 'CONTRACT' | 'CLOSED';
+export type SourceType = 'REFERRAL' | 'COLD_OUTREACH' | 'NETWORKING_EVENT' | 'INBOUND_INQUIRY' | 'SOCIAL_MEDIA' | 'EXISTING_CLIENT' | 'PARTNER_REFERRAL';
+export type ContractStatus = 'DRAFT' | 'SENT' | 'NEGOTIATING' | 'SIGNED' | 'CANCELLED';
 
 // Display labels
 export const TASK_STATUS_LABELS = {
