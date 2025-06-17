@@ -156,8 +156,42 @@ export async function GET(request: NextRequest) {
       queryPromises.push(Promise.resolve([]));
     }
     
+    // 4. アポイントメント取得
+    if (query.includePublic) {
+      queryPromises.push(
+        prisma.appointments.findMany({
+          where: {
+            calendar_events: {
+              some: {
+                date: {
+                  gte: query.startDate,
+                  lte: query.endDate,
+                },
+                ...(query.userId && { userId: query.userId })
+              }
+            }
+          },
+          include: {
+            calendar_events: {
+              include: {
+                users: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                  }
+                }
+              }
+            }
+          }
+        })
+      );
+    } else {
+      queryPromises.push(Promise.resolve([]));
+    }
+
     // 並列実行
-    const [personalSchedules, calendarEvents, tasks] = await Promise.all(queryPromises);
+    const [personalSchedules, calendarEvents, tasks, appointments] = await Promise.all(queryPromises);
     
     // データ変換とマージ
     const events: UnifiedCalendarEvent[] = [];
@@ -190,6 +224,8 @@ export async function GET(request: NextRequest) {
           color: schedule.users.color,
         } : undefined,
         isAllDay: schedule.isAllDay,
+        participants: [],
+        importance: 0.5,
       });
     });
     sources.personal_schedules = personalSchedules.length;
@@ -220,6 +256,7 @@ export async function GET(request: NextRequest) {
         colorCode: event.colorCode || undefined,
         isAllDay: event.isAllDay,
         importance: event.importance,
+        participants: event.participants || [],
       });
       
       // アポイントメント関連イベントもカウント
@@ -246,22 +283,65 @@ export async function GET(request: NextRequest) {
           userId: task.userId,
           projectId: task.projectId || undefined,
           taskId: task.id,
-          users: {
+          users: task.users ? {
             id: task.users.id,
             name: task.users.name,
             color: task.users.color,
-          },
+          } : undefined,
+          projects: task.projects ? {
+            id: task.projects.id,
+            name: task.projects.name,
+          } : undefined,
           isAllDay: true,
+          participants: [],
+          importance: 0.8,
         });
       }
     });
     sources.tasks = tasks.filter((t: any) => t.dueDate).length;
 
-    // イベントを日時順でソート
+    // アポイントメントの変換
+    appointments.forEach((appointment: any) => {
+      appointment.calendar_events.forEach((calEvent: any) => {
+        events.push({
+          id: `appointment_${appointment.id}_${calEvent.id}`,
+          title: `🤝 ${appointment.companyName} - ${appointment.contactName}`,
+          date: calEvent.date,
+          time: calEvent.time,
+          endTime: calEvent.endTime || undefined,
+          type: 'MEETING' as EventType,
+          category: 'APPOINTMENT' as EventCategory,
+          description: calEvent.description || `${appointment.companyName}との打ち合わせ`,
+          location: calEvent.location || undefined,
+          source: 'appointments',
+          isPersonal: false,
+          priority: appointment.priority as PriorityLevel,
+          userId: calEvent.userId,
+          appointmentId: appointment.id,
+          users: calEvent.users ? {
+            id: calEvent.users.id,
+            name: calEvent.users.name,
+            color: calEvent.users.color,
+          } : undefined,
+          appointments: {
+            id: appointment.id,
+            companyName: appointment.companyName,
+            contactName: appointment.contactName,
+            priority: appointment.priority as PriorityLevel,
+          },
+          isAllDay: calEvent.isAllDay,
+          participants: calEvent.participants || [],
+          importance: 0.7,
+        });
+      });
+    });
+    sources.appointments = appointments.reduce((total: number, apt: any) => total + apt.calendar_events.length, 0);
+
+    // イベントを日時順でソート（JST基準）
     events.sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare !== 0) return dateCompare;
-      return a.time.localeCompare(b.time);
+      return (a.time || '00:00').localeCompare(b.time || '00:00');
     });
 
     const response: UnifiedCalendarResponse = {

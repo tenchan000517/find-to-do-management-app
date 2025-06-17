@@ -1,15 +1,15 @@
 'use client';
 
-import { CalendarEvent, ColorMode } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
 import { getJSTDate, getJSTDateString, isToday } from '@/lib/utils/datetime-jst';
 
 interface MonthViewProps {
   currentDate: Date;
-  events: CalendarEvent[];
+  events: UnifiedCalendarEvent[];
   onDateSelect: (date: Date) => void;
   colorMode: ColorMode;
-  onEventEdit?: (event: CalendarEvent) => void;
+  onEventEdit?: (event: UnifiedCalendarEvent) => void;
 }
 
 export function MonthView({ currentDate, events, onDateSelect, colorMode, onEventEdit }: MonthViewProps) {

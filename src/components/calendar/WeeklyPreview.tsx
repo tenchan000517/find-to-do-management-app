@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CalendarEvent, ColorMode } from '@/types/calendar';
 import { EventCard } from './EventCard';
+import { getJSTDate, getJSTDateString } from '@/lib/utils/datetime-jst';
 
 interface WeeklyPreviewProps {
   isOpen: boolean;
@@ -22,29 +23,30 @@ export function WeeklyPreview({
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 今後一週間のイベント取得
+  // 今後一週間の統合イベント取得
   const fetchWeeklyEvents = async () => {
     try {
       setLoading(true);
-      const today = new Date();
+      const today = getJSTDate();
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
 
       const params = new URLSearchParams({
-        startDate: today.toISOString().split('T')[0],
-        endDate: nextWeek.toISOString().split('T')[0],
-        includeRecurring: 'true'
+        startDate: getJSTDateString(today),
+        endDate: getJSTDateString(nextWeek),
+        includePersonal: 'true',
+        includePublic: 'true'
       });
 
-      const response = await fetch(`/api/calendar/events?${params}`);
+      const response = await fetch(`/api/calendar/unified?${params}`);
       if (!response.ok) {
-        throw new Error('イベントの取得に失敗しました');
+        throw new Error('統合カレンダーの取得に失敗しました');
       }
 
       const data = await response.json();
       setEvents(data.events || []);
     } catch (error) {
-      console.error('Weekly events fetch error:', error);
+      console.error('Unified weekly events fetch error:', error);
       setEvents([]);
     } finally {
       setLoading(false);

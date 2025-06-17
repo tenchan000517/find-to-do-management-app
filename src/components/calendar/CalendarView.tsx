@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarEvent, ViewMode, ColorMode } from '@/types/calendar';
+import { CalendarEvent, UnifiedCalendarEvent, ViewMode, ColorMode } from '@/types/calendar';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { DayView } from './DayView';
@@ -19,14 +19,14 @@ interface CalendarViewProps {
 export function CalendarView({ className = '' }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(getJSTDate());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<UnifiedCalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [colorMode, setColorMode] = useState<ColorMode>('user');
   const [users, setUsers] = useState<Array<{ id: string; name: string; color: string }>>([]);
   const [showWeeklyPreview, setShowWeeklyPreview] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDayModal, setShowDayModal] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [editingEvent, setEditingEvent] = useState<UnifiedCalendarEvent | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
@@ -56,7 +56,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
     };
   };
 
-  // イベントデータ取得
+  // 統合カレンダーデータ取得
   const fetchEvents = async () => {
     try {
       setLoading(true);
@@ -65,18 +65,19 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       const params = new URLSearchParams({
         startDate,
         endDate,
-        includeRecurring: 'true'
+        includePersonal: 'true',
+        includePublic: 'true'
       });
 
-      const response = await fetch(`/api/calendar/events?${params}`);
+      const response = await fetch(`/api/calendar/unified?${params}`);
       if (!response.ok) {
-        throw new Error('イベントの取得に失敗しました');
+        throw new Error('統合カレンダーの取得に失敗しました');
       }
 
       const data = await response.json();
       setEvents(data.events || []);
     } catch (error) {
-      console.error('Events fetch error:', error);
+      console.error('Unified calendar fetch error:', error);
       setEvents([]);
     } finally {
       setLoading(false);
@@ -121,9 +122,10 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       }
       
       // 重要度別カウント（レガシーサポート）
-      if (event.importance >= 0.7) {
+      const importance = event.importance || 0.5;
+      if (importance >= 0.7) {
         importanceCounts.high++;
-      } else if (event.importance >= 0.4) {
+      } else if (importance >= 0.4) {
         importanceCounts.medium++;
       } else {
         importanceCounts.low++;
@@ -181,13 +183,13 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   };
 
   // イベント編集処理
-  const handleEventEdit = (event: CalendarEvent) => {
+  const handleEventEdit = (event: UnifiedCalendarEvent) => {
     setEditingEvent(event);
     setShowEditModal(true);
   };
 
   // イベント保存処理
-  const handleEventSave = async (updatedEvent: CalendarEvent) => {
+  const handleEventSave = async (updatedEvent: UnifiedCalendarEvent) => {
     try {
       // イベントリストを更新（既にEventEditModalでAPI呼び出し済み）
       setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
@@ -213,7 +215,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       case 'category':
         return event.category === selectedFilter;
       case 'importance':
-        const priority = event.priority || event.tasks?.priority || event.appointments?.priority || 'C';
+        const priority = event.priority || 'C';
         return priority === selectedFilter;
       default:
         return true;

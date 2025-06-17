@@ -224,11 +224,30 @@ export interface UnifiedCalendarEvent {
   isPersonal: boolean;
   priority?: PriorityLevel;
   
+  // CalendarEventとの互換性
+  isRecurring?: boolean;
+  recurringPattern?: string;
+  participants?: string[];
+  
   // ソース特定フィールド
   userId?: string;
   projectId?: string;
   taskId?: string;
   appointmentId?: string;
+  
+  // 担当者システム
+  createdBy?: string | null;
+  assignedTo?: string | null;
+  creator?: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  assignee?: {
+    id: string;
+    name: string;
+    color: string;
+  };
   
   // 関連データ
   users?: {
@@ -236,11 +255,28 @@ export interface UnifiedCalendarEvent {
     name: string;
     color: string;
   };
+  projects?: {
+    id: string;
+    name: string;
+    priority?: PriorityLevel;
+  };
+  tasks?: {
+    id: string;
+    title: string;
+    status: string;
+    priority?: PriorityLevel;
+  };
+  appointments?: {
+    id: string;
+    companyName: string;
+    contactName: string;
+    priority?: PriorityLevel;
+  };
   
   // 表示設定
   colorCode?: string;
   isAllDay?: boolean;
-  importance?: number;
+  importance: number;
 }
 
 export type EventSource = 'all' | 'personal' | 'public' | 'tasks' | 'appointments';
