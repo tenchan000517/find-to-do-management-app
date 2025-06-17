@@ -7,7 +7,7 @@ import { useConnections } from '@/hooks/useConnections';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { TASK_STATUS_LABELS } from '@/lib/types';
-import FullPageLoading from '@/components/FullPageLoading';
+import { LoadingPage } from '@/components/ui/Loading';
 import MemberChart from '@/components/charts/MemberChart';
 import RoleLineChart from '@/components/charts/RoleLineChart';
 import RolePieChart from '@/components/charts/RolePieChart';
@@ -378,7 +378,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   const isLoading = tasksLoading || projectsLoading || connectionsLoading || appointmentsLoading || eventsLoading;
 
   if (isLoading) {
-    return <FullPageLoading />;
+    return <LoadingPage title="ダッシュボードを読み込んでいます..." />;
   }
 
   return (

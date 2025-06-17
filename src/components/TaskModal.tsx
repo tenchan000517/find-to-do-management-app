@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Task, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
 import { User } from '@/lib/types';
 import { Project } from '@/lib/types';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import { LoadingOverlay } from '@/components/ui/Loading';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -63,13 +63,11 @@ export default function TaskModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
         {/* ローディングオーバーレイ */}
-        {isLoading && (
-          <LoadingSpinner 
-            overlay={true}
-            message="タスクを保存しています..."
-            size="sm"
-          />
-        )}
+        <LoadingOverlay 
+          isLoading={isLoading}
+          message="タスクを保存しています..."
+          size="md"
+        />
         
         <h2 className="text-xl font-bold mb-4">
           {editingTask ? 'タスク編集' : '新規タスク'}

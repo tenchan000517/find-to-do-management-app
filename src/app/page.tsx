@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import Dashboard from "@/components/Dashboard";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { LoadingOverlay } from "@/components/ui/Loading";
 import { useState } from "react";
 import { 
   Rocket, 
@@ -337,13 +337,11 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             {/* ローディングオーバーレイ */}
-            {taskLoading && (
-              <LoadingSpinner 
-                overlay={true}
-                message="タスクを作成しています..."
-                size="sm"
-              />
-            )}
+            <LoadingOverlay 
+              isLoading={taskLoading}
+              message="タスクを作成しています..."
+              size="md"
+            />
             <h2 className="text-xl font-bold mb-4">新規タスク</h2>
             <form onSubmit={handleTaskSubmit} className="space-y-4">
               <div>
@@ -394,13 +392,11 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             {/* ローディングオーバーレイ */}
-            {projectLoading && (
-              <LoadingSpinner 
-                overlay={true}
-                message="プロジェクトを作成しています..."
-                size="sm"
-              />
-            )}
+            <LoadingOverlay 
+              isLoading={projectLoading}
+              message="プロジェクトを作成しています..."
+              size="md"
+            />
             <h2 className="text-xl font-bold mb-4">新規プロジェクト</h2>
             <form onSubmit={handleProjectSubmit} className="space-y-4">
               <div>
@@ -444,13 +440,11 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             {/* ローディングオーバーレイ */}
-            {eventLoading && (
-              <LoadingSpinner 
-                overlay={true}
-                message="予定を作成しています..."
-                size="sm"
-              />
-            )}
+            <LoadingOverlay 
+              isLoading={eventLoading}
+              message="予定を作成しています..."
+              size="md"
+            />
             <h2 className="text-xl font-bold mb-4">新規予定</h2>
             <form onSubmit={handleEventSubmit} className="space-y-4">
               <div>
@@ -497,13 +491,11 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
             {/* ローディングオーバーレイ */}
-            {connectionLoading && (
-              <LoadingSpinner 
-                overlay={true}
-                message="つながりを作成しています..."
-                size="sm"
-              />
-            )}
+            <LoadingOverlay 
+              isLoading={connectionLoading}
+              message="つながりを作成しています..."
+              size="md"
+            />
             <h2 className="text-xl font-bold mb-4">新規つながり</h2>
             <form onSubmit={handleConnectionSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -567,13 +559,11 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto relative">
             {/* ローディングオーバーレイ */}
-            {appointmentLoading && (
-              <LoadingSpinner 
-                overlay={true}
-                message="アポを作成しています..."
-                size="sm"
-              />
-            )}
+            <LoadingOverlay 
+              isLoading={appointmentLoading}
+              message="アポを作成しています..."
+              size="md"
+            />
             <h2 className="text-xl font-bold mb-4">新規アポ</h2>
             <form onSubmit={handleAppointmentSubmit} className="space-y-4">
               <div>
