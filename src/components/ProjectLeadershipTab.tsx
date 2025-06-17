@@ -29,13 +29,19 @@ export default function ProjectLeadershipTab({
   const [leadershipHistory, setLeadershipHistory] = useState<LeadershipLog[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 現在のリーダーを特定
+  // 現在のマネージャーを特定
   useEffect(() => {
-    if (project.teamMembers.length > 0) {
-      // 最初のメンバーをリーダーとして扱う（簡易実装）
-      const leader = users.find(u => u.id === project.teamMembers[0]);
-      setCurrentLeader(leader || null);
+    // 担当者システムを使用してプロジェクトマネージャーを特定
+    let manager = null;
+    if (project.manager) {
+      manager = project.manager;
+    } else if (project.assignedTo) {
+      manager = users.find(u => u.id === project.assignedTo) || null;
+    } else if (project.teamMembers.length > 0) {
+      // フォールバック: 最初のメンバーをマネージャーとして扱う
+      manager = users.find(u => u.id === project.teamMembers[0]) || null;
     }
+    setCurrentLeader(manager);
   }, [project, users]);
 
   // リーダーシップ履歴読み込み
@@ -102,7 +108,7 @@ export default function ProjectLeadershipTab({
       {/* 現在のリーダー情報 */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-200">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
-          👑 現在のプロジェクトリーダー
+          👑 現在のプロジェクトマネージャー
         </h3>
         {currentLeader ? (
           <div className="flex items-center justify-between">
@@ -133,7 +139,7 @@ export default function ProjectLeadershipTab({
           </div>
         ) : (
           <div className="text-gray-600 text-center py-4">
-            リーダーが設定されていません
+            プロジェクトマネージャーが設定されていません
           </div>
         )}
       </div>
@@ -150,7 +156,7 @@ export default function ProjectLeadershipTab({
               <span className="ml-2 text-sm text-gray-500">（カラム間の移動）</span>
             </div>
             <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full">
-              リーダーのみ
+              マネージャーのみ
             </span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
@@ -168,7 +174,7 @@ export default function ProjectLeadershipTab({
               <span className="ml-2 text-sm text-gray-500">（アサイン変更）</span>
             </div>
             <span className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
-              リーダー + 本人
+              マネージャー + 本人
             </span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
@@ -177,7 +183,7 @@ export default function ProjectLeadershipTab({
               <span className="ml-2 text-sm text-gray-500">（基本情報の編集）</span>
             </div>
             <span className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-full">
-              リーダーのみ
+              マネージャーのみ
             </span>
           </div>
         </div>
@@ -190,7 +196,7 @@ export default function ProjectLeadershipTab({
           className="bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
         >
           <span>🔄</span>
-          <span>リーダーを変更</span>
+          <span>マネージャーを変更</span>
         </button>
       </div>
 
@@ -198,7 +204,7 @@ export default function ProjectLeadershipTab({
       {recommendedLeaders.length > 0 && (
         <div className="bg-gray-50 p-6 rounded-lg">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
-            💡 推奨リーダー候補
+            💡 推奨マネージャー候補
           </h3>
           <div className="space-y-3">
             {recommendedLeaders.map(user => (
@@ -245,7 +251,7 @@ export default function ProjectLeadershipTab({
                 </div>
                 <div className="flex-1">
                   <span className="font-medium">
-                    {users.find(u => u.id === log.toLeader)?.name || '不明'} がリーダーに就任
+                    {users.find(u => u.id === log.toLeader)?.name || '不明'} がマネージャーに就任
                   </span>
                   {log.reason && (
                     <div className="text-sm text-gray-600 mt-1">理由: {log.reason}</div>
@@ -264,11 +270,11 @@ export default function ProjectLeadershipTab({
       {showTransferModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">リーダー変更</h3>
+            <h3 className="text-lg font-semibold mb-4">マネージャー変更</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">新しいリーダー</label>
+                <label className="block text-sm font-medium mb-2">新しいマネージャー</label>
                 <select
                   value={selectedNewLeader}
                   onChange={(e) => setSelectedNewLeader(e.target.value)}

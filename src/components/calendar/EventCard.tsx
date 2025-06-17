@@ -24,8 +24,8 @@ export function EventCard({
   const getEventColor = () => {
     switch (colorMode) {
       case 'user':
-        // ユーザー色をusersリレーションから取得
-        return event.users?.color || event.colorCode || '#FF9F40';
+        // 担当者システム優先: assignee > users > creator
+        return event.assignee?.color || event.users?.color || event.creator?.color || event.colorCode || '#FF9F40';
         
       case 'category':
         return CATEGORY_COLORS[event.category] || CATEGORY_COLORS.EVENT;
@@ -59,18 +59,37 @@ export function EventCard({
   const getLabels = () => {
     const labels = [];
     
-    // 誰（ユーザー名の頭文字）
-    if (event.users?.name) {
+    // 誰（イベント責任者の頭文字）
+    // 担当者システム優先: assignee > users > creator > userId
+    if (event.assignee?.name) {
+      const initial = event.assignee.name.charAt(0);
+      labels.push({
+        text: initial,
+        color: 'bg-blue-100 text-blue-800'
+      });
+    } else if (event.users?.name) {
       const initial = event.users.name.charAt(0);
       labels.push({
         text: initial,
         color: 'bg-blue-100 text-blue-800'
       });
-    } else if (event.userId) {
-      // フォールバック：userIdから推測
+    } else if (event.creator?.name) {
+      const initial = event.creator.name.charAt(0);
+      labels.push({
+        text: initial,
+        color: 'bg-gray-100 text-gray-600'
+      });
+    } else if (event.assignedTo || event.userId) {
+      // フォールバック：IDから推測
       labels.push({
         text: '?',
         color: 'bg-gray-100 text-gray-800'
+      });
+    } else {
+      // パブリックイベント（担当者なし）
+      labels.push({
+        text: 'P',
+        color: 'bg-green-100 text-green-800'
       });
     }
     
@@ -120,37 +139,6 @@ export function EventCard({
 
   const eventColor = getEventColor();
   const labels = getLabels();
-  
-  // 背景色に基づいてテキスト色を決定
-  const getTextColor = (bgColor: string) => {
-    // bgColorがundefinedまたは空の場合のデフォルト処理
-    if (!bgColor || typeof bgColor !== 'string') {
-      return '#000000'; // デフォルトは黒
-    }
-    
-    // HEXカラーからRGBへ変換
-    const hex = bgColor.replace('#', '');
-    if (hex.length !== 6) {
-      return '#000000'; // 無効なカラーコードの場合は黒
-    }
-    
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    // NaNチェック
-    if (isNaN(r) || isNaN(g) || isNaN(b)) {
-      return '#000000';
-    }
-    
-    // 明度を計算 (0.299*R + 0.587*G + 0.114*B)
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    
-    // 明度が155以上の場合は黒テキスト、それ以外は白テキスト
-    return brightness > 155 ? '#000000' : '#FFFFFF';
-  };
-  
-  const textColor = getTextColor(eventColor);
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

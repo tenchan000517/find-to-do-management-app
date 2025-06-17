@@ -108,27 +108,57 @@ export default function ProjectsTable({ projects, onEdit, onDelete, onViewDetail
                   </span>
                 </td>
                 <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    {project.teamMembers.length > 0 ? (
-                      <div className="flex -space-x-2">
-                        {project.teamMembers.slice(0, 3).map((memberId, index) => (
-                          <div
-                            key={memberId || index}
-                            className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white"
-                            title={memberId}
-                          >
-                            {memberId.charAt(0).toUpperCase()}
-                          </div>
-                        ))}
-                        {project.teamMembers.length > 3 && (
-                          <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white">
-                            +{project.teamMembers.length - 3}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">未割り当て</span>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    {/* プロジェクトマネージャー */}
+                    <div>
+                      <span className="text-xs text-gray-500">PM: </span>
+                      {project.manager || project.assignedTo ? (
+                        <div className="inline-flex items-center gap-1">
+                          {(() => {
+                            // manager オブジェクトまたは assignedTo の文字列 ID を処理
+                            const manager = project.manager || { name: project.assignedTo, color: '#3b82f6' };
+                            return (
+                              <>
+                                <div 
+                                  className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                  style={{ backgroundColor: manager.color || '#3b82f6' }}
+                                >
+                                  {(manager.name || 'U').charAt(0)}
+                                </div>
+                                <span className="text-sm font-medium">{manager.name || project.assignedTo}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">未設定</span>
+                      )}
+                    </div>
+                    
+                    {/* チームメンバー */}
+                    <div>
+                      <span className="text-xs text-gray-500">チーム: </span>
+                      {project.teamMembers.length > 0 ? (
+                        <div className="inline-flex -space-x-1">
+                          {project.teamMembers.slice(0, 3).map((memberId, index) => (
+                            <div
+                              key={memberId || index}
+                              className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium border border-white"
+                              title={memberId}
+                            >
+                              {memberId.charAt(0).toUpperCase()}
+                            </div>
+                          ))}
+                          {project.teamMembers.length > 3 && (
+                            <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-medium border border-white">
+                              +{project.teamMembers.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">なし</span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

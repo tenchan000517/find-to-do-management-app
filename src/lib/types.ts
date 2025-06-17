@@ -32,8 +32,8 @@ export interface Project {
   lastActivityDate?: string;
   phaseChangeDate?: string;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // プロジェクトマネージャー
+  createdBy?: string | null;
+  assignedTo?: string | null; // プロジェクトマネージャー
   creator?: User;
   manager?: User;
 }
@@ -67,8 +67,8 @@ export interface Task {
   aiIssueLevel?: 'A' | 'B' | 'C' | 'D';
   resourceWeight?: number;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // タスク担当者
+  createdBy?: string | null;
+  assignedTo?: string | null; // タスク担当者
   creator?: User;
   assignee?: User;
 }
@@ -88,8 +88,8 @@ export interface Connection {
   createdAt: string;
   updatedAt: string;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // 関係構築担当者
+  createdBy?: string | null;
+  assignedTo?: string | null; // 関係構築担当者
   creator?: User;
   assignee?: User;
 }
@@ -107,8 +107,8 @@ export interface CalendarEvent {
   createdAt: string;
   updatedAt: string;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // イベント責任者
+  createdBy?: string | null;
+  assignedTo?: string | null; // イベント責任者
   creator?: User;
   assignee?: User;
 }
@@ -125,8 +125,8 @@ export interface KnowledgeItem {
   createdAt: string;
   updatedAt: string;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // 管理担当者
+  createdBy?: string | null;
+  assignedTo?: string | null; // 管理担当者
   creator?: User;
   assignee?: User;
 }
@@ -146,8 +146,8 @@ export interface Appointment {
   createdAt: string;
   updatedAt: string;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // 営業担当者
+  createdBy?: string | null;
+  assignedTo?: string | null; // 営業担当者
   creator?: User;
   assignee?: User;
 }
@@ -246,8 +246,8 @@ export interface AIContentAnalysis {
   createdAt: string;
   updatedAt: string;
   // 担当者システム統合
-  createdBy?: string;
-  assignedTo?: string; // レビュー担当者
+  createdBy?: string | null;
+  assignedTo?: string | null; // レビュー担当者
   creator?: User;
   assignee?: User;
 }

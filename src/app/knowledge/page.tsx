@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { KnowledgeItem } from '@/lib/types';
+import { useUsers } from '@/hooks/useUsers';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 
@@ -43,6 +44,7 @@ export default function KnowledgePage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const { users, loading: usersLoading } = useUsers();
 
   useEffect(() => {
     fetchKnowledge();
@@ -246,7 +248,7 @@ export default function KnowledgePage() {
         </div>
 
         {/* ローディング・エラー状態 */}
-        {loading && (
+        {(loading || usersLoading) && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2 text-gray-600">読み込み中...</span>
@@ -275,7 +277,7 @@ export default function KnowledgePage() {
         )}
 
         {/* ナレッジリスト */}
-        {!loading && !error && (
+        {!loading && !usersLoading && !error && (
           <div className="space-y-4 md:space-y-6">
             {sortedKnowledge.map((item) => {
               const isExpanded = expandedCards.has(item.id);
@@ -292,6 +294,28 @@ export default function KnowledgePage() {
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryStyle(item.category)} flex-shrink-0`}>
                             {getCategoryText(item.category)}
                           </span>
+                        </div>
+                        
+                        {/* 作成者とナレッジ管理者の表示 */}
+                        <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">作成者:</span>
+                            <span className="font-medium">{item.author}</span>
+                          </div>
+                          {item.assignee && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">管理者:</span>
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                  style={{ backgroundColor: item.assignee.color }}
+                                >
+                                  {item.assignee.name.charAt(0)}
+                                </div>
+                                <span className="font-medium">{item.assignee.name}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -422,6 +446,7 @@ export default function KnowledgePage() {
           <CreateKnowledgeModal 
             onClose={() => setShowCreateModal(false)}
             onCreated={fetchKnowledge}
+            users={users}
           />
         )}
       </div>
@@ -433,14 +458,16 @@ export default function KnowledgePage() {
 interface CreateKnowledgeModalProps {
   onClose: () => void;
   onCreated: () => void;
+  users: any[];
 }
 
-function CreateKnowledgeModal({ onClose, onCreated }: CreateKnowledgeModalProps) {
+function CreateKnowledgeModal({ onClose, onCreated, users }: CreateKnowledgeModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     category: 'business' as 'industry' | 'sales' | 'technical' | 'business',
     content: '',
     author: '',
+    assigneeId: '',
     tags: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
@@ -455,7 +482,10 @@ function CreateKnowledgeModal({ onClose, onCreated }: CreateKnowledgeModalProps)
       const response = await fetch('/api/knowledge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          assignedTo: formData.assigneeId || undefined,
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to create knowledge');
@@ -548,6 +578,22 @@ function CreateKnowledgeModal({ onClose, onCreated }: CreateKnowledgeModalProps)
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">ナレッジ管理者（任意）</label>
+              <select
+                value={formData.assigneeId}
+                onChange={(e) => setFormData(prev => ({ ...prev, assigneeId: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">管理者を選択してください</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

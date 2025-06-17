@@ -35,11 +35,13 @@ export default function TaskModal({
 
     try {
       const formData = new FormData(e.currentTarget);
+      const assigneeId = formData.get('assigneeId') as string;
       const taskData = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         projectId: formData.get('projectId') as string || undefined,
-        userId: formData.get('userId') as string,
+        userId: assigneeId, // Legacy field for backward compatibility
+        assignedTo: assigneeId, // New assignee system
         status: formData.get('status') as Task['status'],
         priority: formData.get('priority') as Task['priority'],
         dueDate: formData.get('dueDate') as string || undefined,
@@ -125,8 +127,8 @@ export default function TaskModal({
               担当者
             </label>
             <select
-              name="userId"
-              defaultValue={editingTask?.userId || ''}
+              name="assigneeId"
+              defaultValue={editingTask?.assignedTo || editingTask?.userId || ''}
               required
               disabled={isLoading}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"

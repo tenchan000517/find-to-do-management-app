@@ -218,33 +218,68 @@ export default function ProjectDetailModal({
                     </div>
                   </div>
 
-                  {/* チームメンバー */}
+                  {/* プロジェクトマネージャーとチームメンバー */}
                   <div className="bg-white border rounded-lg p-6">
-                    <h3 className="text-lg font-semibold mb-4">チームメンバー ({teamMembers.length}名)</h3>
-                    {teamMembers.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {teamMembers.map((member, index) => (
-                          <div key={member.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                            <div 
-                              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                              style={{ backgroundColor: member.color }}
-                            >
-                              {member.name.charAt(0)}
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium">{member.name}</div>
-                              <div className="text-sm text-gray-600">
-                                {index === 0 ? 'リーダー' : 'メンバー'}
+                    <h3 className="text-lg font-semibold mb-4">プロジェクト体制</h3>
+                    
+                    {/* プロジェクトマネージャー */}
+                    <div className="mb-6">
+                      <h4 className="text-md font-medium mb-3 text-gray-700">プロジェクトマネージャー</h4>
+                      {project.manager || (project.assignedTo && users.find(u => u.id === project.assignedTo)) ? (
+                        <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          {(() => {
+                            const manager = project.manager || users.find(u => u.id === project.assignedTo);
+                            return manager ? (
+                              <>
+                                <div 
+                                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                                  style={{ backgroundColor: manager.color }}
+                                >
+                                  {manager.name.charAt(0)}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-medium">{manager.name}</div>
+                                  <div className="text-sm text-blue-600">プロジェクトマネージャー</div>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-gray-500">マネージャー情報が見つかりません</div>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 p-3 bg-gray-50 rounded-lg">
+                          プロジェクトマネージャーが設定されていません
+                        </div>
+                      )}
+                    </div>
+
+                    {/* チームメンバー */}
+                    <div>
+                      <h4 className="text-md font-medium mb-3 text-gray-700">チームメンバー ({teamMembers.length}名)</h4>
+                      {teamMembers.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {teamMembers.map((member) => (
+                            <div key={member.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                              <div 
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                                style={{ backgroundColor: member.color }}
+                              >
+                                {member.name.charAt(0)}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium">{member.name}</div>
+                                <div className="text-sm text-gray-600">チームメンバー</div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-gray-500 text-center py-4">
-                        チームメンバーが設定されていません
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 text-center py-4">
+                          チームメンバーが設定されていません
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

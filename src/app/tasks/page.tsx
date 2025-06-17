@@ -314,7 +314,27 @@ export default function TasksPage() {
                         </div>
                         <p className="text-sm md:text-base text-gray-600 mb-4">{task.description}</p>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
-                          <div>担当者: <span className="font-medium text-gray-900">{task.user?.name || task.userId}</span></div>
+                          <div className="flex items-center gap-2">
+                            <span>担当者:</span>
+                            {(() => {
+                              const assignee = task.assignee || task.user;
+                              if (assignee) {
+                                return (
+                                  <div className="flex items-center gap-1">
+                                    <div 
+                                      className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                      style={{ backgroundColor: assignee.color }}
+                                    >
+                                      {assignee.name.charAt(0)}
+                                    </div>
+                                    <span className="font-medium text-gray-900">{assignee.name}</span>
+                                  </div>
+                                );
+                              } else {
+                                return <span className="font-medium text-gray-500">未設定</span>;
+                              }
+                            })()}
+                          </div>
                           {task.dueDate && <div>期限: <span className="font-medium text-gray-900">{task.dueDate}</span></div>}
                         </div>
                       </div>

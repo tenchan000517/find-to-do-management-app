@@ -21,6 +21,19 @@ export interface CalendarEvent {
   description?: string;
   participants?: string[];
   location?: string;
+  // 担当者システム統合
+  createdBy?: string | null;
+  assignedTo?: string | null; // イベント責任者
+  creator?: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  assignee?: {
+    id: string;
+    name: string;
+    color: string;
+  };
   // リレーションデータ
   users?: {
     id: string;
@@ -95,6 +108,19 @@ export interface PrismaCalendarEvent {
   description: string;
   participants: string[];
   location: string | null;
+  // 担当者システム統合
+  createdBy: string | null;
+  assignedTo: string | null;
+  creator: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+  assignee: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
   users: {
     id: string;
     name: string;

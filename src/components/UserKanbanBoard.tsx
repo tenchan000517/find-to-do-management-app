@@ -268,7 +268,7 @@ function UserColumn({ user, tasks, onEdit, onDelete, onQuickAction }: UserColumn
 }
 
 export default function UserKanbanBoard({ tasks, users, onTaskMove, onTaskEdit, onTaskDelete, onQuickAction }: UserKanbanBoardProps) {
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -282,7 +282,7 @@ export default function UserKanbanBoard({ tasks, users, onTaskMove, onTaskEdit, 
     const { active } = event;
     const task = active.data.current?.task;
     if (task) {
-      setActiveTask(task);
+      setActiveDragTask(task);
     }
   };
 
@@ -290,14 +290,14 @@ export default function UserKanbanBoard({ tasks, users, onTaskMove, onTaskEdit, 
     const { active, over } = event;
     
     if (!over) {
-      setActiveTask(null);
+      setActiveDragTask(null);
       return;
     }
     
     const activeTask = active.data.current?.task as Task;
     
     if (!activeTask) {
-      setActiveTask(null);
+      setActiveDragTask(null);
       return;
     }
     
@@ -308,19 +308,20 @@ export default function UserKanbanBoard({ tasks, users, onTaskMove, onTaskEdit, 
       newUserId = userId === 'unassigned' ? '' : userId;
     }
     
-    if (newUserId !== null && activeTask.userId !== newUserId) {
+    const currentAssignee = activeTask.assignedTo || activeTask.userId;
+    if (newUserId !== null && currentAssignee !== newUserId) {
       onTaskMove(activeTask.id, newUserId);
     }
     
-    setActiveTask(null);
+    setActiveDragTask(null);
   };
 
   const getTasksByUser = (userId: string | undefined) => {
     if (!userId) {
-      // 未割り当てタスク
-      return tasks.filter(task => !task.userId || task.userId === '');
+      // 未割り当てタスク（担当者システム優先）
+      return tasks.filter(task => !task.assignedTo && (!task.userId || task.userId === ''));
     }
-    return tasks.filter(task => task.userId === userId);
+    return tasks.filter(task => task.assignedTo === userId || (!task.assignedTo && task.userId === userId));
   };
 
   // アクティブユーザー + 未割り当て列

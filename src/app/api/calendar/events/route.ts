@@ -160,6 +160,19 @@ export async function GET(request: NextRequest) {
       description: event.description,
       participants: event.participants,
       location: event.location || undefined,
+      // 担当者システム統合
+      createdBy: event.createdBy || undefined,
+      assignedTo: event.assignedTo || undefined,
+      creator: event.creator ? {
+        id: event.creator.id,
+        name: event.creator.name,
+        color: event.creator.color
+      } : undefined,
+      assignee: event.assignee ? {
+        id: event.assignee.id,
+        name: event.assignee.name,
+        color: event.assignee.color
+      } : undefined,
       // リレーションデータを含める
       users: event.users ? {
         id: event.users.id,

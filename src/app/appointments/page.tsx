@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAppointments } from '@/hooks/useAppointments';
+import { useUsers } from '@/hooks/useUsers';
 import { Appointment } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -59,6 +60,7 @@ const getPriorityStyle = (priority: string) => {
 
 export default function AppointmentsPage() {
   const { appointments, loading, addAppointment, updateAppointment, deleteAppointment, reload: refetchAppointments } = useAppointments();
+  const { users, loading: usersLoading } = useUsers();
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [kanbanType, setKanbanType] = useState<'processing' | 'relationship' | 'phase' | 'source'>('processing');
   const [filter, setFilter] = useState<'all' | 'pending' | 'contacted' | 'interested' | 'not_interested' | 'scheduled'>('all');
@@ -80,6 +82,7 @@ export default function AppointmentsPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const assigneeId = formData.get('assigneeId') as string;
     const appointmentData = {
       companyName: formData.get('companyName') as string,
       contactName: formData.get('contactName') as string,
@@ -90,7 +93,8 @@ export default function AppointmentsPage() {
       nextAction: formData.get('nextAction') as string,
       notes: formData.get('notes') as string,
       priority: formData.get('priority') as Appointment['priority'],
-      assignedToId: 'user1', // 仮のユーザーID（後でログイン機能実装時に修正）
+      assignedToId: assigneeId, // Legacy field for backward compatibility
+      assignedTo: assigneeId, // New assignee system
     };
 
     try {
@@ -180,7 +184,7 @@ export default function AppointmentsPage() {
     not_interested: appointments.filter(a => a.status === 'not_interested').length,
   };
 
-  if (loading) {
+  if (loading || usersLoading) {
     return <FullPageLoading />;
   }
 
@@ -389,6 +393,9 @@ export default function AppointmentsPage() {
                     次のアクション
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    営業担当者
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     メモ
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -426,6 +433,26 @@ export default function AppointmentsPage() {
                       <div className="truncate" title={appointment.nextAction}>
                         {appointment.nextAction}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {(() => {
+                        const assignee = appointment.assignee || users.find(u => u.id === (appointment.assignedTo || appointment.assignedToId));
+                        if (assignee) {
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <div 
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                style={{ backgroundColor: assignee.color }}
+                              >
+                                {assignee.name.charAt(0)}
+                              </div>
+                              <span className="text-sm font-medium">{assignee.name}</span>
+                            </div>
+                          );
+                        } else {
+                          return <span className="text-xs text-gray-500">未設定</span>;
+                        }
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
                       <div className="truncate" title={appointment.notes}>
@@ -571,6 +598,24 @@ export default function AppointmentsPage() {
                       <option value="B">重要</option>
                       <option value="C">緊急</option>
                       <option value="D">要検討</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      営業担当者
+                    </label>
+                    <select
+                      name="assigneeId"
+                      defaultValue={editingAppointment?.assignedTo || editingAppointment?.assignedToId || ''}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">担当者を選択してください</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>

@@ -478,9 +478,29 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                      <p className="text-xs text-gray-600">
-                        担当: {task.user?.name || task.userId} | {TASK_STATUS_LABELS[task.status]}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <span>担当:</span>
+                        {(() => {
+                          const assignee = task.assignee || task.user;
+                          if (assignee) {
+                            return (
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className="w-3 h-3 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                  style={{ backgroundColor: assignee.color }}
+                                >
+                                  {assignee.name.charAt(0)}
+                                </div>
+                                <span>{assignee.name}</span>
+                              </div>
+                            );
+                          } else {
+                            return <span>未設定</span>;
+                          }
+                        })()}
+                        <span>|</span>
+                        <span>{TASK_STATUS_LABELS[task.status]}</span>
+                      </div>
                     </div>
                   </div>
                 ))

@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useConnections } from '@/hooks/useConnections';
+import { useUsers } from '@/hooks/useUsers';
 import { Connection } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
 
 export default function ConnectionsPage() {
   const { connections, loading, addConnection, updateConnection, deleteConnection } = useConnections();
+  const { users, loading: usersLoading } = useUsers();
   const [filter, setFilter] = useState<'all' | 'student' | 'company'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -26,6 +28,7 @@ export default function ConnectionsPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const assigneeId = formData.get('assigneeId') as string;
     const connectionData = {
       date: new Date(formData.get('date') as string).toISOString(),
       location: formData.get('location') as string,
@@ -37,7 +40,8 @@ export default function ConnectionsPage() {
       conversation: formData.get('conversation') as string,
       potential: formData.get('potential') as string,
       businessCard: formData.get('businessCard') as string || undefined,
-      createdById: 'user1', // 仮のユーザーID（後でログイン機能実装時に修正）
+      createdById: 'user1', // Legacy field for backward compatibility
+      assignedTo: assigneeId, // New assignee system for relationship manager
     };
 
     try {
@@ -54,7 +58,7 @@ export default function ConnectionsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || usersLoading) {
     return <FullPageLoading />;
   }
 
@@ -158,6 +162,9 @@ export default function ConnectionsPage() {
                       FIND to DOとの関わり
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      関係構築担当者
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       操作
                     </th>
                   </tr>
@@ -201,6 +208,26 @@ export default function ConnectionsPage() {
                         <div className="truncate" title={connection.potential}>
                           {connection.potential}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {(() => {
+                          const assignee = connection.assignee || users.find(u => u.id === connection.assignedTo);
+                          if (assignee) {
+                            return (
+                              <div className="flex items-center space-x-2">
+                                <div 
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                  style={{ backgroundColor: assignee.color }}
+                                >
+                                  {assignee.name.charAt(0)}
+                                </div>
+                                <span className="text-sm font-medium">{assignee.name}</span>
+                              </div>
+                            );
+                          } else {
+                            return <span className="text-xs text-gray-500">未設定</span>;
+                          }
+                        })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
@@ -423,6 +450,23 @@ export default function ConnectionsPage() {
                     >
                       <option value="company">企業</option>
                       <option value="student">学生</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      関係構築担当者（任意）
+                    </label>
+                    <select
+                      name="assigneeId"
+                      defaultValue={editingConnection?.assignedTo || ''}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">担当者を選択してください</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
