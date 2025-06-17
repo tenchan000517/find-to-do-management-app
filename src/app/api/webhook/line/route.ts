@@ -584,6 +584,26 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, '❌ 詳細入力をキャンセルしました。\nまた必要な時にご利用ください！');
       }
+    } else if (data.startsWith('modify_field_')) {
+      // 項目修正
+      const parts = data.split('_');
+      const fieldKey = parts[parts.length - 1]; // 最後の要素がfieldKey
+      const type = parts.slice(2, -1).join('_'); // modify_field_の後から最後の要素までがtype
+      
+      // 担当者フィールドの場合は専用UI表示
+      if (fieldKey === 'assignee') {
+        if (event.replyToken) {
+          const { createAssigneeSelectionMessage } = await import('@/lib/line/notification');
+          await createAssigneeSelectionMessage(event.replyToken, type);
+        }
+      } else {
+        // 通常のフィールド入力
+        sessionManager.setCurrentField(event.source.userId, event.source.groupId, fieldKey);
+        if (event.replyToken) {
+          const { createFieldInputMessage } = await import('@/lib/line/notification');
+          await createFieldInputMessage(event.replyToken, type, fieldKey);
+        }
+      }
     } else if (data.startsWith('add_field_')) {
       // 項目追加
       const parts = data.split('_');
@@ -863,6 +883,39 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, '🔚 セッションを終了しました。\n\nまた利用する場合は「メニュー」と送信してください。');
       }
+    } else if (data.startsWith('confirm_save_')) {
+      // 保存確認
+      const type = data.replace('confirm_save_', '');
+      
+      // セッション情報を取得（終了前）
+      const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
+      
+      if (sessionInfo) {
+        // 🔧 FIX: 保存済みかチェック
+        if (sessionInfo.savedToDb) {
+          console.log('📝 既に保存済みデータを更新:', sessionInfo.dbRecordId);
+          await updateExistingRecord(sessionInfo.dbRecordId!, sessionInfo, event.source.userId);
+        } else {
+          console.log('💾 新規データを保存');
+          const recordId = await saveClassifiedData(null, sessionInfo, event.source.userId);
+          if (recordId) {
+            sessionManager.markAsSaved(event.source.userId, event.source.groupId, recordId);
+          }
+        }
+        
+        // セッション終了
+        sessionManager.endSession(event.source.userId, event.source.groupId);
+        
+        if (event.replyToken) {
+          const { createCompletionMessage } = await import('@/lib/line/notification');
+          await createCompletionMessage(event.replyToken, type, { title: sessionInfo.data.title || sessionInfo.data.name || sessionInfo.data.summary });
+        }
+      } else {
+        console.error('❌ No session found for save confirmation');
+        if (event.replyToken) {
+          await sendReplyMessage(event.replyToken, '❌ データの保存に失敗しました。セッション情報が見つかりません。');
+        }
+      }
     } else {
       console.log('Unknown postback data:', data);
       if (event.replyToken) {
@@ -1026,7 +1079,7 @@ async function saveClassifiedData(
             endTime: finalData.endTime || null,
             description: finalData.description || '',
             location: finalData.location || null,
-            userId: systemUserId,
+            userId: systemUserId, // 個人予定は所有者固定
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : convertPriority(finalData.priority),
             isAllDay: finalData.isAllDay || false,
           },
@@ -1063,11 +1116,13 @@ async function saveClassifiedData(
             description: finalData.description || '',
             participants: finalData.participants || [],
             location: finalData.location || null,
-            // 担当者システム統合: イベント担当者
+            // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
             createdBy: systemUserId,
-            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
-                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
-                       : systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                       (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                       : systemUserId, // デフォルト：作成者が担当者
+            // Legacy field（後方互換性）
+            userId: null,
           },
         });
         break;
@@ -1096,18 +1151,19 @@ async function saveClassifiedData(
             title: finalData.title || finalData.summary || '新しいタスク',
             description: finalData.description || '',
             projectId: finalData.projectId || null,
-            userId: systemUserId,
             status: 'IDEA',
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : convertPriority(finalData.priority),
             dueDate: taskParsedDueDate,
             estimatedHours: finalData.estimatedHours || 0,
             resourceWeight: finalData.resourceWeight || 0.5,
             aiIssueLevel: finalData.issueLevel || 'MEDIUM',
-            // 担当者システム統合: デフォルトで作成者=担当者
+            // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
             createdBy: systemUserId,
-            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
-                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
-                       : systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                       (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                       : systemUserId, // デフォルト：作成者が担当者
+            // Legacy field（後方互換性）
+            userId: systemUserId,
           },
         });
         break;
@@ -1124,11 +1180,11 @@ async function saveClassifiedData(
             endDate: finalData.endDate || null,
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : finalData.priority,
             teamMembers: finalData.teamMembers || [],
-            // 担当者システム統合: デフォルトで作成者=担当者（プロジェクトマネージャー）
+            // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
             createdBy: systemUserId,
-            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
-                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
-                       : systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                       (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                       : systemUserId, // デフォルト：作成者がプロジェクトマネージャー
           },
         });
         break;
@@ -1149,11 +1205,11 @@ async function saveClassifiedData(
             potential: finalData.potential || '',
             businessCard: finalData.businessCard || null,
             updatedAt: new Date(getJSTNow()),
-            // 担当者システム統合: 人脈管理者
+            // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
             createdBy: systemUserId,
-            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
-                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
-                       : systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                       (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                       : systemUserId, // デフォルト：作成者が関係構築担当者
           },
         });
         break;
@@ -1170,11 +1226,11 @@ async function saveClassifiedData(
             nextAction: finalData.nextAction || finalData.title || finalData.summary || '面談',
             notes: finalData.notes || finalData.description || '',
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'B' : convertPriority(finalData.priority),
-            // 担当者システム統合: 営業担当者
+            // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
             createdBy: systemUserId,
-            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? finalData.assignee 
-                       : (finalData.assignedTo && finalData.assignedTo !== 'null') ? finalData.assignedTo 
-                       : systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                       (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                       : systemUserId, // デフォルト：作成者が営業担当者
           },
         });
         break;
@@ -1187,9 +1243,15 @@ async function saveClassifiedData(
             title: finalData.title || finalData.summary || '新しいナレッジ',
             category: (finalData.category === 'null' || !finalData.category) ? 'BUSINESS' : finalData.category,
             content: finalData.content || finalData.description || '',
-            author: systemUserId,
             tags: finalData.tags || [],
             updatedAt: new Date(getJSTNow()),
+            // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
+            createdBy: systemUserId,
+            assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                       (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                       : systemUserId, // デフォルト：作成者が管理担当者
+            // Legacy field（後方互換性）
+            author: systemUserId,
           },
         });
         break;

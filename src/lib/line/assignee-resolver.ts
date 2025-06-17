@@ -161,15 +161,15 @@ export class AssigneeResolver {
     return Math.min(confidence, 1.0);
   }
 
-  // LINE UI用の担当者選択ボタンを生成
+  // LINE UI用の担当者選択ボタンを生成（縦1列表示）
   async createAssigneeSelectionButtons(nameHint: string, type: string): Promise<any[]> {
     const result = await this.resolveAssignee(nameHint);
     
     const buttons: any[] = [];
 
-    // 候補がある場合
+    // 候補がある場合（最大5件、縦1列表示）
     if (result.candidates.length > 0) {
-      for (const candidate of result.candidates.slice(0, 3)) { // 最大3件
+      for (const candidate of result.candidates.slice(0, 5)) { // 最大5件
         buttons.push({
           type: 'button',
           style: result.exactMatch?.id === candidate.id ? 'primary' : 'secondary',
@@ -182,7 +182,6 @@ export class AssigneeResolver {
         });
       }
     }
-
 
     // 担当者なしオプション
     buttons.push({

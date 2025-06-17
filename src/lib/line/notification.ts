@@ -439,7 +439,7 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
       contents: [
         {
           type: 'text',
-          text: '🤖 分類確認',
+          text: '🤖 内容確認',
           weight: 'bold',
           size: 'xl',
           margin: 'md'
@@ -1540,60 +1540,59 @@ export async function createAssigneeSelectionMessage(replyToken: string, type: s
       }
     }));
 
-    // 2列レイアウトでボタンを配置
-    const buttonRows = [];
-    for (let i = 0; i < userButtons.length; i += 2) {
-      const row = {
-        type: 'box',
-        layout: 'horizontal',
-        spacing: 'sm',
-        contents: [userButtons[i]]
-      };
-      if (userButtons[i + 1]) {
-        row.contents.push(userButtons[i + 1]);
+    // 縦1列レイアウトでボタンを配置（間隔付き）
+    const buttonContents: any[] = [
+      {
+        type: 'text',
+        text: '👤 担当者を選択',
+        weight: 'bold',
+        size: 'lg',
+        color: '#333333'
+      },
+      {
+        type: 'text',
+        text: '担当者を選択してください',
+        size: 'sm',
+        color: '#666666',
+        margin: 'sm'
+      },
+      {
+        type: 'separator',
+        margin: 'md'
       }
-      buttonRows.push(row);
-    }
+    ];
+
+    // ボタンを間隔をあけて追加
+    userButtons.forEach((button, index) => {
+      buttonContents.push({
+        ...button,
+        margin: index === 0 ? 'md' : 'sm'
+      });
+    });
+
+    buttonContents.push(
+      {
+        type: 'separator',
+        margin: 'md'
+      },
+      {
+        type: 'button',
+        style: 'secondary',
+        action: {
+          type: 'postback',
+          label: '⏭️ スキップ',
+          data: `skip_assignee_${type}`
+        }
+      }
+    );
 
     const flexContent = {
       type: 'bubble',
       body: {
         type: 'box',
         layout: 'vertical',
-        contents: [
-          {
-            type: 'text',
-            text: '👤 担当者を選択',
-            weight: 'bold',
-            size: 'lg',
-            color: '#333333'
-          },
-          {
-            type: 'text',
-            text: '担当者を選択してください',
-            size: 'sm',
-            color: '#666666',
-            margin: 'sm'
-          },
-          {
-            type: 'separator',
-            margin: 'md'
-          },
-          ...buttonRows,
-          {
-            type: 'separator',
-            margin: 'md'
-          },
-          {
-            type: 'button',
-            style: 'secondary',
-            action: {
-              type: 'postback',
-              label: '⏭️ スキップ',
-              data: `skip_assignee_${type}`
-            }
-          }
-        ]
+        spacing: 'sm',
+        contents: buttonContents
       }
     };
 
