@@ -6,6 +6,7 @@ import { useUsers } from '@/hooks/useUsers';
 import { useProjects } from '@/hooks/useProjects';
 import { Task, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
 import KanbanBoard from '@/components/KanbanBoard';
+import EnhancedTaskKanban from '@/components/tasks/EnhancedTaskKanban';
 import UserKanbanBoard from '@/components/UserKanbanBoard';
 import ProjectKanbanBoard from '@/components/ProjectKanbanBoard';
 import DeadlineKanbanBoard from '@/components/DeadlineKanbanBoard';
@@ -237,7 +238,7 @@ export default function TasksPage() {
 
             {/* カンバンビューの表示 */}
             {kanbanView === 'status' && (
-              <KanbanBoard
+              <EnhancedTaskKanban
                 tasks={filteredTasks}
                 onTaskMove={handleTaskMove}
                 onTaskEdit={(task) => {
@@ -245,7 +246,7 @@ export default function TasksPage() {
                   setShowModal(true);
                 }}
                 onTaskDelete={deleteTask}
-                onQuickAction={handleQuickAction}
+                onTaskUpdate={updateTask}
               />
             )}
             

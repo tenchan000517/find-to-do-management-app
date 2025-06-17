@@ -63,6 +63,8 @@ export interface Task {
   updatedAt: string;
   estimatedHours?: number;
   actualHours?: number;
+  estimatedTime?: number; // Added for enhanced kanban
+  summary?: string; // Added for enhanced kanban workflow
   difficultyScore?: number;
   aiIssueLevel?: 'A' | 'B' | 'C' | 'D';
   resourceWeight?: number;
