@@ -17,6 +17,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { Calendar, AlertTriangle, CalendarDays, Clock } from 'lucide-react';
 import { Task, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
 
 interface DeadlineKanbanBoardProps {
@@ -227,7 +228,7 @@ function TaskCard({ task, onEdit, onDelete, showDeadlineWarning, onQuickAction }
 
 interface DeadlineColumnProps {
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   tasks: Task[];
   columnId: string;
   color: string;
@@ -257,7 +258,7 @@ function DeadlineColumn({ title, icon, tasks, columnId, color, onEdit, onDelete,
     >
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
-          <span className="text-lg mr-2">{icon}</span>
+          <span className="mr-2">{icon}</span>
           <h3 className="font-semibold text-gray-900">{title}</h3>
         </div>
         <span className="bg-white rounded-full px-2 py-1 text-xs font-medium text-gray-600">
@@ -414,7 +415,7 @@ export default function DeadlineKanbanBoard({ tasks, onTaskMove, onTaskEdit, onT
     {
       id: 'overdue',
       title: '期限切れ',
-      icon: '🚨',
+      icon: <AlertTriangle className="w-5 h-5" />,
       tasks: categorizedTasks.overdue,
       color: 'bg-red-100',
       showWarning: true
@@ -422,7 +423,7 @@ export default function DeadlineKanbanBoard({ tasks, onTaskMove, onTaskEdit, onT
     {
       id: 'today',
       title: '今日',
-      icon: '📅',
+      icon: <Calendar className="w-5 h-5" />,
       tasks: categorizedTasks.today,
       color: 'bg-orange-100'
     },
@@ -436,14 +437,14 @@ export default function DeadlineKanbanBoard({ tasks, onTaskMove, onTaskEdit, onT
     {
       id: 'thisMonth',
       title: '今月',
-      icon: '🗓️',
+      icon: <CalendarDays className="w-5 h-5" />,
       tasks: categorizedTasks.thisMonth,
       color: 'bg-blue-100'
     },
     {
       id: 'later',
       title: 'それ以降',
-      icon: '⏰',
+      icon: <Clock className="w-5 h-5" />,
       tasks: categorizedTasks.later,
       color: 'bg-green-100'
     },

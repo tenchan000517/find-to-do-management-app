@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ProjectAlert, UserAlert } from '@/lib/types';
+import { AlertCircle, RefreshCw, CircleCheck, AlertTriangle, Info } from 'lucide-react';
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -128,9 +129,14 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
     return colors[severity as keyof typeof colors] || 'border-gray-300 bg-gray-50';
   };
 
-  const getSeverityEmoji = (severity: string) => {
-    const emojis = { critical: '🔴', high: '🟠', medium: '🟡', low: '🟢' };
-    return emojis[severity as keyof typeof emojis] || '⚪';
+  const getSeverityIcon = (severity: string) => {
+    const icons = { 
+      critical: <AlertCircle className="w-4 h-4 text-red-500" />, 
+      high: <AlertTriangle className="w-4 h-4 text-orange-500" />, 
+      medium: <Info className="w-4 h-4 text-yellow-500" />, 
+      low: <CircleCheck className="w-4 h-4 text-green-500" /> 
+    };
+    return icons[severity as keyof typeof icons] || <Info className="w-4 h-4 text-gray-500" />;
   };
 
   if (!isOpen) return null;
@@ -167,7 +173,8 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
             >
               {loading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
-              🔄 チェック実行
+              <RefreshCw className="w-4 h-4 mr-1" />
+              チェック実行
             </button>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl">
               ✕
@@ -209,10 +216,10 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                   className="text-sm border rounded px-2 py-1"
                 >
                   <option value="all">全て</option>
-                  <option value="critical">🔴 緊急</option>
-                  <option value="high">🟠 高</option>
-                  <option value="medium">🟡 中</option>
-                  <option value="low">🟢 低</option>
+                  <option value="critical">緊急</option>
+                  <option value="high">高</option>
+                  <option value="medium">中</option>
+                  <option value="low">低</option>
                 </select>
               </div>
               
@@ -260,7 +267,7 @@ export default function NotificationCenter({ isOpen, onClose }: NotificationCent
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-lg">{getSeverityEmoji(alert.severity)}</span>
+                          {getSeverityIcon(alert.severity)}
                           <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
                             {isProjectAlert ? 'プロジェクト' : 'ユーザー'}
                           </span>

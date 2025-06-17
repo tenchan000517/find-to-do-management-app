@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Project, User } from '@/lib/types';
+import { RefreshCw, Lightbulb, BarChart3 } from 'lucide-react';
 
 interface ProjectLeadershipTabProps {
   project: Project;
@@ -195,7 +196,7 @@ export default function ProjectLeadershipTab({
           onClick={() => setShowTransferModal(true)}
           className="bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
         >
-          <span>🔄</span>
+          <RefreshCw className="w-4 h-4" />
           <span>マネージャーを変更</span>
         </button>
       </div>
@@ -204,7 +205,8 @@ export default function ProjectLeadershipTab({
       {recommendedLeaders.length > 0 && (
         <div className="bg-gray-50 p-6 rounded-lg">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
-            💡 推奨マネージャー候補
+            <Lightbulb className="w-4 h-4 mr-2 inline" />
+            推奨マネージャー候補
           </h3>
           <div className="space-y-3">
             {recommendedLeaders.map(user => (
@@ -242,7 +244,10 @@ export default function ProjectLeadershipTab({
       {/* リーダーシップ履歴 */}
       {leadershipHistory.length > 0 && (
         <div className="bg-white border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">📊 リーダーシップ履歴</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            <BarChart3 className="w-4 h-4 mr-2 inline" />
+            リーダーシップ履歴
+          </h3>
           <div className="space-y-3">
             {leadershipHistory.slice(0, 5).map((log, index) => (
               <div key={log.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded">

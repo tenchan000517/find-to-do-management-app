@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Project, User } from '@/lib/types';
 import ProjectLeadershipTab from './ProjectLeadershipTab';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { BarChart3, TrendingUp } from 'lucide-react';
 
 interface ProjectDetailModalProps {
   project: Project;
@@ -114,7 +115,8 @@ export default function ProjectDetailModal({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            📊 概要
+            <BarChart3 className="w-4 h-4 mr-2 inline" />
+            概要
           </button>
           <button
             onClick={() => setActiveTab('leadership')}
@@ -134,7 +136,8 @@ export default function ProjectDetailModal({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            📈 分析
+            <TrendingUp className="w-4 h-4 mr-2 inline" />
+            分析
           </button>
         </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User, UserSkills, UserPreferences, WorkStyle } from '@/lib/types';
+import { Target, Briefcase, Wrench } from 'lucide-react';
 
 interface UserProfileModalProps {
   user: User;
@@ -111,7 +112,8 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            🎯 スキル評価
+            <Target className="w-4 h-4 mr-2 inline" />
+            スキル評価
           </button>
           <button
             onClick={() => setActiveTab('preferences')}
@@ -131,7 +133,8 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            💼 作業スタイル
+            <Briefcase className="w-4 h-4 mr-2 inline" />
+            作業スタイル
           </button>
         </div>
 
@@ -234,7 +237,10 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
 
                   {/* 目標分野設定 */}
                   <div>
-                    <h4 className="font-medium mb-3">🎯 目標・注力分野</h4>
+                    <h4 className="font-medium mb-3">
+                      <Target className="w-4 h-4 mr-2 inline" />
+                      目標・注力分野
+                    </h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {Object.keys(skills).map(area => (
                         <label key={area} className="flex items-center space-x-2 cursor-pointer">
@@ -277,7 +283,10 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">🔧 改善したい領域</label>
+                      <label className="block text-sm font-medium mb-2">
+                        <Wrench className="w-4 h-4 mr-2 inline" />
+                        改善したい領域
+                      </label>
                       <textarea
                         value={preferences.weaknesses.join(', ')}
                         onChange={(e) => setPreferences(prev => ({

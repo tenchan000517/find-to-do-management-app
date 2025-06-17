@@ -18,6 +18,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Task, Project, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
+import { CheckCircle, FileText, Rocket, Pause, Folder } from 'lucide-react';
 
 interface ProjectKanbanBoardProps {
   tasks: Task[];
@@ -229,11 +230,11 @@ function ProjectColumn({ project, tasks, onEdit, onDelete, onQuickAction }: Proj
 
   const getStatusIcon = (status: string | undefined) => {
     switch (status) {
-      case 'planning': return '📋';
-      case 'active': return '🚀';
-      case 'on_hold': return '⏸️';
-      case 'completed': return '✅';
-      default: return '📁';
+      case 'planning': return <FileText className="w-4 h-4" />;
+      case 'active': return <Rocket className="w-4 h-4" />;
+      case 'on_hold': return <Pause className="w-4 h-4" />;
+      case 'completed': return <CheckCircle className="w-4 h-4" />;
+      default: return <Folder className="w-4 h-4" />;
     }
   };
 
