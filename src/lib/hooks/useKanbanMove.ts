@@ -1,26 +1,25 @@
 import { useState, useCallback, useRef } from 'react';
-// import { toast } from 'react-hot-toast';
+import { 
+  KanbanMoveRequest, 
+  KanbanMoveResult, 
+  KanbanItemType, 
+  KanbanViewType 
+} from '@/lib/types/kanban-types';
 
 interface KanbanMoveConfig {
+  itemType: KanbanItemType;
   enableOptimisticUpdate?: boolean;
   showToastMessages?: boolean;
   onSuccess?: (data: any) => void;
   onError?: (error: string) => void;
+  onMoveComplete?: (request: KanbanMoveRequest) => Promise<KanbanMoveResult>;
   debounceDelay?: number;
 }
 
-interface KanbanMoveRequest {
-  itemType: 'task' | 'appointment' | 'project';
-  itemId: string;
-  sourceColumn: string;
-  targetColumn: string;
-  kanbanType?: 'status' | 'processing' | 'relationship' | 'phase' | 'source' | 'user' | 'project';
-  userId?: string;
-}
-
-export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
+export const useKanbanMove = (config: KanbanMoveConfig) => {
   const [isMoving, setIsMoving] = useState(false);
   const [dragLoading, setDragLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [moveHistory, setMoveHistory] = useState<Array<{
     timestamp: number;
     request: KanbanMoveRequest;
@@ -31,14 +30,16 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
+    itemType,
     enableOptimisticUpdate = true,
     showToastMessages = true,
     onSuccess,
     onError,
+    onMoveComplete,
     debounceDelay = 300
   } = config;
 
-  const moveItem = useCallback(async (request: KanbanMoveRequest) => {
+  const moveItem = useCallback(async (request: KanbanMoveRequest): Promise<KanbanMoveResult> => {
     // デバウンス処理のクリーンアップ
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -50,8 +51,11 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
       return { success: false, error: '移動処理が既に進行中です' };
     }
 
+    // エラー状態をクリア
+    setError(null);
+
     // デバウンス実行
-    return new Promise<any>((resolve) => {
+    return new Promise<KanbanMoveResult>((resolve) => {
       debounceRef.current = setTimeout(async () => {
         setDragLoading(true);
         
@@ -59,6 +63,7 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
         
         try {
           setIsMoving(true);
+          
           // 楽観的更新のための現在の状態保存
           if (enableOptimisticUpdate) {
             rollbackData = {
@@ -68,19 +73,28 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
             };
           }
 
-          // API呼び出し
-          const response = await fetch('/api/kanban/move', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-          });
+          let result: KanbanMoveResult;
 
-          const result = await response.json();
+          // カスタムハンドラーがある場合はそれを使用
+          if (onMoveComplete) {
+            result = await onMoveComplete(request);
+          } else {
+            // デフォルトのAPI呼び出し
+            const response = await fetch('/api/kanban/move', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(request),
+            });
 
-          if (!response.ok) {
-            throw new Error(result.error || 'カンバン移動に失敗しました');
+            const responseData = await response.json();
+
+            if (!response.ok) {
+              throw new Error(responseData.error || 'カンバン移動に失敗しました');
+            }
+
+            result = responseData;
           }
 
           if (!result.success) {
@@ -105,7 +119,7 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
             onSuccess(result.data);
           }
 
-          resolve({ success: true, data: result.data, message: result.message });
+          resolve(result);
 
         } catch (error) {
           console.error('カンバン移動エラー:', error);
@@ -121,6 +135,7 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
           setMoveHistory(prev => [...prev.slice(-9), moveRecord]);
 
           const errorMessage = error instanceof Error ? error.message : 'カンバン移動に失敗しました';
+          setError(errorMessage);
 
           if (showToastMessages) {
             console.error('エラー:', errorMessage);
@@ -130,7 +145,11 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
             onError(errorMessage);
           }
 
-          resolve({ success: false, error: errorMessage, rollbackData });
+          resolve({ 
+            success: false, 
+            error: errorMessage, 
+            rollbackData 
+          });
 
         } finally {
           setIsMoving(false);
@@ -138,7 +157,16 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
         }
       }, debounceDelay);
     });
-  }, [isMoving, dragLoading, enableOptimisticUpdate, showToastMessages, onSuccess, onError, debounceDelay]);
+  }, [
+    isMoving, 
+    dragLoading, 
+    enableOptimisticUpdate, 
+    showToastMessages, 
+    onSuccess, 
+    onError, 
+    onMoveComplete,
+    debounceDelay
+  ]);
 
   const rollbackLastMove = useCallback(async () => {
     const lastSuccessfulMove = moveHistory
@@ -177,8 +205,10 @@ export const useKanbanMove = (config: KanbanMoveConfig = {}) => {
     moveItem,
     rollbackLastMove,
     clearHistory,
+    isLoading: isMoving || dragLoading,
     isMoving: isMoving || dragLoading,
     dragLoading,
+    error,
     moveHistory,
     canRollback: moveHistory.filter(record => record.success).length > 0
   };
