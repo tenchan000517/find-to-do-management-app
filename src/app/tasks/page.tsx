@@ -5,10 +5,8 @@ import { useTasks } from '@/hooks/useTasks';
 import { useUsers } from '@/hooks/useUsers';
 import { useProjects } from '@/hooks/useProjects';
 import { Task, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
-import EnhancedTaskKanban from '@/components/tasks/EnhancedTaskKanban';
-import UserKanbanBoard from '@/components/UserKanbanBoard';
-import ProjectKanbanBoard from '@/components/ProjectKanbanBoard';
-import DeadlineKanbanBoard from '@/components/DeadlineKanbanBoard';
+import { UniversalTaskKanban } from '@/components/tasks/UniversalTaskKanban';
+import { KanbanViewType } from '@/lib/types/kanban-types';
 import dynamic from 'next/dynamic';
 
 const MECERelationshipManager = dynamic(
@@ -47,7 +45,7 @@ export default function TasksPage() {
   const { projects } = useProjects();
   const [filter, setFilter] = useState<'all' | 'A' | 'B' | 'C' | 'D'>('all');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const [kanbanView, setKanbanView] = useState<'status' | 'user' | 'project' | 'deadline' | 'relationships'>('status');
+  const [kanbanView, setKanbanView] = useState<KanbanViewType | 'relationships'>('status');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -68,32 +66,29 @@ export default function TasksPage() {
     updateTask(taskId, { status: newStatus });
   };
 
-  const handleTaskMove = (taskId: string, newStatus: Task['status']) => {
-    updateTask(taskId, { status: newStatus });
+  // UniversalTaskKanban用のハンドラー
+  const handleTaskClick = (task: Task) => {
+    setEditingTask(task);
+    setShowModal(true);
   };
 
-  const handleUserTaskMove = (taskId: string, newUserId: string) => {
-    updateTask(taskId, { userId: newUserId });
-  };
-
-  const handleProjectTaskMove = (taskId: string, newProjectId: string) => {
-    updateTask(taskId, { projectId: newProjectId || undefined });
-  };
-
-  const handleDeadlineTaskMove = (taskId: string, newDueDate: string) => {
-    updateTask(taskId, { dueDate: newDueDate || undefined });
-  };
-
-  const handleQuickAction = (taskId: string, action: string, value?: any) => {
+  const handleQuickAction = (action: string, task: Task) => {
     switch (action) {
       case 'complete':
-        updateTask(taskId, { status: 'COMPLETE' });
+        updateTask(task.id, { status: 'COMPLETE' });
         break;
-      case 'extendDeadline':
-        updateTask(taskId, { dueDate: value });
+      case 'extend_deadline':
+        // 期限延長モーダルを表示するか、デフォルト値を設定
+        const newDueDate = new Date();
+        newDueDate.setDate(newDueDate.getDate() + 7); // 1週間延長
+        updateTask(task.id, { dueDate: newDueDate.toISOString().split('T')[0] });
         break;
-      case 'changePriority':
-        updateTask(taskId, { priority: value });
+      case 'change_priority':
+        // 優先度を一段階上げる
+        const priorities = ['D', 'C', 'B', 'A'] as const;
+        const currentIndex = priorities.indexOf(task.priority);
+        const newPriority = currentIndex > 0 ? priorities[currentIndex - 1] : task.priority;
+        updateTask(task.id, { priority: newPriority });
         break;
       default:
         break;
@@ -252,64 +247,21 @@ export default function TasksPage() {
             </div>
 
             {/* カンバンビューの表示 */}
-            {kanbanView === 'status' && (
-              <EnhancedTaskKanban
-                tasks={filteredTasks}
-                onTaskMove={handleTaskMove}
-                onTaskEdit={(task) => {
-                  setEditingTask(task);
-                  setShowModal(true);
-                }}
-                onTaskDelete={deleteTask}
-                onTaskUpdate={updateTask}
-              />
-            )}
-            
-            {kanbanView === 'user' && (
-              <UserKanbanBoard
-                tasks={filteredTasks}
-                users={users}
-                onTaskMove={handleUserTaskMove}
-                onTaskEdit={(task) => {
-                  setEditingTask(task);
-                  setShowModal(true);
-                }}
-                onTaskDelete={deleteTask}
-                onQuickAction={handleQuickAction}
-              />
-            )}
-            
-            {kanbanView === 'project' && (
-              <ProjectKanbanBoard
-                tasks={filteredTasks}
-                projects={projects}
-                onTaskMove={handleProjectTaskMove}
-                onTaskEdit={(task) => {
-                  setEditingTask(task);
-                  setShowModal(true);
-                }}
-                onTaskDelete={deleteTask}
-                onQuickAction={handleQuickAction}
-              />
-            )}
-            
-            {kanbanView === 'deadline' && (
-              <DeadlineKanbanBoard
-                tasks={filteredTasks}
-                onTaskMove={handleDeadlineTaskMove}
-                onTaskEdit={(task) => {
-                  setEditingTask(task);
-                  setShowModal(true);
-                }}
-                onTaskDelete={deleteTask}
-                onQuickAction={handleQuickAction}
-              />
-            )}
-            
-            {kanbanView === 'relationships' && (
+            {kanbanView === 'relationships' ? (
               <MECERelationshipManager
                 tasks={filteredTasks}
                 onTaskUpdate={updateTask}
+              />
+            ) : (
+              <UniversalTaskKanban
+                tasks={filteredTasks}
+                users={users}
+                projects={projects}
+                currentView={kanbanView as KanbanViewType}
+                showViewTabs={false}
+                onTaskClick={handleTaskClick}
+                onQuickAction={handleQuickAction}
+                className="universal-task-kanban-integration"
               />
             )}
           </div>

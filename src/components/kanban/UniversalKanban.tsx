@@ -51,7 +51,7 @@ export function UniversalKanban({
   } = useKanbanMove({
     itemType,
     onMoveComplete: onItemMove,
-    enableOptimisticUpdates: configuration?.enableOptimisticUpdates ?? true,
+    enableOptimisticUpdate: configuration?.enableOptimisticUpdates ?? true,
     debounceDelay: 300
   });
 
