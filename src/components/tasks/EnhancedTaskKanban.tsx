@@ -19,6 +19,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Task } from '@/lib/types';
+import { useKanbanMove, createTaskMoveRequest } from '@/lib/hooks/useKanbanMove';
 import { 
   Target, 
   Lightbulb, 
@@ -233,6 +234,18 @@ export default function EnhancedTaskKanban({
   const [completionModal, setCompletionModal] = useState<ModalState>({ isOpen: false, taskId: '' });
   const [summaryModal, setSummaryModal] = useState<ModalState>({ isOpen: false, taskId: '' });
 
+  // 新しいカンバンAPI移動フック
+  const { moveItem, isMoving, rollbackLastMove, canRollback } = useKanbanMove({
+    enableOptimisticUpdate: true,
+    showToastMessages: true,
+    onSuccess: (data) => {
+      console.log('タスク移動成功:', data);
+    },
+    onError: (error) => {
+      console.error('タスク移動エラー:', error);
+    }
+  });
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -254,7 +267,25 @@ export default function EnhancedTaskKanban({
     const task = tasks.find(t => t.id === active.id);
     if (!task) return;
 
-    const newStatus = over.id as Task['status'];
+    console.log('ドラッグエンド:', { activeId: active.id, overId: over.id, overData: over.data });
+    
+    // over.idがタスクIDの場合は、そのタスクのステータスを取得
+    let newStatus: Task['status'];
+    if (typeof over.id === 'string' && over.id.startsWith('task_')) {
+      // タスクの上にドロップした場合、そのタスクのステータスを取得
+      const targetTask = tasks.find(t => t.id === over.id);
+      if (targetTask) {
+        newStatus = targetTask.status;
+      } else {
+        console.error('ターゲットタスクが見つかりません:', over.id);
+        return;
+      }
+    } else {
+      // カラムの上にドロップした場合
+      newStatus = over.id as Task['status'];
+    }
+    
+    console.log('移動先ステータス:', newStatus);
     
     // ステータス移動フロー制御
     handleStatusChange(task, newStatus);
@@ -263,10 +294,18 @@ export default function EnhancedTaskKanban({
   const handleStatusChange = async (task: Task, newStatus: Task['status']) => {
     const transitionKey = `${task.status}_TO_${newStatus}`;
     
+    // 新しいカンバンAPI移動リクエストを作成する内部関数
+    const performMove = async (targetStatus: Task['status']) => {
+      const moveRequest = createTaskMoveRequest(task.id, targetStatus, task.status);
+      await moveItem(moveRequest);
+      // フォールバックとして従来のコールバックも呼び出し
+      onTaskMove(task.id, targetStatus);
+    };
+    
     switch (transitionKey) {
       case 'IDEA_TO_PLAN':
         // 直接移行可能
-        onTaskMove(task.id, 'PLAN');
+        await performMove('PLAN');
         break;
         
       case 'PLAN_TO_DO':
@@ -280,12 +319,12 @@ export default function EnhancedTaskKanban({
           });
           return;
         }
-        onTaskMove(task.id, 'DO');
+        await performMove('DO');
         break;
         
       case 'DO_TO_CHECK':
         // 直接移行可能
-        onTaskMove(task.id, 'CHECK');
+        await performMove('CHECK');
         break;
         
       case 'CHECK_TO_COMPLETE':
@@ -309,12 +348,12 @@ export default function EnhancedTaskKanban({
         
       case 'COMPLETE_TO_KNOWLEDGE':
         // 直接移行可能
-        onTaskMove(task.id, 'KNOWLEDGE');
+        await performMove('KNOWLEDGE');
         break;
         
       default:
         // その他の移行
-        onTaskMove(task.id, newStatus);
+        await performMove(newStatus);
         break;
     }
   };
@@ -351,8 +390,16 @@ export default function EnhancedTaskKanban({
     setUpdateModal({ isOpen: false, taskId: '' });
   };
 
-  const handleCompletion = (taskId: string, action: 'archive' | 'knowledge') => {
-    onTaskMove(taskId, action === 'archive' ? 'COMPLETE' : 'KNOWLEDGE');
+  const handleCompletion = async (taskId: string, action: 'archive' | 'knowledge') => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    const targetStatus = action === 'archive' ? 'COMPLETE' : 'KNOWLEDGE';
+    const moveRequest = createTaskMoveRequest(taskId, targetStatus, task.status);
+    await moveItem(moveRequest);
+    
+    // フォールバックとして従来のコールバックも呼び出し
+    onTaskMove(taskId, targetStatus);
     setCompletionModal({ isOpen: false, taskId: '' });
   };
 
