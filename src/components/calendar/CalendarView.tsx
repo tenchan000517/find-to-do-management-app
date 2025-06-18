@@ -76,7 +76,6 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const fetchEvents = async () => {
     // 既にfetch中の場合は重複を防ぐ
     if (isFetching) {
-      console.log('Already fetching, skipping...');
       return;
     }
 
@@ -92,14 +91,12 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         includePublic: 'true'
       });
 
-      console.log('Fetching events...', { startDate, endDate });
       const response = await fetch(`/api/calendar/unified?${params}`);
       if (!response.ok) {
         throw new Error('統合カレンダーの取得に失敗しました');
       }
 
       const data = await response.json();
-      console.log('Events fetched:', data.events?.length || 0);
       
       setEvents(data.events || []);
     } catch (error) {
@@ -403,7 +400,6 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
       }
       
       const responseData = await response.json();
-      console.log('API response:', responseData);
       
       // イベントデータを再取得
       await fetchEvents();
@@ -418,39 +414,31 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
   // ドラッグ開始処理
   const handleDragStart = (event: DragStartEvent) => {
-    console.log('Drag Start');
     const draggedData = event.active.data.current;
     
     if (draggedData?.type === 'calendar-event') {
-      console.log('Setting dragged event:', draggedData.event.id);
       setDraggedEvent(draggedData.event);
     }
   };
 
   // ドラッグ終了処理
   const handleDragEnd = (event: DragEndEvent) => {
-    console.log('Drag End');
     const { active, over } = event;
     
     if (!over || !draggedEvent) {
-      console.log('No drop target or dragged event');
       setDraggedEvent(null);
       return;
     }
     
     const overData = over.data.current;
-    console.log('Drop target:', overData?.type, overData?.date);
     
     if (overData?.type === 'calendar-cell') {
       const newDate = overData.date;
       const currentDate = draggedEvent.date;
-      console.log('Date change:', currentDate, '->', newDate);
       
       if (newDate !== currentDate) {
-        console.log('Moving event');
         handleEventMove(draggedEvent.id, newDate);
       } else {
-        console.log('Same date, no move');
       }
     }
     

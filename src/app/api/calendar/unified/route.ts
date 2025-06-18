@@ -203,9 +203,7 @@ export async function GET(request: NextRequest) {
     };
 
     // 個人予定の変換
-    console.log('Personal schedules found:', personalSchedules.length);
     personalSchedules.forEach((schedule: any) => {
-      console.log('Processing schedule:', { id: schedule.id, date: schedule.date });
       events.push({
         id: schedule.id,
         title: schedule.title,
