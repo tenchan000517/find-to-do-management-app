@@ -107,38 +107,33 @@ export function KanbanItemCard({
         const task = item as TaskKanbanItem;
         return (
           <>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(task.priority)}`}>
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-xs px-1.5 py-0.5 rounded border ${getPriorityColor(task.priority)}`}>
                 {PRIORITY_LABELS[task.priority]}
               </span>
               {task.dueDate && getDueDateDisplay(task.dueDate)}
             </div>
             
-            <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">
+            <h4 className="font-medium text-gray-900 mb-1 text-sm break-words overflow-hidden">
               {task.title}
             </h4>
             
-            {task.description && (
-              <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                {task.description}
-              </p>
-            )}
             
             <div className="flex items-center justify-between text-xs text-gray-500">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 flex-1 min-w-0">
                 {task.project && (
-                  <span className="bg-gray-100 px-2 py-1 rounded">
+                  <span className="bg-gray-100 px-1.5 py-0.5 rounded text-xs truncate">
                     📁 {task.project.name}
                   </span>
                 )}
                 {task.estimatedHours && (
-                  <span>⏱️ {task.estimatedHours}h</span>
+                  <span className="text-xs whitespace-nowrap">⏱️ {task.estimatedHours}h</span>
                 )}
               </div>
               
               {viewType !== 'user' && task.assignee && (
                 <div 
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                   style={{ backgroundColor: task.assignee.color }}
                   title={task.assignee.name}
                 >
@@ -153,18 +148,18 @@ export function KanbanItemCard({
         const appointment = item as AppointmentKanbanItem;
         return (
           <>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(appointment.priority)}`}>
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-xs px-1.5 py-0.5 rounded border ${getPriorityColor(appointment.priority)}`}>
                 {PRIORITY_LABELS[appointment.priority]}
               </span>
               {appointment.scheduledDate && getDueDateDisplay(appointment.scheduledDate)}
             </div>
             
-            <h4 className="font-medium text-gray-900 mb-1">
+            <h4 className="font-medium text-gray-900 mb-1 text-sm break-words">
               {appointment.companyName}
             </h4>
             
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-xs text-gray-600 mb-1">
               {appointment.contactName}
             </p>
             
@@ -182,7 +177,7 @@ export function KanbanItemCard({
             {viewType !== 'user' && appointment.assignee && (
               <div className="flex items-center justify-end mt-2">
                 <div 
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold"
                   style={{ backgroundColor: appointment.assignee.color }}
                   title={appointment.assignee.name}
                 >
@@ -197,24 +192,19 @@ export function KanbanItemCard({
         const project = item as ProjectKanbanItem;
         return (
           <>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(project.priority)}`}>
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-xs px-1.5 py-0.5 rounded border ${getPriorityColor(project.priority)}`}>
                 {PRIORITY_LABELS[project.priority]}
               </span>
               {project.endDate && getDueDateDisplay(project.endDate)}
             </div>
             
-            <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">
+            <h4 className="font-medium text-gray-900 mb-1 line-clamp-2 text-sm break-words">
               {project.name}
             </h4>
             
-            {project.description && (
-              <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                {project.description}
-              </p>
-            )}
             
-            <div className="mb-2">
+            <div className="mb-1">
               <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                 <span>進捗</span>
                 <span>{project.progress}%</span>
@@ -309,7 +299,8 @@ export function KanbanItemCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`kanban-item-card group bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-all cursor-pointer relative ${
+      data-item-id={item.id}
+      className={`kanban-item-card group bg-white border rounded-lg p-2 shadow-sm hover:shadow-md transition-all cursor-pointer relative ${
         isDragging ? 'shadow-lg ring-2 ring-blue-400' : ''
       } ${
         item.isSuccess ? 'border-green-400 bg-green-50' : 'border-gray-200'

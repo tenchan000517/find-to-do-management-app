@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { 
   KanbanMoveRequest, 
   KanbanMoveResult, 
@@ -112,7 +113,33 @@ export const useKanbanMove = (config: KanbanMoveConfig) => {
           setMoveHistory(prev => [...prev.slice(-9), moveRecord]); // 最新10件を保持
 
           if (showToastMessages) {
-            console.log('成功:', result.message || 'アイテムが正常に移動されました');
+            // ステータス別トーストメッセージ
+            const getSuccessMessage = (request: KanbanMoveRequest) => {
+              if (request.kanbanType === 'status' && request.newStatus) {
+                const statusMessages = {
+                  'IDEA': '💡 アイデアに移動しました',
+                  'PLAN': '📋 計画中に移動しました',
+                  'DO': '🚀 タスクを開始しました',
+                  'CHECK': '🔍 課題・改善段階に移動しました',
+                  'COMPLETE': '✅ タスクが完了しました',
+                  'KNOWLEDGE': '🧠 ナレッジとして昇華しました',
+                  'DELETE': '🚮 リスケジュールしました'
+                };
+                return statusMessages[request.newStatus as keyof typeof statusMessages] || `${request.newStatus}に移動しました`;
+              }
+              
+              if (request.kanbanType === 'user') {
+                return '👥 担当者を変更しました';
+              }
+              
+              if (request.kanbanType === 'project') {
+                return '📁 プロジェクトを変更しました';
+              }
+              
+              return result.message || 'アイテムが正常に移動されました';
+            };
+            
+            toast.success(getSuccessMessage(request));
           }
 
           if (onSuccess) {
@@ -138,7 +165,7 @@ export const useKanbanMove = (config: KanbanMoveConfig) => {
           setError(errorMessage);
 
           if (showToastMessages) {
-            console.error('エラー:', errorMessage);
+            toast.error(`❗ ${errorMessage}`);
           }
 
           if (onError) {
@@ -185,13 +212,14 @@ export const useKanbanMove = (config: KanbanMoveConfig) => {
     };
 
     if (showToastMessages) {
-      console.log('移動をロールバック中...');
+      toast.loading('移動をロールバック中...');
     }
 
     const result = await moveItem(rollbackRequest);
 
     if (result.success && showToastMessages) {
-      console.log('移動のロールバックが完了しました');
+      toast.dismiss(); // ローディングトーストを消す
+      toast.success('⬅️ 移動のロールバックが完了しました');
     }
 
     return result;

@@ -980,12 +980,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Empty request body' }, { status: 400 });
     }
     
-    // 署名検証（テスト用に一時無効化）
-    // if (!signature || !validateSignature(body, signature)) {
-    //   console.error('Invalid signature');
-    //   return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-    // }
-    console.log('*** SIGNATURE VALIDATION DISABLED FOR TESTING ***');
+    // 署名検証
+    if (!signature || !validateSignature(body, signature)) {
+      console.error('Invalid signature');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+    console.log('Signature validation passed');
     
     console.log('Signature validation passed');
     const webhookBody: LineWebhookBody = JSON.parse(body);

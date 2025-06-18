@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -11,23 +11,22 @@ import {
   useSensors,
   closestCorners
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove } from '@dnd-kit/sortable';
+import { SortableContext } from '@dnd-kit/sortable';
 import dynamic from 'next/dynamic';
 
 import { 
   UniversalKanbanProps, 
   KanbanItem, 
-  KanbanColumn, 
   KanbanViewType,
   KanbanMoveRequest,
   KANBAN_COLUMN_CONFIGS,
   TaskKanbanItem 
 } from '@/lib/types/kanban-types';
-import { User, Project, Task, Appointment } from '@/lib/types';
 import { useKanbanMove } from '@/lib/hooks/useKanbanMove';
 import { KanbanColumnComponent } from './KanbanColumn';
 import { KanbanItemCard } from './KanbanItemCard';
 import { KanbanDataTransformer } from '@/lib/utils/kanban-data-transformer';
+import { LoadingOverlay, LoadingCenter } from '@/components/ui/Loading';
 
 // 動的インポートでモーダルを遅延読み込み
 const DueDateModal = dynamic(() => import('@/components/tasks/DueDateModal'), { ssr: false });
@@ -52,6 +51,10 @@ export function UniversalKanban({
 }: UniversalKanbanProps) {
   const [activeItem, setActiveItem] = useState<KanbanItem | null>(null);
   const [dragStartColumn, setDragStartColumn] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // モーダル状態管理
   const [showDueDateModal, setShowDueDateModal] = useState(false);
@@ -69,6 +72,7 @@ export function UniversalKanban({
   const { 
     moveItem, 
     isLoading, 
+    dragLoading,
     error 
   } = useKanbanMove({
     itemType,
@@ -119,17 +123,24 @@ export function UniversalKanban({
     if (activeItemData?.type === 'kanban-item') {
       setActiveItem(activeItemData.item);
       setDragStartColumn(activeItemData.columnId);
+      setIsDragging(true);
     }
   }, []);
 
   // ドラッグ終了ハンドラー
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { over } = event;
+    
+    console.log('🎯 Drag ended:', { over: over?.id, activeItem: activeItem?.id });
     
     setActiveItem(null);
     setDragStartColumn(null);
+    setIsDragging(false);
 
-    if (!over || !activeItem) return;
+    if (!over || !activeItem) {
+      console.log('❌ Early return: no over or activeItem');
+      return;
+    }
 
     const overData = over.data.current;
     const targetColumn = overData?.columnId || over.id;
@@ -152,38 +163,37 @@ export function UniversalKanban({
       const sourceStatus = taskItem.status;
       const targetStatus = targetColumn as string;
       
-      // モーダルが必要な遷移をチェック
-      // IDEA/PLAN → DO: 期日設定が必要
-      if ((sourceStatus === 'IDEA' || sourceStatus === 'PLAN') && targetStatus === 'DO') {
-        if (!taskItem.dueDate) {
+      // ステータス移動フロー制御（EnhancedTaskKanbanのロジック）
+      const transitionKey = `${sourceStatus}_TO_${targetStatus}`;
+      
+      switch (transitionKey) {
+        case 'PLAN_TO_DO':
+          // 期日設定が必須
+          if (!taskItem.dueDate) {
+            setPendingMoveRequest(moveRequest);
+            setTargetTask(taskItem);
+            setShowDueDateModal(true);
+            return;
+          }
+          break;
+          
+        case 'CHECK_TO_COMPLETE':
+          // 完了処理モーダル表示
           setPendingMoveRequest(moveRequest);
           setTargetTask(taskItem);
-          setShowDueDateModal(true);
+          setShowCompletionModal(true);
           return;
-        }
-      }
-      
-      // CHECK → DO: サマリー入力が必要
-      if (sourceStatus === 'CHECK' && targetStatus === 'DO') {
-        setPendingMoveRequest(moveRequest);
-        setTargetTask(taskItem);
-        setShowSummaryModal(true);
-        return;
-      }
-      
-      // CHECK → COMPLETE: 完了オプション選択
-      if (sourceStatus === 'CHECK' && targetStatus === 'COMPLETE') {
-        setPendingMoveRequest(moveRequest);
-        setTargetTask(taskItem);
-        setShowCompletionModal(true);
-        return;
-      }
-      
-      // DELETE への移動: タスク更新モーダル
-      if (targetStatus === 'DELETE') {
-        setTargetTask(taskItem);
-        setShowTaskUpdateModal(true);
-        return;
+          
+        case 'CHECK_TO_DO':
+          // サマリー入力モーダル表示
+          setPendingMoveRequest(moveRequest);
+          setTargetTask(taskItem);
+          setShowSummaryModal(true);
+          return;
+          
+        default:
+          // その他の移行は直接実行
+          break;
       }
       
       moveRequest.newStatus = targetStatus;
@@ -229,8 +239,17 @@ export function UniversalKanban({
       const result = await moveItem(request);
       
       if (result.success) {
-        // 成功フィードバック
+        // 成功フィードバック（緑の縁と成功アニメーション）
         setSuccessItems(prev => new Set(prev).add(request.itemId));
+        
+        // ドロップ完了の成功アニメーション
+        const targetElement = document.querySelector(`[data-item-id="${request.itemId}"]`);
+        if (targetElement) {
+          targetElement.classList.add('drop-success-animation');
+          setTimeout(() => {
+            targetElement.classList.remove('drop-success-animation');
+          }, 600);
+        }
         
         // 1.5秒後に成功表示をクリア
         setTimeout(() => {
@@ -392,23 +411,59 @@ export function UniversalKanban({
     setTargetTask(null);
   }, [targetTask, executeMoveWithFeedback, onItemUpdate, onItemDelete]);
 
+  // スクロール状態の更新
+  const updateScrollButtons = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    setCanScrollLeft(container.scrollLeft > 0);
+    setCanScrollRight(
+      container.scrollLeft < container.scrollWidth - container.clientWidth
+    );
+  }, []);
+
+  // 横スクロール処理
+  const scrollLeft = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  }, []);
+
+  // 初期化時とデータ変更時にスクロールボタンを更新
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateScrollButtons();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [columns, updateScrollButtons]);
+
   // カラムの動的配色
   const getColumnColor = useCallback((columnId: string, viewType: KanbanViewType) => {
     const config = KANBAN_COLUMN_CONFIGS[viewType]?.find(col => col.id === columnId);
     return config?.color || '#f3f4f6';
   }, []);
 
-  // ローディング表示
+  // 初期ローディング表示（カラフルなバウンスアニメーション）
   if (isLoading && filteredItems.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-gray-500">読み込み中...</div>
-      </div>
+      <LoadingCenter 
+        message="カンバンデータを読み込んでいます..." 
+        size="lg"
+        className="h-64"
+      />
     );
   }
 
   return (
-    <div className={`universal-kanban ${className}`}>
+    <div className={`universal-kanban h-screen overflow-hidden ${className}`}>
       {/* エラー表示 */}
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -417,35 +472,74 @@ export function UniversalKanban({
       )}
 
       {/* カンバンボード */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="kanban-board flex gap-6 overflow-x-auto pb-6">
-          <SortableContext items={columns.map(col => col.id)}>
-            {columns.map(column => (
-              <KanbanColumnComponent
-                key={column.id}
-                column={{
-                  ...column,
-                  items: column.items.map(item => ({
-                    ...item,
-                    isLoading: loadingItems.has(item.id),
-                    isSuccess: successItems.has(item.id)
-                  }))
-                }}
-                viewType={viewType}
-                onItemMove={moveItem}
-                onItemClick={handleItemClick}
-                onQuickAction={handleQuickAction}
-                isLoading={isLoading}
-                color={getColumnColor(column.id, viewType)}
-              />
-            ))}
-          </SortableContext>
-        </div>
+      <div className="relative h-screen overflow-hidden">
+        {/* 左スクロールボタン */}
+        {canScrollLeft && (
+          <button
+            onClick={scrollLeft}
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 transition-all duration-200"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
+        {/* 右スクロールボタン */}
+        {canScrollRight && (
+          <button
+            onClick={scrollRight}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 transition-all duration-200"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+
+        <LoadingOverlay 
+          isLoading={dragLoading || (isLoading && filteredItems.length > 0)}
+          message={dragLoading ? "タスクを移動しています..." : "カンバンデータを更新しています..."}
+          size="lg"
+          className="h-screen overflow-hidden"
+        >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div 
+            ref={scrollContainerRef}
+            className={`kanban-board h-screen flex gap-2 overflow-x-auto overflow-y-hidden pb-6 px-4 ${isDragging ? 'kanban-board-dragging' : ''}`}
+            onScroll={updateScrollButtons}
+          >
+            <SortableContext items={columns.map(col => col.id)}>
+              {columns.map(column => (
+                <div
+                  key={column.id}
+                  className={`${isDragging && column.id !== dragStartColumn ? 'animate-pulse opacity-80' : ''} transition-all duration-300`}
+                >
+                  <KanbanColumnComponent
+                    column={{
+                      ...column,
+                      items: column.items.map(item => ({
+                        ...item,
+                        isLoading: loadingItems.has(item.id),
+                        isSuccess: successItems.has(item.id)
+                      }))
+                    }}
+                    viewType={viewType}
+                    onItemMove={moveItem}
+                    onItemClick={handleItemClick}
+                    onQuickAction={handleQuickAction}
+                    isLoading={isLoading}
+                    color={getColumnColor(column.id, viewType)}
+                  />
+                </div>
+              ))}
+            </SortableContext>
+          </div>
 
         {/* ドラッグオーバーレイ */}
         <DragOverlay>
@@ -461,7 +555,9 @@ export function UniversalKanban({
             </div>
           )}
         </DragOverlay>
-      </DndContext>
+        </DndContext>
+        </LoadingOverlay>
+      </div>
 
       {/* 統計情報 */}
       {configuration?.showItemCounts && (

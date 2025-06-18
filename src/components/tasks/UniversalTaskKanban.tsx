@@ -98,6 +98,39 @@ export function UniversalTaskKanban({
         projects={projects}
         filter={filter}
         configuration={kanbanConfig}
+        onItemMove={async (request) => {
+          // このハンドラーはUniversalKanbanから呼ばれるため、
+          // モーダル表示ロジックが先に実行されてからここに来る
+          try {
+            const taskId = request.itemId;
+            const updateData: any = {};
+
+            // ステータス変更の場合
+            if (request.newStatus) {
+              updateData.status = request.newStatus;
+            }
+
+            // 担当者変更の場合
+            if (request.newAssignee) {
+              updateData.assignedTo = request.newAssignee;
+            }
+
+            // プロジェクト変更の場合
+            if (request.projectId !== undefined) {
+              updateData.projectId = request.projectId;
+            }
+
+            // API呼び出しまたは直接更新
+            if (onTaskUpdate) {
+              await onTaskUpdate(taskId, updateData);
+            }
+
+            return { success: true };
+          } catch (error) {
+            console.error('Task move failed:', error);
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+          }
+        }}
         onItemClick={handleItemClick}
         onQuickAction={handleQuickAction}
         onItemUpdate={onTaskUpdate}

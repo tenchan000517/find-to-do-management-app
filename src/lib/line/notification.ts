@@ -221,6 +221,7 @@ export function createSuccessMessage(type: string, title: string): string {
     task: '📋 タスク',
     project: '📊 プロジェクト',
     contact: '👤 人脈',
+    appointment: '📅 アポイントメント',
     memo: '📝 メモ'
   };
 
@@ -425,6 +426,7 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
     task: '📋 タスク',
     project: '📊 プロジェクト',
     contact: '👤 人脈',
+    appointment: '📅 アポイントメント',
     memo: '📝 メモ'
   };
 
@@ -757,6 +759,26 @@ export async function createReclassificationMessage(replyToken: string): Promise
               }
             }
           ]
+        },
+        {
+          type: 'box',
+          layout: 'horizontal',
+          spacing: 'xs',
+          contents: [
+            {
+              type: 'button',
+              style: 'secondary',
+              height: 'sm',
+              action: {
+                type: 'postback',
+                label: '📅 アポイント',
+                data: 'reclassify_appointment'
+              }
+            },
+            {
+              type: 'spacer'
+            }
+          ]
         }
       ]
     }
@@ -773,6 +795,7 @@ export async function createCompletionMessage(replyToken: string, type: string, 
     task: '📋 タスク',
     project: '📊 プロジェクト',
     contact: '👤 人脈',
+    appointment: '📅 アポイントメント',
     memo: '📝 メモ'
   };
 

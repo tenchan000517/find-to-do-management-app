@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import { Toaster } from 'react-hot-toast';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,62 @@ export default function RootLayout({
       >
         <Header />
         {children}
+        <Toaster
+          position="top-right"
+          reverseOrder={false}
+          gutter={8}
+          containerClassName=""
+          containerStyle={{}}
+          toastOptions={{
+            className: '',
+            duration: 4000,
+            style: {
+              background: '#fff',
+              color: '#333',
+              fontSize: '14px',
+              fontWeight: '500',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+              border: '1px solid #e5e7eb'
+            },
+            success: {
+              duration: 3000,
+              style: {
+                background: '#f0fdf4',
+                border: '1px solid #22c55e',
+                color: '#15803d'
+              },
+              iconTheme: {
+                primary: '#22c55e',
+                secondary: '#f0fdf4'
+              }
+            },
+            error: {
+              duration: 5000,
+              style: {
+                background: '#fef2f2',
+                border: '1px solid #ef4444',
+                color: '#dc2626'
+              },
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fef2f2'
+              }
+            },
+            loading: {
+              style: {
+                background: '#f8fafc',
+                border: '1px solid #3b82f6',
+                color: '#1e40af'
+              },
+              iconTheme: {
+                primary: '#3b82f6',
+                secondary: '#f8fafc'
+              }
+            }
+          }}
+        />
       </body>
     </html>
   );
