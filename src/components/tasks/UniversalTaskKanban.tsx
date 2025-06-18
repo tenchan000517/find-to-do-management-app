@@ -19,6 +19,8 @@ interface UniversalTaskKanbanProps {
   showViewTabs?: boolean;
   onTaskClick?: (task: Task) => void;
   onQuickAction?: (action: string, task: Task) => void;
+  onTaskUpdate?: (taskId: string, data: any) => Promise<void>;
+  onTaskDelete?: (taskId: string) => Promise<void>;
   className?: string;
 }
 
@@ -31,6 +33,8 @@ export function UniversalTaskKanban({
   showViewTabs = true,
   onTaskClick,
   onQuickAction,
+  onTaskUpdate,
+  onTaskDelete,
   className
 }: UniversalTaskKanbanProps) {
   const [activeView, setActiveView] = useState<KanbanViewType>(currentView || defaultView);
@@ -96,6 +100,8 @@ export function UniversalTaskKanban({
         configuration={kanbanConfig}
         onItemClick={handleItemClick}
         onQuickAction={handleQuickAction}
+        onItemUpdate={onTaskUpdate}
+        onItemDelete={onTaskDelete}
         className="universal-task-kanban-board"
       />
     </div>

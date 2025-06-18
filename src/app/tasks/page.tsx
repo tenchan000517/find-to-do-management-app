@@ -261,6 +261,8 @@ export default function TasksPage() {
                 showViewTabs={false}
                 onTaskClick={handleTaskClick}
                 onQuickAction={handleQuickAction}
+                onTaskUpdate={updateTask}
+                onTaskDelete={deleteTask}
                 className="universal-task-kanban-integration"
               />
             )}

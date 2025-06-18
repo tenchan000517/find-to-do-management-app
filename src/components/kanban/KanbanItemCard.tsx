@@ -14,7 +14,7 @@ import {
 import { TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/types';
 
 interface KanbanItemCardProps {
-  item: KanbanItem;
+  item: KanbanItem & { isLoading?: boolean; isSuccess?: boolean };
   viewType: KanbanViewType;
   onItemClick?: (item: KanbanItem) => void;
   onQuickAction?: (action: string, item: KanbanItem) => void;
@@ -309,17 +309,41 @@ export function KanbanItemCard({
       style={style}
       {...attributes}
       {...listeners}
-      className={`kanban-item-card group bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+      className={`kanban-item-card group bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-all cursor-pointer relative ${
         isDragging ? 'shadow-lg ring-2 ring-blue-400' : ''
+      } ${
+        item.isSuccess ? 'border-green-400 bg-green-50' : 'border-gray-200'
+      } ${
+        item.isLoading ? 'opacity-75' : ''
       }`}
       onClick={handleClick}
     >
+      {/* ローディングオーバーレイ（カレンダーと統一） */}
+      {item.isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-lg z-10">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm text-gray-600">更新中...</span>
+          </div>
+        </div>
+      )}
+
+      {/* 成功フィードバック */}
+      {item.isSuccess && (
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          <span>更新完了</span>
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           {renderItemContent()}
         </div>
         
-        {renderQuickActions()}
+        {!item.isLoading && renderQuickActions()}
       </div>
     </div>
   );

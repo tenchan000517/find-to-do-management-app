@@ -267,6 +267,8 @@ export interface UniversalKanbanProps {
   onItemMove?: (request: KanbanMoveRequest) => Promise<KanbanMoveResult>;
   onItemClick?: (item: KanbanItem) => void;
   onQuickAction?: (action: string, item: KanbanItem) => void;
+  onItemUpdate?: (itemId: string, data: any) => Promise<void>;
+  onItemDelete?: (itemId: string) => Promise<void>;
   className?: string;
 }
 
