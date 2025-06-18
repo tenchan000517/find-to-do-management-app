@@ -1,14 +1,5 @@
 import { dataService } from '../data-service';
-
-// Helper function to convert old priority values to new ones
-const convertPriority = (oldPriority?: string): 'A' | 'B' | 'C' | 'D' => {
-  switch (oldPriority) {
-    case 'high': return 'A';
-    case 'medium': return 'B';
-    case 'low': return 'D';
-    default: return 'C';
-  }
-};
+import { convertPriority } from '../utils/line-helpers';
 
 export interface MentionInfo {
   index: number;

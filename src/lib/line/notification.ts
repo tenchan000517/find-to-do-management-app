@@ -1,3 +1,5 @@
+import { TYPE_MAP, getTypeDisplayName } from '@/lib/constants/line-types';
+
 export interface NotificationSchedule {
   type: 'task_reminder' | 'meeting_reminder' | 'project_update';
   targetTime: string;
@@ -215,17 +217,7 @@ ${schedule.data.name}
 
 // 成功通知メッセージの作成
 export function createSuccessMessage(type: string, title: string): string {
-  const typeMap: { [key: string]: string } = {
-    personal_schedule: '📅 予定',
-    schedule: '🎯 イベント',
-    task: '📋 タスク',
-    project: '📊 プロジェクト',
-    contact: '👤 人脈',
-    appointment: '📅 アポイントメント',
-    memo: '📝 メモ'
-  };
-
-  const typeText = typeMap[type] || '📝 データ';
+  const typeText = getTypeDisplayName(type);
 
   return `✅ ${typeText}を登録しました！
 
@@ -420,17 +412,9 @@ function formatDateTime(datetime: string): string {
 
 // 分類確認ボタンメッセージ
 export async function createClassificationConfirmMessage(replyToken: string, extractedData: any): Promise<boolean> {
-  const typeMap: { [key: string]: string } = {
-    personal_schedule: '📅 予定',
-    schedule: '🎯 イベント',
-    task: '📋 タスク',
-    project: '📊 プロジェクト',
-    contact: '👤 人脈',
-    appointment: '📅 アポイントメント',
-    memo: '📝 メモ'
-  };
-
-  const typeText = typeMap[extractedData.type] || '📝 データ';
+  console.log('🔍 DEBUG TYPE_MAP keys:', Object.keys(TYPE_MAP));
+  console.log('🔍 DEBUG extractedData.type in notification.ts:', JSON.stringify(extractedData.type));
+  const typeText = getTypeDisplayName(extractedData.type);
   const confidence = Math.round(extractedData.confidence * 100);
 
   const flexContent = {
@@ -789,17 +773,7 @@ export async function createReclassificationMessage(replyToken: string): Promise
 
 // 完了メッセージ（ダッシュボードリンク付き）
 export async function createCompletionMessage(replyToken: string, type: string, itemData?: { title?: string;[key: string]: any }): Promise<boolean> {
-  const typeMap: { [key: string]: string } = {
-    personal_schedule: '📅 予定',
-    schedule: '🎯 イベント',
-    task: '📋 タスク',
-    project: '📊 プロジェクト',
-    contact: '👤 人脈',
-    appointment: '📅 アポイントメント',
-    memo: '📝 メモ'
-  };
-
-  const typeText = typeMap[type] || '📝 データ';
+  const typeText = getTypeDisplayName(type);
 
   // タイトル情報がある場合はより詳細なメッセージを作成
   const titleInfo = itemData?.title || '';
@@ -904,17 +878,8 @@ export async function createCompletionMessage(replyToken: string, type: string, 
 export async function createDetailedModificationMenu(replyToken: string, sessionData: any): Promise<boolean> {
   console.log(`🎯 Creating detailed modification menu for:`, sessionData);
 
-  const typeMap: { [key: string]: string } = {
-    personal_schedule: '📅 個人予定',
-    schedule: '🎯 イベント',
-    task: '📋 タスク',
-    project: '📊 プロジェクト',
-    contact: '👤 人脈',
-    memo: '📝 メモ'
-  };
-
   const currentData = sessionData.pendingItem || {};
-  const typeText = typeMap[sessionData.currentType] || '📝 データ';
+  const typeText = getTypeDisplayName(sessionData.currentType);
 
   const flexContent = {
     type: 'carousel',

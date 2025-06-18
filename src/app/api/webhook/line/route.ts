@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import { extractDataFromTextWithAI } from '@/lib/ai/text-processor';
 import { getJSTISOString, getJSTNow, getJSTTimestampForID } from '@/lib/utils/datetime-jst';
+import { TYPE_MAP, getTypeDisplayName } from '@/lib/constants/line-types';
+import { convertPriority } from '@/lib/utils/line-helpers';
 import { 
   sendReplyMessage, 
   createErrorMessage,
@@ -63,20 +65,6 @@ function validateSignature(body: string, signature: string): boolean {
   return hash === signature;
 }
 
-// Priority変換関数
-function convertPriority(priority: string): 'A' | 'B' | 'C' | 'D' {
-  switch (priority?.toLowerCase()) {
-    case 'urgent':
-    case 'high': 
-      return 'A';
-    case 'medium':
-      return 'B';
-    case 'low':
-      return 'C';
-    default:
-      return 'C';
-  }
-}
 
 // メンション検知（フォールバック対応）
 function isMentioned(message: LineMessage): boolean {
@@ -339,6 +327,8 @@ async function handleMessage(event: LineWebhookEvent): Promise<void> {
         // AI分析結果がセッションタイプと異なる場合は、セッションタイプを優先
         console.log(`📝 Session type mismatch: session=${session.type}, AI=${extractedData.type}. Using session type.`);
         (extractedData as any).type = session.type;
+        console.log('🔍 DEBUG extractedData.type:', JSON.stringify(extractedData.type));
+        console.log('🔍 DEBUG extractedData full object:', JSON.stringify(extractedData));
       }
     } else {
       // 新規セッション作成
@@ -802,15 +792,7 @@ async function handlePostback(event: LineWebhookEvent): Promise<void> {
           }
         }
         
-        const typeMap: { [key: string]: string } = {
-          personal_schedule: '📅 予定',
-          schedule: '🎯 イベント',
-          task: '📋 タスク',
-          project: '📊 プロジェクト',
-          contact: '👤 人脈',
-          memo: '📝 メモ'
-        };
-        const typeText = typeMap[type] || type;
+        const typeText = getTypeDisplayName(type, type);
         const title = sessionData?.data?.title || sessionData?.data?.name || sessionData?.data?.summary || '';
         const itemName = title ? `「${title}」` : '';
         
