@@ -139,6 +139,8 @@ export async function PUT(
       );
     }
 
+    console.log('Updating schedule:', id, 'with data:', updateData);
+    
     const updatedSchedule = await prisma.personal_schedules.update({
       where: { id },
       data: updateData,
@@ -152,6 +154,8 @@ export async function PUT(
         },
       },
     });
+    
+    console.log('Updated schedule result:', { id: updatedSchedule.id, date: updatedSchedule.date });
 
     const formattedSchedule: PersonalSchedule = {
       id: updatedSchedule.id,

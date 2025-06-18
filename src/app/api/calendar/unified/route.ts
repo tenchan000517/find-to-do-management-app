@@ -35,15 +35,15 @@ export async function GET(request: NextRequest) {
     // キャッシュキー生成
     const cacheKey = `calendar:unified:${searchParams.toString()}`;
     
-    // キャッシュチェック
-    const cached = await cache.get(cacheKey);
-    if (cached) {
-      return NextResponse.json({
-        ...cached,
-        _cached: true,
-        _cacheTimestamp: getJSTISOString()
-      });
-    }
+    // リアルタイム更新のためキャッシュを一時的に無効化
+    // const cached = await cache.get(cacheKey);
+    // if (cached) {
+    //   return NextResponse.json({
+    //     ...cached,
+    //     _cached: true,
+    //     _cacheTimestamp: getJSTISOString()
+    //   });
+    // }
 
     // 並列クエリで全データ取得
     const baseWhere = {
@@ -203,7 +203,9 @@ export async function GET(request: NextRequest) {
     };
 
     // 個人予定の変換
+    console.log('Personal schedules found:', personalSchedules.length);
     personalSchedules.forEach((schedule: any) => {
+      console.log('Processing schedule:', { id: schedule.id, date: schedule.date });
       events.push({
         id: schedule.id,
         title: schedule.title,

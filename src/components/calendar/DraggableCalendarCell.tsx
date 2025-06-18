@@ -3,8 +3,8 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { UnifiedCalendarEvent, ColorMode } from '@/types/calendar';
-import { DraggableEvent } from './DraggableEvent';
 import { EventCard } from './EventCard';
+import { getJSTDateString } from '@/lib/utils/datetime-jst';
 
 interface DraggableCalendarCellProps {
   date: Date;
@@ -27,7 +27,7 @@ export function DraggableCalendarCell({
   onDateClick,
   colorMode
 }: DraggableCalendarCellProps) {
-  const dateString = date.toISOString().split('T')[0];
+  const dateString = getJSTDateString(date);
   
   const { setNodeRef, isOver } = useDroppable({
     id: `calendar-cell-${dateString}`,
@@ -56,29 +56,6 @@ export function DraggableCalendarCell({
         hover:bg-gray-50 transition-all duration-200
       `}
       onClick={handleDateClick}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.currentTarget.classList.add('bg-blue-100');
-      }}
-      onDragLeave={(e) => {
-        e.currentTarget.classList.remove('bg-blue-100');
-      }}
-      onDrop={async (e) => {
-        e.preventDefault();
-        e.currentTarget.classList.remove('bg-blue-100');
-        
-        try {
-          const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
-          const { eventId, eventDate } = dragData;
-          const newDate = date.toISOString().split('T')[0];
-          
-          if (eventDate !== newDate && onEventMove) {
-            onEventMove(eventId, newDate);
-          }
-        } catch (error) {
-          console.error('Drag and drop failed:', error);
-        }
-      }}
     >
       {/* 日付表示 */}
       <div className="flex justify-between items-start mb-1 flex-shrink-0">
@@ -131,9 +108,9 @@ export function DraggableCalendarCell({
           )}
         </div>
         
-        {/* PC表示（3件まで） */}
+        {/* PC表示（4件まで） */}
         <div className="hidden md:block">
-          {events.slice(0, 3).map((event) => (
+          {events.slice(0, 4).map((event) => (
             <EventCard
               key={event.id}
               event={event}
@@ -142,9 +119,9 @@ export function DraggableCalendarCell({
               onEventEdit={onEventEdit}
             />
           ))}
-          {events.length > 3 && (
+          {events.length > 4 && (
             <div className="text-xs text-gray-500 text-center py-1 bg-blue-100 rounded flex-shrink-0">
-              +{events.length - 3}件
+              +{events.length - 4}件
             </div>
           )}
         </div>

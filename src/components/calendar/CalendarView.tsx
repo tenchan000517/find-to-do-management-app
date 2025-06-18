@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { CalendarEvent, UnifiedCalendarEvent, ViewMode, ColorMode } from '@/types/calendar';
 import { User } from '@/lib/types';
@@ -26,7 +26,10 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(getJSTDate());
   const [events, setEvents] = useState<UnifiedCalendarEvent[]>([]);
+  
   const [loading, setLoading] = useState(false);
+  const [dragLoading, setDragLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [colorMode, setColorMode] = useState<ColorMode>('user');
   const [users, setUsers] = useState<User[]>([]);
   const [showWeeklyPreview, setShowWeeklyPreview] = useState(false);
@@ -71,7 +74,14 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
   // 統合カレンダーデータ取得
   const fetchEvents = async () => {
+    // 既にfetch中の場合は重複を防ぐ
+    if (isFetching) {
+      console.log('Already fetching, skipping...');
+      return;
+    }
+
     try {
+      setIsFetching(true);
       setLoading(true);
       const { startDate, endDate } = getDateRange();
       
@@ -82,18 +92,22 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         includePublic: 'true'
       });
 
+      console.log('Fetching events...', { startDate, endDate });
       const response = await fetch(`/api/calendar/unified?${params}`);
       if (!response.ok) {
         throw new Error('統合カレンダーの取得に失敗しました');
       }
 
       const data = await response.json();
+      console.log('Events fetched:', data.events?.length || 0);
+      
       setEvents(data.events || []);
     } catch (error) {
       console.error('Unified calendar fetch error:', error);
       setEvents([]);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
@@ -329,11 +343,15 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
   // イベント移動処理
   const handleEventMove = async (eventId: string, newDate: string) => {
+    
     try {
-      setLoading(true);
+      setDragLoading(true);
       
       const event = events.find(e => e.id === eventId);
-      if (!event) return;
+      
+      if (!event) {
+        return;
+      }
       
       let apiUrl = '';
       let requestBody = {};
@@ -369,53 +387,70 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
           break;
       }
       
+      
       const response = await fetch(apiUrl, {
-        method: event.source === 'tasks' ? 'PUT' : 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
       });
       
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
+      
+      const responseData = await response.json();
+      console.log('API response:', responseData);
       
       // イベントデータを再取得
       await fetchEvents();
       
     } catch (error) {
-      console.error('Failed to move event:', error);
+      console.error('❌ Failed to move event:', error);
       alert('イベントの移動に失敗しました。もう一度お試しください。');
     } finally {
-      setLoading(false);
+      setDragLoading(false);
     }
   };
 
   // ドラッグ開始処理
   const handleDragStart = (event: DragStartEvent) => {
+    console.log('Drag Start');
     const draggedData = event.active.data.current;
+    
     if (draggedData?.type === 'calendar-event') {
+      console.log('Setting dragged event:', draggedData.event.id);
       setDraggedEvent(draggedData.event);
     }
   };
 
   // ドラッグ終了処理
   const handleDragEnd = (event: DragEndEvent) => {
+    console.log('Drag End');
     const { active, over } = event;
     
     if (!over || !draggedEvent) {
+      console.log('No drop target or dragged event');
       setDraggedEvent(null);
       return;
     }
     
     const overData = over.data.current;
+    console.log('Drop target:', overData?.type, overData?.date);
+    
     if (overData?.type === 'calendar-cell') {
       const newDate = overData.date;
       const currentDate = draggedEvent.date;
+      console.log('Date change:', currentDate, '->', newDate);
       
       if (newDate !== currentDate) {
+        console.log('Moving event');
         handleEventMove(draggedEvent.id, newDate);
+      } else {
+        console.log('Same date, no move');
       }
     }
     
@@ -475,6 +510,9 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
           {loading && (
             <LoadingSpinner overlay message="カレンダーデータを読み込んでいます..." />
           )}
+          {dragLoading && (
+            <LoadingSpinner overlay message="イベントを移動しています..." />
+          )}
 
           {viewMode === 'month' && (
             <MonthView 
@@ -512,6 +550,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
               event={draggedEvent}
               onEdit={() => {}}
               onMove={() => {}}
+              colorMode={colorMode}
             />
           ) : null}
         </DragOverlay>

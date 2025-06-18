@@ -735,7 +735,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
               <h2 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-2">
                 🤖 AIレコメンデーション
               </h2>
-              <Link href="/google-docs-dashboard" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              <Link href="/dashboard/google-docs" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 詳細を見る
               </Link>
             </div>
@@ -791,7 +791,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 {recommendations.length > 3 && (
                   <div className="text-center py-2">
                     <Link 
-                      href="/google-docs-dashboard"
+                      href="/dashboard/google-docs"
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                     >
                       他{recommendations.length - 3}件のレコメンデーションを見る →

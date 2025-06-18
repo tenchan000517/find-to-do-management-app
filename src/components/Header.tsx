@@ -13,7 +13,10 @@ import {
   FileText, 
   Bot, 
   BarChart3, 
-  ClipboardList 
+  ClipboardList,
+  ChevronDown,
+  TrendingUp,
+  FileBarChart
 } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 import { Button } from './ui/Button';
@@ -22,6 +25,7 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
+  const [dashboardDropdownOpen, setDashboardDropdownOpen] = useState(false);
   
   const navItems = [
     // { href: '/', label: 'ダッシュボード', icon: Home },
@@ -32,7 +36,7 @@ export default function Header() {
     { href: '/appointments', label: 'アポイント', icon: Phone },
     { href: '/knowledge', label: 'ナレッジ', icon: BookOpen },
     { href: '/meeting-notes', label: '議事録', icon: FileText },
-    { href: '/google-docs-dashboard', label: 'AI レコメンド', icon: Bot },
+    { href: '/dashboard/google-docs', label: 'サマリー', icon: FileBarChart },
   ];
 
   return (
@@ -48,7 +52,7 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1">
-            {navItems.map((item) => (
+            {navItems.slice(0, -1).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -62,6 +66,47 @@ export default function Header() {
                 <span>{item.label}</span>
               </Link>
             ))}
+            
+            {/* Dashboard Dropdown */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDashboardDropdownOpen(!dashboardDropdownOpen)}
+                className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname.startsWith('/dashboard')
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>ダッシュボード</span>
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+              
+              {dashboardDropdownOpen && (
+                <div className="absolute left-0 mt-1 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard/sales-analytics"
+                      onClick={() => setDashboardDropdownOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <TrendingUp className="mr-3 h-4 w-4" />
+                      営業アナリティクス
+                    </Link>
+                    <Link
+                      href="/dashboard/google-docs"
+                      onClick={() => setDashboardDropdownOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Bot className="mr-3 h-4 w-4" />
+                      IIDA_AIサマリー
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Discord Insights & User Menu */}
@@ -112,7 +157,7 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-gray-200">
           <nav className="px-4 pt-2 pb-3 space-y-1">
-            {navItems.map((item) => (
+            {navItems.slice(0, -1).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -127,6 +172,29 @@ export default function Header() {
                 <span>{item.label}</span>
               </Link>
             ))}
+            
+            {/* Dashboard Section for Mobile */}
+            <div className="border-t border-gray-200 pt-2 mt-2">
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                ダッシュボード
+              </div>
+              <Link
+                href="/dashboard/sales-analytics"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                <TrendingUp className="h-5 w-5" />
+                <span>営業アナリティクス</span>
+              </Link>
+              <Link
+                href="/dashboard/google-docs"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                <Bot className="h-5 w-5" />
+                <span>IIDA_AIサマリー</span>
+              </Link>
+            </div>
             
             {/* Discord Insights for Mobile */}
             <Link
