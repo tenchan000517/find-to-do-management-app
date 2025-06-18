@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { UnifiedCalendarEvent, CATEGORY_COLORS, IMPORTANCE_COLORS, PRIORITY_COLORS, ColorMode, PriorityLevel } from '@/types/calendar';
 
 interface EventCardProps {
@@ -23,6 +25,25 @@ export function EventCard({
   onEventDelete,
   isModal = false
 }: EventCardProps) {
+  
+  // @dnd-kit ドラッグ機能
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging
+  } = useDraggable({
+    id: `event-${event.id}`,
+    data: {
+      type: 'calendar-event',
+      event
+    }
+  });
+
+  const dragStyle = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
   
   // 色を決定（色分けモードとフィルタリング状態に基づく）
   const getEventColor = () => {
@@ -156,14 +177,14 @@ export function EventCard({
   const getTruncatedTitle = () => {
     if (isModal) {
       // モーダル内では長めに表示
-      const maxLength = compact ? 30 : 50;
+      const maxLength = compact ? 40 : 60;
       if (event.title.length <= maxLength) return event.title;
       return event.title.slice(0, maxLength) + '...';
     } else {
-      // 通常のカレンダーグリッドではモバイルで4文字程度
-      const maxLength = compact ? 4 : 50;
+      // 通常のカレンダーグリッドでは文字数を大幅に増やす
+      const maxLength = compact ? 25 : 50;
       if (event.title.length <= maxLength) return event.title;
-      return event.title.slice(0, maxLength) + '...';
+      return event.title.slice(0, maxLength);
     }
   };
 
@@ -188,32 +209,34 @@ export function EventCard({
 
   return (
     <div
-      className={`group rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md font-medium ${
-        isModal ? 'mx-px' : 'mx-0 md:mx-px'
-      } ${
-        compact ? 'p-0.5 md:p-1 text-xs md:text-xs min-h-[16px] md:min-h-[20px]' : 'p-2 text-sm min-h-[32px]'
-      }`}
+      ref={setNodeRef}
       style={{ 
         backgroundColor: eventColor,
-        color: '#FFFFFF'
+        color: '#FFFFFF',
+        ...dragStyle
       }}
+      className={`group rounded-lg cursor-grab transition-all duration-200 hover:shadow-md font-medium ${
+        isModal ? 'mx-px' : 'mx-0 md:mx-px'
+      } ${
+        compact ? 'p-0.5 md:p-1 md:text-xl min-h-[14px] md:min-h-[24px]' : 'p-2 text-base min-h-[32px]'
+      } ${
+        isDragging ? 'opacity-50 z-50' : ''
+      } active:cursor-grabbing`}
       onClick={handleClick}
-      draggable={true}
-      onDragStart={(e) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({ eventId: event.id, eventDate: event.date }));
-      }}
+      {...listeners}
+      {...attributes}
     >
       <div className="flex items-center justify-between truncate">
-        <span className={`truncate flex-1 leading-tight ${isModal ? 'text-xs md:text-xs' : 'text-xs md:text-xs'}`} style={!isModal ? { fontSize: '10px' } : {}}>
+        <span className="overflow-hidden flex-1 leading-tight text-[10px] md:text-[12px]">
           {showTime && event.time && (isModal ? `${event.time} ` : <span className="hidden md:inline">{event.time} </span>)}
           {getTruncatedTitle()}
         </span>
         <div className="flex items-center space-x-1 ml-1 flex-shrink-0">
-          <div className={isModal ? "flex items-center space-x-1" : "hidden md:flex items-center space-x-1"}>
+          <div className={isModal ? "flex items-center space-x-1" : "hidden lg:flex items-center space-x-1"}>
             {labels.map((label, index) => (
               <span
                 key={index}
-                className={`inline-flex items-center justify-center w-4 h-4 text-xs font-medium rounded-full ${label.color}`}
+                className={`inline-flex items-center justify-center w-4 h-4 text-xs font-medium rounded ${label.color}`}
               >
                 {label.text}
               </span>

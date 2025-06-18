@@ -65,13 +65,13 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
   const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       {/* 曜日ヘッダー */}
       <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200 flex-shrink-0">
         {weekDays.map((day, index) => (
           <div
             key={day}
-            className={`p-3 text-sm font-medium text-center border-r border-gray-200 last:border-r-0 ${
+            className={`py-3 px-2 text-sm font-medium text-center border-r border-gray-200 last:border-r-0 ${
               index === 0 ? 'text-red-600' : index === 6 ? 'text-blue-600' : 'text-gray-700'
             }`}
           >
@@ -81,14 +81,13 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="flex-1 grid grid-rows-6 overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         {Array.from({ length: 6 }, (_, weekIndex) => (
-          <div key={weekIndex} className="grid grid-cols-7 border-b border-gray-200 last:border-b-0">
+          <div key={weekIndex} className="flex-1 grid grid-cols-7 border-b border-gray-200 last:border-b-0 min-h-[180px]">
             {days.slice(weekIndex * 7, (weekIndex + 1) * 7).map((date, dayIndex) => {
               const dayEvents = getEventsForDate(date);
               const isCurrentMonthDay = isCurrentMonth(date);
               const isTodayDay = isTodayJST(date);
-              const cellIndex = weekIndex * 7 + dayIndex;
               
               return (
                 <DraggableCalendarCell
@@ -99,6 +98,8 @@ export function MonthView({ currentDate, events, onDateSelect, colorMode, onEven
                   isToday={isTodayDay}
                   onEventEdit={onEventEdit || (() => {})}
                   onEventMove={onEventMove || (() => {})}
+                  onDateClick={onDateSelect}
+                  colorMode={colorMode}
                 />
               );
             })}
