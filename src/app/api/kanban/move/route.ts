@@ -296,10 +296,7 @@ async function handleProjectMove(
   try {
     // プロジェクトの存在確認
     const existingProject = await prisma.projects.findUnique({
-      where: { id: projectId },
-      include: {
-        users: { select: { id: true, name: true } }
-      }
+      where: { id: projectId }
     });
 
     if (!existingProject) {
@@ -321,9 +318,6 @@ async function handleProjectMove(
       data: {
         ...updateData,
         updatedAt: new Date()
-      },
-      include: {
-        users: { select: { id: true, name: true } }
       }
     });
 

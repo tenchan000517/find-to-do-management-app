@@ -78,7 +78,7 @@ export class KanbanMoveHandler {
 
     return {
       success: false,
-      error: lastError?.message || '操作に失敗しました',
+      error: (lastError instanceof Error ? lastError.message : String(lastError)) || '操作に失敗しました',
       status: this.getErrorStatus(lastError)
     };
   }
@@ -130,7 +130,7 @@ export function validateKanbanMove(
     return { isValid: false, error: `移動先にアイテムIDが指定されています。カラムIDを指定してください: ${targetColumn}` };
   }
 
-  const validColumns = rules[kanbanType as keyof typeof rules];
+  const validColumns = rules[kanbanType as keyof typeof rules] as string[] | undefined;
   
   if (!validColumns) {
     return { isValid: false, error: `サポートされていないカンバンタイプ: ${kanbanType}` };

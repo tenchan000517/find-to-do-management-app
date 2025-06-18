@@ -44,6 +44,9 @@ interface EnhancedTaskKanbanProps {
   onTaskEdit: (task: Task) => void;
   onTaskDelete: (taskId: string) => void;
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
+  currentTab?: 'status' | 'user' | 'project';
+  users?: Array<{id: string; name: string}>;
+  projects?: Array<{id: string; name: string}>;
 }
 
 interface ModalState {
@@ -187,7 +190,7 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ column, tasks, onTaskEdit, onTaskUpdate }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
 
@@ -203,9 +206,22 @@ function KanbanColumn({ column, tasks, onTaskEdit, onTaskUpdate }: KanbanColumnP
             {tasks.length}
           </span>
         </div>
+        
+        {/* ドロップ時のヒント */}
+        {isOver && (
+          <span className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-1 rounded">
+            移動
+          </span>
+        )}
       </div>
 
-      <div ref={setNodeRef} className="flex-1 space-y-3">
+      <div 
+        ref={setNodeRef} 
+        className={`
+          flex-1 space-y-3 transition-all duration-200
+          ${isOver ? 'bg-blue-100 ring-2 ring-blue-300 border-blue-400 border-2 border-dashed rounded-lg' : ''}
+        `}
+      >
         <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
           {tasks.map(task => (
             <TaskCard
@@ -216,6 +232,13 @@ function KanbanColumn({ column, tasks, onTaskEdit, onTaskUpdate }: KanbanColumnP
             />
           ))}
         </SortableContext>
+        
+        {/* 空のカラムへのドロップヒント */}
+        {isOver && tasks.length === 0 && (
+          <div className="flex items-center justify-center h-32 text-blue-500 text-sm bg-blue-50 bg-opacity-75 rounded-lg border-2 border-dashed border-blue-300">
+            タスクをドロップ
+          </div>
+        )}
       </div>
     </div>
   );
@@ -226,7 +249,10 @@ export default function EnhancedTaskKanban({
   onTaskMove,
   onTaskEdit,
   onTaskDelete,
-  onTaskUpdate
+  onTaskUpdate,
+  currentTab = 'status',
+  users = [],
+  projects = []
 }: EnhancedTaskKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dueDateModal, setDueDateModal] = useState<ModalState>({ isOpen: false, taskId: '' });
@@ -235,9 +261,10 @@ export default function EnhancedTaskKanban({
   const [summaryModal, setSummaryModal] = useState<ModalState>({ isOpen: false, taskId: '' });
 
   // 新しいカンバンAPI移動フック
-  const { moveItem, isMoving, rollbackLastMove, canRollback } = useKanbanMove({
+  const { moveItem, isMoving, dragLoading, rollbackLastMove, canRollback } = useKanbanMove({
     enableOptimisticUpdate: true,
     showToastMessages: true,
+    debounceDelay: 300,
     onSuccess: (data) => {
       console.log('タスク移動成功:', data);
     },
@@ -291,70 +318,91 @@ export default function EnhancedTaskKanban({
     handleStatusChange(task, newStatus);
   };
 
-  const handleStatusChange = async (task: Task, newStatus: Task['status']) => {
-    const transitionKey = `${task.status}_TO_${newStatus}`;
+  const handleStatusChange = async (task: Task, newValue: string) => {
+    let moveRequest: any;
     
-    // 新しいカンバンAPI移動リクエストを作成する内部関数
-    const performMove = async (targetStatus: Task['status']) => {
-      const moveRequest = createTaskMoveRequest(task.id, targetStatus, task.status);
-      await moveItem(moveRequest);
-      // フォールバックとして従来のコールバックも呼び出し
-      onTaskMove(task.id, targetStatus);
-    };
-    
-    switch (transitionKey) {
-      case 'IDEA_TO_PLAN':
-        // 直接移行可能
-        await performMove('PLAN');
-        break;
+    // タブの種類に応じて移動リクエストを作成
+    switch (currentTab) {
+      case 'status':
+        // ステータス変更（現在の実装）
+        const newStatus = newValue as Task['status'];
+        const transitionKey = `${task.status}_TO_${newStatus}`;
         
-      case 'PLAN_TO_DO':
-        // 期日設定が必須
-        if (!task.dueDate) {
-          setDueDateModal({
-            isOpen: true,
-            taskId: task.id,
-            targetStatus: 'DO',
-            type: 'dueDate'
-          });
-          return;
+        // 既存のフロー制御ロジックを保持
+        switch (transitionKey) {
+          case 'IDEA_TO_PLAN':
+            moveRequest = createTaskMoveRequest(task.id, newStatus, task.status);
+            break;
+          case 'PLAN_TO_DO':
+            if (!task.dueDate) {
+              setDueDateModal({
+                isOpen: true,
+                taskId: task.id,
+                targetStatus: 'DO',
+                type: 'dueDate'
+              });
+              return;
+            }
+            moveRequest = createTaskMoveRequest(task.id, newStatus, task.status);
+            break;
+          case 'DO_TO_CHECK':
+            moveRequest = createTaskMoveRequest(task.id, newStatus, task.status);
+            break;
+          case 'CHECK_TO_COMPLETE':
+            setCompletionModal({
+              isOpen: true,
+              taskId: task.id,
+              type: 'completion'
+            });
+            return;
+          case 'CHECK_TO_DO':
+            setSummaryModal({
+              isOpen: true,
+              taskId: task.id,
+              fromStatus: 'CHECK',
+              type: 'summary'
+            });
+            return;
+          case 'COMPLETE_TO_KNOWLEDGE':
+            moveRequest = createTaskMoveRequest(task.id, newStatus, task.status);
+            break;
+          default:
+            moveRequest = createTaskMoveRequest(task.id, newStatus, task.status);
+            break;
         }
-        await performMove('DO');
+        await moveItem(moveRequest);
+        onTaskMove(task.id, newStatus);
         break;
         
-      case 'DO_TO_CHECK':
-        // 直接移行可能
-        await performMove('CHECK');
+      case 'user':
+        // 担当者変更
+        moveRequest = {
+          itemType: 'task' as const,
+          itemId: task.id,
+          sourceColumn: task.assignedTo || 'unassigned',
+          targetColumn: newValue || 'unassigned',
+          kanbanType: 'user' as const
+        };
+        await moveItem(moveRequest);
+        onTaskUpdate(task.id, { assignedTo: newValue });
         break;
         
-      case 'CHECK_TO_COMPLETE':
-        // 完了処理モーダル表示
-        setCompletionModal({
-          isOpen: true,
-          taskId: task.id,
-          type: 'completion'
-        });
-        break;
-        
-      case 'CHECK_TO_DO':
-        // サマリー入力モーダル表示
-        setSummaryModal({
-          isOpen: true,
-          taskId: task.id,
-          fromStatus: 'CHECK',
-          type: 'summary'
-        });
-        break;
-        
-      case 'COMPLETE_TO_KNOWLEDGE':
-        // 直接移行可能
-        await performMove('KNOWLEDGE');
+      case 'project':
+        // プロジェクト移動
+        moveRequest = {
+          itemType: 'task' as const,
+          itemId: task.id,
+          sourceColumn: task.projectId || 'no_project',
+          targetColumn: newValue || 'no_project',
+          kanbanType: 'project' as const
+        };
+        await moveItem(moveRequest);
+        onTaskUpdate(task.id, { projectId: newValue });
         break;
         
       default:
-        // その他の移行
-        await performMove(newStatus);
-        break;
+        console.error('未対応のタブタイプ:', currentTab);
+        return;
     }
   };
 
@@ -422,16 +470,28 @@ export default function EnhancedTaskKanban({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-          {columns.map(column => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              tasks={getTasksByStatus(column.id)}
-              onTaskEdit={onTaskEdit}
-              onTaskUpdate={handleTaskUpdateClick}
-            />
-          ))}
+        <div className="relative">
+          {/* ドラッグローディング表示 */}
+          {dragLoading && (
+            <div className="absolute inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50 rounded-lg">
+              <div className="bg-white px-4 py-2 rounded-lg shadow-md flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                <span className="text-sm text-gray-700">タスクを移動中...</span>
+              </div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            {columns.map(column => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                tasks={getTasksByStatus(column.id)}
+                onTaskEdit={onTaskEdit}
+                onTaskUpdate={handleTaskUpdateClick}
+              />
+            ))}
+          </div>
         </div>
 
         <DragOverlay>
