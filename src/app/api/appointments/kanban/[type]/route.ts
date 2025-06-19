@@ -22,6 +22,15 @@ type AppointmentWithDetails = {
     phaseStatus?: string;
     sourceType?: string;
   } | null;
+  calendar_events?: {
+    id: string;
+    date: string;
+    time: string;
+    location: string | null;
+    description: string | null;
+    participants: string[];
+    createdAt: Date;
+  }[];
 };
 
 export async function GET(
@@ -34,11 +43,22 @@ export async function GET(
     // Get all appointments with details
     const appointments = await prisma.appointments.findMany({
       include: {
-        details: true
+        details: true,
+        calendar_events: {
+          orderBy: { createdAt: 'desc' },
+          take: 1, // 最新のイベントのみ取得
+          select: {
+            id: true,
+            date: true,
+            time: true,
+            location: true,
+            description: true,
+            participants: true,
+            createdAt: true
+          }
+        }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
     // Group appointments by kanban type

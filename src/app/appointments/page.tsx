@@ -10,6 +10,7 @@ import EnhancedAppointmentKanban from '@/components/appointments/EnhancedAppoint
 import AppointmentFlowModal from '@/components/appointments/AppointmentFlowModal';
 import ContractProcessingForm from '@/components/appointments/ContractProcessingForm';
 import AppointmentCompletionForm from '@/components/appointments/AppointmentCompletionForm';
+import TaskCreationModal from '@/components/appointments/TaskCreationModal';
 
 
 const getStatusStyle = (status: string) => {
@@ -74,6 +75,7 @@ export default function AppointmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isKanbanUpdating, setIsKanbanUpdating] = useState(false);
   
   // New modal states for Phase 4
   const [appointmentModal, setAppointmentModal] = useState<{
@@ -100,6 +102,16 @@ export default function AppointmentsPage() {
   }>({
     isOpen: false,
     appointment: null
+  });
+
+  const [taskCreationModal, setTaskCreationModal] = useState<{
+    isOpen: boolean;
+    appointment: Appointment | null;
+    targetRelationshipStatus: string | null;
+  }>({
+    isOpen: false,
+    appointment: null,
+    targetRelationshipStatus: null
   });
 
   // デバッグ用: 状態変更を監視
@@ -295,6 +307,40 @@ export default function AppointmentsPage() {
 
   const handleAppointmentMove = async (appointmentId: string, newStatus: string, kanbanType: string) => {
     try {
+      setIsKanbanUpdating(true);
+      const appointment = appointments.find(a => a.id === appointmentId);
+      if (!appointment) {
+        console.error('Appointment not found:', appointmentId);
+        setIsKanbanUpdating(false);
+        return;
+      }
+
+      // Processing status flow automation
+      if (kanbanType === 'processing') {
+        const currentStatus = appointment.details?.processingStatus || 'PENDING';
+        
+        // PENDING → IN_PROGRESS: Show schedule modal
+        if (currentStatus === 'PENDING' && newStatus === 'IN_PROGRESS') {
+          setAppointmentModal({
+            isOpen: true,
+            type: 'schedule',
+            appointment
+          });
+          setIsKanbanUpdating(false);
+          return;
+        }
+        
+        // IN_PROGRESS → COMPLETED: Show completion modal
+        if (currentStatus === 'IN_PROGRESS' && newStatus === 'COMPLETED') {
+          setCompletionForm({
+            isOpen: true,
+            appointment
+          });
+          setIsKanbanUpdating(false);
+          return;
+        }
+      }
+
       // Sales phase automation logic
       if (kanbanType === 'phase') {
         const salesPhaseFlow = {
@@ -306,14 +352,34 @@ export default function AppointmentsPage() {
 
         // Contract phase requires special handling
         if (newStatus === 'CONTRACT') {
-          const appointment = appointments.find(a => a.id === appointmentId);
-          if (appointment) {
-            setContractForm({
-              isOpen: true,
-              appointment
-            });
-            return;
-          }
+          setContractForm({
+            isOpen: true,
+            appointment
+          });
+          setIsKanbanUpdating(false);
+          return;
+        }
+      }
+
+      // Relationship status flow automation
+      if (kanbanType === 'relationship') {
+        const currentRelationship = appointment.details?.relationshipStatus || 'FIRST_CONTACT';
+        
+        // Auto-update connection relationshipStatus when moving to RAPPORT_BUILDING
+        if (newStatus === 'RAPPORT_BUILDING') {
+          // TODO: Implement connection auto-update
+          console.log('Auto-updating connection relationship status for:', appointment.companyName);
+        }
+        
+        // FOLLOW_UP移動時：タスク生成モーダル表示
+        if (newStatus === 'FOLLOW_UP') {
+          setTaskCreationModal({
+            isOpen: true,
+            appointment,
+            targetRelationshipStatus: 'FOLLOW_UP'
+          });
+          setIsKanbanUpdating(false);
+          return;
         }
       }
 
@@ -329,37 +395,56 @@ export default function AppointmentsPage() {
       });
 
       await refetchAppointments();
+      setIsKanbanUpdating(false);
     } catch (error) {
       console.error('Failed to move appointment:', error);
+      setIsKanbanUpdating(false);
     }
   };
 
-  const handleAppointmentEdit = (appointment: any) => {
+  const handleAppointmentEdit = async (appointment: any) => {
     console.log('🎯 カンバン編集ハンドラー呼び出し:', appointment);
     console.log('🎯 編集前の状態:', { editingAppointment, showModal });
     
-    // Convert kanban appointment to appointment format
-    const mappedAppointment: Appointment = {
-      id: appointment.id,
-      companyName: appointment.companyName,
-      contactName: appointment.contactName,
-      phone: appointment.phone,
-      email: appointment.email,
-      status: appointment.status,
-      priority: appointment.priority,
-      notes: appointment.notes,
-      nextAction: appointment.nextAction || '',
-      lastContact: appointment.lastContact,
-      assignedToId: appointment.assignedToId || appointment.assignedTo || 'user1',
-      assignedTo: appointment.assignedTo || appointment.assignedToId || 'user1', // 互換性のため両方設定
-      createdAt: appointment.createdAt || new Date().toISOString(),
-      updatedAt: appointment.updatedAt || new Date().toISOString()
-    };
-    
-    console.log('🎯 マッピング後のアポイントメント:', mappedAppointment);
-    setEditingAppointment(mappedAppointment);
-    setShowModal(true);
-    console.log('🎯 カンバン編集状態設定完了');
+    try {
+      // 全カレンダーイベントを含むアポイントメント詳細を取得
+      const response = await fetch(`/api/appointments/${appointment.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch appointment details');
+      }
+      
+      const appointmentDetails = await response.json();
+      console.log('🎯 取得したアポイントメント詳細:', appointmentDetails);
+      
+      // Convert to appointment format with all calendar events
+      const mappedAppointment: Appointment = {
+        id: appointmentDetails.id,
+        companyName: appointmentDetails.companyName,
+        contactName: appointmentDetails.contactName,
+        phone: appointmentDetails.phone,
+        email: appointmentDetails.email,
+        status: appointmentDetails.status,
+        priority: appointmentDetails.priority,
+        notes: appointmentDetails.notes,
+        nextAction: appointmentDetails.nextAction || '',
+        lastContact: appointmentDetails.lastContact,
+        assignedToId: appointmentDetails.assignedToId || appointmentDetails.assignedTo || 'user1',
+        assignedTo: appointmentDetails.assignedTo || appointmentDetails.assignedToId || 'user1',
+        createdAt: appointmentDetails.createdAt || new Date().toISOString(),
+        updatedAt: appointmentDetails.updatedAt || new Date().toISOString(),
+        // 全カレンダーイベント情報を含める
+        calendar_events: appointmentDetails.calendar_events || [],
+        details: appointmentDetails.details || {}
+      };
+      
+      console.log('🎯 マッピング後のアポイントメント:', mappedAppointment);
+      setEditingAppointment(mappedAppointment);
+      setShowModal(true);
+      console.log('🎯 カンバン編集状態設定完了');
+    } catch (error) {
+      console.error('Failed to fetch appointment details:', error);
+      alert('アポイントメント詳細の取得に失敗しました。');
+    }
   };
 
   const handleAppointmentComplete = async (appointmentId: string) => {
@@ -437,7 +522,8 @@ export default function AppointmentsPage() {
 
       await refetchAppointments();
       setContractForm({ isOpen: false, appointment: null });
-      alert('契約処理が完了しました！プロジェクトとタスクが自動生成されました。');
+      // Show success notification with details
+      console.log('✅ 契約処理完了:', contractForm.appointment?.companyName);
     } catch (error) {
       console.error('Failed to process contract:', error);
     }
@@ -455,9 +541,78 @@ export default function AppointmentsPage() {
 
       await refetchAppointments();
       setCompletionForm({ isOpen: false, appointment: null });
-      alert('アポイントメントが完了しました！');
+      // Show success notification
+      console.log('✅ アポイントメント完了:', completionForm.appointment?.companyName);
     } catch (error) {
       console.error('Failed to complete appointment:', error);
+    }
+  };
+
+  const handleTaskCreationSubmit = async (tasks: any[]) => {
+    try {
+      if (!taskCreationModal.appointment) return;
+
+      // Create tasks via API
+      const taskPromises = tasks.map(task => 
+        fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        })
+      );
+
+      await Promise.all(taskPromises);
+
+      // Update appointment relationship status
+      if (taskCreationModal.targetRelationshipStatus) {
+        await fetch(`/api/appointments/${taskCreationModal.appointment.id}/details`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            relationshipStatus: taskCreationModal.targetRelationshipStatus
+          })
+        });
+      }
+
+      await refetchAppointments();
+      setTaskCreationModal({ isOpen: false, appointment: null, targetRelationshipStatus: null });
+      console.log('✅ フォローアップタスク作成完了:', tasks.length, '件');
+    } catch (error) {
+      console.error('Failed to create tasks:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteCalendarEvent = async (eventId: string) => {
+    if (!confirm('このカレンダーイベント履歴を削除しますか？')) return;
+    
+    try {
+      const response = await fetch(`/api/calendar/events/${eventId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('カレンダーイベントの削除に失敗しました');
+      }
+
+      // 編集中のアポイントメントのcalendar_eventsを更新
+      if (editingAppointment?.calendar_events) {
+        const updatedEvents = editingAppointment.calendar_events.filter(
+          (event: any) => event.id !== eventId
+        );
+        setEditingAppointment({
+          ...editingAppointment,
+          calendar_events: updatedEvents
+        });
+      }
+
+      // アポイントメントデータを再取得
+      await refetchAppointments();
+      
+      alert('カレンダーイベント履歴を削除しました');
+    } catch (error) {
+      console.error('Failed to delete calendar event:', error);
+      alert('削除に失敗しました。もう一度お試しください。');
     }
   };
 
@@ -861,7 +1016,15 @@ export default function AppointmentsPage() {
           </div>
         ) : (
           /* カンバンビュー */
-          <div className="bg-white rounded-lg shadow-lg p-1">
+          <div className="bg-white rounded-lg shadow-lg p-1 relative">
+            {isKanbanUpdating && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                <div className="flex flex-col items-center space-y-3">
+                  <LoadingSpinner />
+                  <span className="text-sm text-gray-600">アポイントメントを更新中...</span>
+                </div>
+              </div>
+            )}
             <EnhancedAppointmentKanban
               kanbanType={kanbanType}
               onAppointmentMove={handleAppointmentMove}
@@ -901,14 +1064,18 @@ export default function AppointmentsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        最終連絡日
+                        優先度
                       </label>
-                      <input
-                        type="date"
-                        name="lastContact"
-                        defaultValue={editingAppointment?.lastContact ? new Date(editingAppointment.lastContact).toISOString().split('T')[0] : ''}
+                      <select
+                        name="priority"
+                        defaultValue={editingAppointment?.priority || 'B'}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                      >
+                        <option value="A">最優先</option>
+                        <option value="B">重要</option>
+                        <option value="C">緊急</option>
+                        <option value="D">要検討</option>
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -947,6 +1114,8 @@ export default function AppointmentsPage() {
                       <input
                         type="datetime-local"
                         name="eventDateTime"
+                        defaultValue={editingAppointment?.calendar_events?.[0] ? 
+                          `${editingAppointment.calendar_events[0].date}T${editingAppointment.calendar_events[0].time}` : ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -968,6 +1137,7 @@ export default function AppointmentsPage() {
                         type="text"
                         name="eventLocation"
                         placeholder="会議室、住所など"
+                        defaultValue={editingAppointment?.calendar_events?.[0]?.location || ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -979,6 +1149,7 @@ export default function AppointmentsPage() {
                         type="text"
                         name="eventParticipants"
                         placeholder="田中,佐藤,山田"
+                        defaultValue={editingAppointment?.calendar_events?.[0]?.participants?.join(', ') || ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -1239,6 +1410,66 @@ export default function AppointmentsPage() {
                     </div>
                   </div>
                 </details>
+
+                {/* アポイントメント履歴 */}
+                <details className="border rounded-lg">
+                  <summary className="cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 rounded-lg font-medium">
+                    📅 アポイントメント履歴
+                  </summary>
+                  <div className="p-4 space-y-3">
+                    {editingAppointment?.calendar_events && editingAppointment.calendar_events.length > 0 ? (
+                      editingAppointment.calendar_events.map((event: any, index: number) => (
+                        <div key={event.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div>
+                                  <span className="font-medium text-gray-600">日時:</span>
+                                  <span className="ml-2">{event.date} {event.time}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-600">場所:</span>
+                                  <span className="ml-2">{event.location || '未設定'}</span>
+                                </div>
+                                <div className="md:col-span-2">
+                                  <span className="font-medium text-gray-600">議題:</span>
+                                  <span className="ml-2">{event.description || '未設定'}</span>
+                                </div>
+                                <div className="md:col-span-2">
+                                  <span className="font-medium text-gray-600">参加者:</span>
+                                  <span className="ml-2">
+                                    {event.participants && event.participants.length > 0 
+                                      ? event.participants.join(', ') 
+                                      : '未設定'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-600">作成日:</span>
+                                  <span className="ml-2">
+                                    {new Date(event.createdAt).toLocaleDateString('ja-JP')}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCalendarEvent(event.id)}
+                              className="ml-3 p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="この履歴を削除"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500 text-center py-4">
+                        まだカレンダーイベントの履歴がありません
+                      </div>
+                    )}
+                  </div>
+                </details>
+
                 <div className="flex gap-2 pt-4">
                   <button
                     type="submit"
@@ -1296,6 +1527,14 @@ export default function AppointmentsPage() {
             </div>
           </div>
         )}
+
+        <TaskCreationModal
+          isOpen={taskCreationModal.isOpen}
+          appointment={taskCreationModal.appointment}
+          targetRelationshipStatus={taskCreationModal.targetRelationshipStatus}
+          onClose={() => setTaskCreationModal({ isOpen: false, appointment: null, targetRelationshipStatus: null })}
+          onSubmit={handleTaskCreationSubmit}
+        />
       </div>
     </div>
   );

@@ -49,6 +49,28 @@ export async function POST(
           appointmentId: appointment.id
         }
       });
+
+      // 二回目以降のアポイントメント自動関係性進行
+      const existingEvents = await prisma.calendar_events.findMany({
+        where: { appointmentId: appointment.id },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // 2回目以降の場合、関係性ステータスを「関係性構築」に自動更新
+      if (existingEvents.length >= 1) {
+        await prisma.appointment_details.upsert({
+          where: { appointmentId: appointment.id },
+          create: {
+            appointmentId: appointment.id,
+            relationshipStatus: 'RAPPORT_BUILDING'
+          },
+          update: {
+            relationshipStatus: 'RAPPORT_BUILDING'
+          }
+        });
+        
+        console.log('✅ 自動関係性進行:', appointment.companyName, '→ 関係性構築');
+      }
     }
 
     // ステータス更新（簡略化）

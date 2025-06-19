@@ -120,7 +120,10 @@ function AppointmentCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: appointment.id });
+  } = useSortable({ 
+    id: appointment.id,
+    disabled: appointment.isLoading // ローディング中はドラッグ無効
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -215,14 +218,14 @@ function AppointmentCard({
         </div>
       )}
       <div 
-        className="cursor-grab"
-        {...listeners}
+        className={appointment.isLoading ? "cursor-not-allowed" : "cursor-grab"}
+        {...(appointment.isLoading ? {} : listeners)}
       >
         <div className="flex items-center justify-between mb-1">
           <span className={`text-xs px-1.5 py-0.5 rounded border ${getPriorityColor(appointment.priority)}`}>
             優先度{appointment.priority}
           </span>
-          {appointment.scheduledDate && getDueDateDisplay(appointment.scheduledDate, appointment.scheduledTime)}
+          {appointment.calendar_events?.[0]?.date && getDueDateDisplay(appointment.calendar_events[0].date, appointment.calendar_events[0].time)}
         </div>
         
         <h4 className="font-medium text-gray-900 mb-1 text-sm break-words overflow-hidden">
@@ -268,6 +271,30 @@ function AppointmentCard({
             </div>
           )}
         </div>
+
+        {/* 最新カレンダーイベント情報表示 */}
+        {appointment.calendar_events?.[0] && (
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded mt-2">
+            <div className="flex items-center space-x-1">
+              <span>📅</span>
+              <span className="font-medium">
+                {appointment.calendar_events[0].date} {appointment.calendar_events[0].time}
+              </span>
+            </div>
+            {appointment.calendar_events[0].location && (
+              <div className="flex items-center space-x-1 mt-1">
+                <span>📍</span>
+                <span>{appointment.calendar_events[0].location}</span>
+              </div>
+            )}
+            {appointment.calendar_events[0].description && (
+              <div className="flex items-center space-x-1 mt-1">
+                <span>💭</span>
+                <span className="truncate">{appointment.calendar_events[0].description}</span>
+              </div>
+            )}
+          </div>
+        )}
         
         {appointment.notes && (
           <p className="text-xs text-gray-500 truncate mt-1">{appointment.notes}</p>

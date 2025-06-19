@@ -166,6 +166,16 @@ export interface Appointment {
   salesPhase?: SalesPhase;
   contractAmount?: number;
   contractStatus?: ContractStatus;
+  // カレンダーイベント関連
+  calendar_events?: {
+    id: string;
+    date: string;
+    time: string;
+    location: string | null;
+    description: string | null;
+    participants: string[];
+    createdAt: Date;
+  }[];
 }
 
 export interface AppointmentDetails {

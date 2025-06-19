@@ -824,7 +824,22 @@ class PrismaDataService {
   async getAppointmentById(id: string): Promise<Appointment | null> {
     try {
       const appointment = await prisma.appointments.findUnique({
-        where: { id }
+        where: { id },
+        include: {
+          details: true,
+          calendar_events: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              date: true,
+              time: true,
+              location: true,
+              description: true,
+              participants: true,
+              createdAt: true
+            }
+          }
+        }
       });
       
       if (!appointment) return null;
@@ -837,6 +852,8 @@ class PrismaDataService {
         lastContact: appointment.lastContact || undefined,
         meetingUrl: appointment.meetingUrl || undefined,
         informationUrl: appointment.informationUrl || undefined,
+        calendar_events: appointment.calendar_events || [],
+        details: appointment.details || undefined,
         createdAt: appointment.createdAt.toISOString(),
         updatedAt: appointment.updatedAt.toISOString()
       };
