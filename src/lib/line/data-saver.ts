@@ -285,7 +285,7 @@ export async function saveClassifiedData(
             
             // 2. notesから日付表現を除去してタイトル生成
             if (dateText) {
-              let cleanTitle = dateText
+              const cleanTitle = dateText
                 // より具体的な日付・時刻パターンを除去
                 .replace(/(明日|明後日|明々後日|今日|きょう|あした|あさって|しあさって)(の|に)?\s*(\d{1,2}時\d{0,2}分?|\d{1,2}:\d{2})?\s*(に|で|から)?/g, '')
                 .replace(/\d{1,2}\/\d{1,2}\s*(に|で|から)?/g, '')
