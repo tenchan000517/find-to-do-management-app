@@ -26,7 +26,7 @@ export function EventCard({
   isModal = false
 }: EventCardProps) {
   
-  // @dnd-kit ドラッグ機能
+  // @dnd-kit ドラッグ機能（モーダル内では無効化）
   const {
     attributes,
     listeners,
@@ -35,6 +35,7 @@ export function EventCard({
     isDragging
   } = useDraggable({
     id: `event-${event.id}`,
+    disabled: isModal, // モーダル内ではドラッグ無効
     data: {
       type: 'calendar-event',
       event
@@ -192,21 +193,25 @@ export function EventCard({
   const labels = getLabels();
   
   const handleClick = (e: React.MouseEvent) => {
+    // 常にイベント伝播を停止（日付マスクリックを防ぐ）
     e.stopPropagation();
     
-    // ドラッグ中やドラッグ操作後の短時間はクリックを無効化
+    // モーダル内でのみクリック処理を有効化
+    if (!isModal) {
+      return;
+    }
+    
+    // ドラッグ中はクリック無効化
     if (isDragging) {
       return;
     }
     
-    // 短時間のクリック（ドラッグではなく確実なクリック）の場合のみ処理
-    setTimeout(() => {
-      if (onClick) {
-        onClick(e);
-      } else if (onEventEdit) {
-        onEventEdit(event);
-      }
-    }, 10);
+    // モーダル内でのクリック処理（即座に実行）
+    if (onClick) {
+      onClick(e);
+    } else if (onEventEdit) {
+      onEventEdit(event);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -224,22 +229,23 @@ export function EventCard({
         color: '#FFFFFF',
         ...dragStyle
       }}
-      className={`group rounded-lg cursor-grab transition-all duration-200 hover:shadow-md font-medium relative ${
-        isModal ? 'mx-px' : 'mx-0 md:mx-px'
+      className={`group rounded-lg transition-all duration-200 hover:shadow-md font-medium relative ${
+        isModal ? 'mx-px cursor-pointer' : 'mx-0 md:mx-px cursor-grab active:cursor-grabbing'
       } ${
         compact ? 'p-0.5 md:p-1 md:text-xl min-h-[14px] md:min-h-[24px]' : 'p-2 text-base min-h-[32px]'
       } ${
         isDragging ? 'opacity-50 z-50' : ''
-      } active:cursor-grabbing`}
-      {...listeners}
-      {...attributes}
+      }`}
+      {...(isModal ? {} : { ...listeners, ...attributes })}
     >
-      {/* クリック専用レイヤー - ドラッグリスナーを適用しない */}
-      <div 
-        className="absolute inset-0 z-10 cursor-pointer" 
-        onClick={handleClick}
-        title="クリックして編集"
-      />
+      {/* クリック専用レイヤー - モーダル内でのみ有効 */}
+      {isModal && (
+        <div 
+          className="absolute inset-0 z-10 cursor-pointer" 
+          onClick={handleClick}
+          title="クリックして編集"
+        />
+      )}
       <div className="flex items-center justify-between truncate">
         <span className="overflow-hidden flex-1 leading-tight text-[10px] md:text-[12px]">
           {showTime && event.time && (isModal ? `${event.time} ` : <span className="hidden md:inline">{event.time} </span>)}
