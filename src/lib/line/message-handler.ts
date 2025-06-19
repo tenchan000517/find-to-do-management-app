@@ -181,7 +181,7 @@ export async function generateDataFromExtraction(
           description: extracted.description || '',
           userId: messageInfo.userId,
           status: 'IDEA' as const,
-          priority: convertPriority(extracted.priority),
+          priority: convertPriority(extracted.priority || 'C'),
           isArchived: false,
           dueDate: extracted.deadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         });
