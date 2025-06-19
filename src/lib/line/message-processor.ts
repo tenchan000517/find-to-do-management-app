@@ -212,27 +212,27 @@ export async function processTextMessage(event: LineWebhookEvent, cleanText: str
         }
       });
 
-      // 直接データベースに保存
-      const { saveClassifiedData } = await import('./data-saver');
+      // メニュー選択時も分類確認パネルを表示して詳細入力の機会を提供
       const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
       
-      if (sessionInfo) {
-        const recordId = await saveClassifiedData(null, sessionInfo, event.source.userId);
+      if (sessionInfo && event.replyToken) {
+        console.log('📝 Menu session: showing classification confirmation for detailed input opportunity');
         
-        if (recordId) {
-          sessionManager.markAsSaved(event.source.userId, event.source.groupId, recordId);
-          console.log('✅ Data saved directly from menu session');
-          
-          // セッション終了
-          sessionManager.endSession(event.source.userId, event.source.groupId);
-          
-          if (event.replyToken) {
-            const { createCompletionMessage } = await import('./notification');
-            await createCompletionMessage(event.replyToken, sessionInfo.type, { 
-              title: sessionInfo.data.title || sessionInfo.data.name || sessionInfo.data.summary 
-            });
-          }
-        }
+        // 分類確認メッセージを表示（詳細入力の機会を提供）
+        const { createClassificationConfirmMessage } = await import('./line-flex-ui');
+        const extractedData = {
+          type: sessionInfo.type,
+          title: sessionInfo.data.title,
+          description: sessionInfo.data.description,
+          ...sessionInfo.data
+        };
+        
+        await createClassificationConfirmMessage(
+          event.replyToken,
+          extractedData,
+          sessionInfo.type,
+          true // メニューセッションフラグ
+        );
       }
     } else {
       // 通常の分類処理（@メンション時など）
@@ -257,8 +257,8 @@ export async function processTextMessage(event: LineWebhookEvent, cleanText: str
       
       // 分類確認メッセージを送信
       if (event.replyToken) {
-        const { createClassificationConfirmMessage } = await import('./notification');
-        await createClassificationConfirmMessage(event.replyToken, extracted);
+        const { createClassificationConfirmMessage } = await import('./line-flex-ui');
+        await createClassificationConfirmMessage(event.replyToken, extracted, extracted.type, false);
       }
     }
   } catch (error) {

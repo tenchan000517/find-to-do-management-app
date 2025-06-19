@@ -76,11 +76,12 @@ export async function createTestButtonMessage(replyToken: string): Promise<boole
  * @param extractedData 抽出データ
  * @returns 送信成功フラグ
  */
-export async function createClassificationConfirmMessage(replyToken: string, extractedData: any): Promise<boolean> {
+export async function createClassificationConfirmMessage(replyToken: string, extractedData: any, type?: string, isMenuSession?: boolean): Promise<boolean> {
   console.log('🔍 DEBUG TYPE_MAP keys:', Object.keys({}));
   console.log('🔍 DEBUG extractedData.type in flex-ui:', JSON.stringify(extractedData.type));
-  const typeText = getTypeDisplayName(extractedData.type);
-  const confidence = Math.round(extractedData.confidence * 100);
+  const actualType = type || extractedData.type;
+  const typeText = getTypeDisplayName(actualType);
+  const confidence = extractedData.confidence ? Math.round(extractedData.confidence * 100) : 95; // メニュー選択時は高信頼度
 
   const flexContent = {
     type: 'bubble',
@@ -278,7 +279,7 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
           action: {
             type: 'postback',
             label: '✅ 正しい',
-            data: `classification_confirm_${extractedData.type}`
+            data: `classification_confirm_${actualType}`
           }
         },
         {
@@ -491,7 +492,7 @@ export async function createCompletionMessage(replyToken: string, type: string, 
         },
         {
           type: 'text',
-          text: '• このままLINEで続けて登録\n• ダッシュボードで詳細を編集',
+          text: '• このままLINEで続けて詳細入力\n• ダッシュボードで詳細を編集',
           wrap: true,
           color: '#666666',
           size: 'sm',
