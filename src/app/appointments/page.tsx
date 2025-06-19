@@ -344,14 +344,15 @@ export default function AppointmentsPage() {
       // Sales phase automation logic
       if (kanbanType === 'phase') {
         const salesPhaseFlow = {
-          CONTACT: { next: 'MEETING', autoActions: ['createCalendarEvent'] },
-          MEETING: { next: 'PROPOSAL', autoActions: ['generateMeetingNote'] },
-          PROPOSAL: { next: 'CONTRACT', autoActions: ['createProposal'] },
-          CONTRACT: { next: 'CLOSED', autoActions: ['generateBackofficeTasks'] }
+          LEAD: { next: 'PROSPECT', autoActions: ['createCalendarEvent'] },
+          PROSPECT: { next: 'PROPOSAL', autoActions: ['generateMeetingNote'] },
+          PROPOSAL: { next: 'NEGOTIATION', autoActions: ['createProposal'] },
+          NEGOTIATION: { next: 'CLOSING', autoActions: ['prepareContract'] },
+          CLOSING: { next: 'POST_SALE', autoActions: ['generateBackofficeTasks'] }
         };
 
-        // Contract phase requires special handling
-        if (newStatus === 'CONTRACT') {
+        // Negotiation phase requires special handling
+        if (newStatus === 'NEGOTIATION') {
           setContractForm({
             isOpen: true,
             appointment

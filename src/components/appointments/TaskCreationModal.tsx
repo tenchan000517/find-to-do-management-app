@@ -95,7 +95,7 @@ export default function TaskCreationModal({
 
     setIsSubmitting(true);
     try {
-      const tasksToCreate = [];
+      const tasksToCreate: any[] = [];
 
       // テンプレートタスク
       selectedTemplates.forEach(templateId => {

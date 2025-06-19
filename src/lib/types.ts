@@ -183,23 +183,23 @@ export interface AppointmentDetails {
   relationshipStatus?: RelationshipStatus;
   phaseStatus?: SalesPhase;
   sourceType?: SourceType;
-  importance?: number;
-  businessValue?: number;
-  closingProbability?: number;
-  contractValue?: number; 
-  followUpActions?: string[];
-  meetingNotes?: string[];
-  proposalSent?: boolean;
-  proposalDate?: string;
-  contractTerms?: string;
-  decisionMakers?: string[];
-  competitors?: string[];
-  timeline?: string;
+  importance?: number | null;
+  businessValue?: number | null;
+  closingProbability?: number | null;
+  contractValue?: number | null; 
+  followUpActions?: string[] | null;
+  meetingNotes?: string[] | null;
+  proposalSent?: boolean | null;
+  proposalDate?: string | null;
+  contractTerms?: string | null;
+  decisionMakers?: string[] | null;
+  competitors?: string[] | null;
+  timeline?: string | null;
 }
 
 export type ProcessingStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FOLLOW_UP' | 'CLOSED';
 export type RelationshipStatus = 'FIRST_CONTACT' | 'RAPPORT_BUILDING' | 'TRUST_ESTABLISHED' | 'STRATEGIC_PARTNER' | 'LONG_TERM_CLIENT';
-export type SalesPhase = 'CONTACT' | 'MEETING' | 'PROPOSAL' | 'CONTRACT' | 'CLOSED';
+export type SalesPhase = 'LEAD' | 'PROSPECT' | 'PROPOSAL' | 'NEGOTIATION' | 'CLOSING' | 'POST_SALE';
 export type SourceType = 'REFERRAL' | 'COLD_OUTREACH' | 'NETWORKING_EVENT' | 'INBOUND_INQUIRY' | 'SOCIAL_MEDIA' | 'EXISTING_CLIENT' | 'PARTNER_REFERRAL';
 export type ContractStatus = 'DRAFT' | 'SENT' | 'NEGOTIATING' | 'SIGNED' | 'CANCELLED';
 

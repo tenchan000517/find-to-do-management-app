@@ -171,7 +171,12 @@ export async function GET(request: NextRequest) {
               }
             }
           },
-          include: {
+          select: {
+            id: true,
+            companyName: true,
+            contactName: true,
+            priority: true,
+            nextAction: true,
             calendar_events: {
               include: {
                 users: {
@@ -231,8 +236,14 @@ export async function GET(request: NextRequest) {
     });
     sources.personal_schedules = personalSchedules.length;
 
-    // カレンダーイベントの変換
+    // カレンダーイベントの変換（アポイントメント関連以外のみ）
     calendarEvents.forEach((event: any) => {
+      // アポイントメント関連のカレンダーイベントは除外（重複防止）
+      if (event.appointmentId) {
+        sources.appointments++; // カウントのみ
+        return;
+      }
+      
       events.push({
         id: event.id,
         title: event.title,
@@ -260,11 +271,6 @@ export async function GET(request: NextRequest) {
         importance: event.importance,
         participants: event.participants || [],
       });
-      
-      // アポイントメント関連イベントもカウント
-      if (event.appointmentId) {
-        sources.appointments++;
-      }
     });
     sources.calendar_events = calendarEvents.length;
 
@@ -308,7 +314,7 @@ export async function GET(request: NextRequest) {
       appointment.calendar_events.forEach((calEvent: any) => {
         events.push({
           id: `appointment_${appointment.id}_${calEvent.id}`,
-          title: `🤝 ${appointment.companyName} - ${appointment.contactName}`,
+          title: appointment.nextAction || `🤝 ${appointment.companyName} - ${appointment.contactName}`,
           date: calEvent.date,
           time: calEvent.time,
           endTime: calEvent.endTime || undefined,

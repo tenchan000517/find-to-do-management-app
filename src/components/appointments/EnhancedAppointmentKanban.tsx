@@ -53,7 +53,7 @@ const KANBAN_CONFIGS = {
   processing: {
     title: 'アポ処理状況管理',
     columns: [
-      { id: 'PENDING', title: '未処理', color: 'bg-gray-100', description: '新規受付・未対応' },
+      { id: 'PENDING', title: '調整中', color: 'bg-gray-100', description: '新規受付・日程調整中' },
       { id: 'IN_PROGRESS', title: '進行中', color: 'bg-blue-100', description: '対応中・調整中' },
       { id: 'COMPLETED', title: '完了', color: 'bg-green-100', description: 'アポ実施完了' },
       { id: 'FOLLOW_UP', title: 'フォローアップ', color: 'bg-yellow-100', description: '追加対応必要' },
@@ -73,11 +73,12 @@ const KANBAN_CONFIGS = {
   phase: {
     title: '営業フェーズ管理',
     columns: [
-      { id: 'CONTACT', title: 'コンタクト', color: 'bg-gray-100', description: '初回接触・関心確認' },
-      { id: 'MEETING', title: 'ミーティング', color: 'bg-blue-100', description: 'ニーズヒアリング' },
+      { id: 'LEAD', title: 'リード', color: 'bg-gray-100', description: '見込み客・初期接触' },
+      { id: 'PROSPECT', title: '見込み客', color: 'bg-blue-100', description: 'ニーズ確認段階' },
       { id: 'PROPOSAL', title: '提案', color: 'bg-yellow-100', description: '提案・見積段階' },
-      { id: 'CONTRACT', title: '契約', color: 'bg-orange-100', description: '契約交渉・調整' },
-      { id: 'CLOSED', title: 'クローズ', color: 'bg-green-100', description: '成約・完了' },
+      { id: 'NEGOTIATION', title: '交渉', color: 'bg-orange-100', description: '契約交渉・調整' },
+      { id: 'CLOSING', title: 'クロージング', color: 'bg-purple-100', description: '成約間近' },
+      { id: 'POST_SALE', title: 'アフターセール', color: 'bg-green-100', description: '成約後フォロー' },
     ] as Column[]
   },
   source: {
@@ -144,14 +145,14 @@ function AppointmentCard({
     switch (kanbanType) {
       case 'processing': return appointment.details?.processingStatus || 'PENDING';
       case 'relationship': return appointment.details?.relationshipStatus || 'FIRST_CONTACT';
-      case 'phase': return appointment.details?.phaseStatus || 'CONTACT';
+      case 'phase': return appointment.details?.phaseStatus || 'LEAD';
       case 'source': return appointment.details?.sourceType || 'REFERRAL';
       default: return '';
     }
   };
 
-  const showScheduleButton = kanbanType === 'phase' && appointment.details?.phaseStatus === 'MEETING';
-  const showContractButton = kanbanType === 'phase' && appointment.details?.phaseStatus === 'CONTRACT';
+  const showScheduleButton = kanbanType === 'phase' && appointment.details?.phaseStatus === 'PROSPECT';
+  const showContractButton = kanbanType === 'phase' && appointment.details?.phaseStatus === 'NEGOTIATION';
 
   const getDueDateDisplay = (scheduledDate?: string, scheduledTime?: string) => {
     if (!scheduledDate) return null;

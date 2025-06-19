@@ -70,7 +70,7 @@ export interface AppointmentKanbanItem extends BaseKanbanItem {
   // 拡張フィールド
   processingStatus?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FOLLOW_UP' | 'CLOSED';
   relationshipStatus?: 'FIRST_CONTACT' | 'RAPPORT_BUILDING' | 'TRUST_ESTABLISHED' | 'STRATEGIC_PARTNER' | 'LONG_TERM_CLIENT';
-  salesPhase?: 'CONTACT' | 'MEETING' | 'PROPOSAL' | 'CONTRACT' | 'CLOSED';
+  salesPhase?: 'LEAD' | 'PROSPECT' | 'PROPOSAL' | 'NEGOTIATION' | 'CLOSING' | 'POST_SALE';
   sourceType?: 'REFERRAL' | 'COLD_OUTREACH' | 'NETWORKING_EVENT' | 'INBOUND_INQUIRY' | 'SOCIAL_MEDIA' | 'EXISTING_CLIENT' | 'PARTNER_REFERRAL';
   
   scheduledDate?: string;

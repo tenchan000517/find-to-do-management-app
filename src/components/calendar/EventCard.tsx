@@ -193,11 +193,20 @@ export function EventCard({
   
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onClick) {
-      onClick(e);
-    } else if (onEventEdit) {
-      onEventEdit(event);
+    
+    // ドラッグ中やドラッグ操作後の短時間はクリックを無効化
+    if (isDragging) {
+      return;
     }
+    
+    // 短時間のクリック（ドラッグではなく確実なクリック）の場合のみ処理
+    setTimeout(() => {
+      if (onClick) {
+        onClick(e);
+      } else if (onEventEdit) {
+        onEventEdit(event);
+      }
+    }, 10);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -215,17 +224,22 @@ export function EventCard({
         color: '#FFFFFF',
         ...dragStyle
       }}
-      className={`group rounded-lg cursor-grab transition-all duration-200 hover:shadow-md font-medium ${
+      className={`group rounded-lg cursor-grab transition-all duration-200 hover:shadow-md font-medium relative ${
         isModal ? 'mx-px' : 'mx-0 md:mx-px'
       } ${
         compact ? 'p-0.5 md:p-1 md:text-xl min-h-[14px] md:min-h-[24px]' : 'p-2 text-base min-h-[32px]'
       } ${
         isDragging ? 'opacity-50 z-50' : ''
       } active:cursor-grabbing`}
-      onClick={handleClick}
       {...listeners}
       {...attributes}
     >
+      {/* クリック専用レイヤー - ドラッグリスナーを適用しない */}
+      <div 
+        className="absolute inset-0 z-10 cursor-pointer" 
+        onClick={handleClick}
+        title="クリックして編集"
+      />
       <div className="flex items-center justify-between truncate">
         <span className="overflow-hidden flex-1 leading-tight text-[10px] md:text-[12px]">
           {showTime && event.time && (isModal ? `${event.time} ` : <span className="hidden md:inline">{event.time} </span>)}
@@ -245,7 +259,7 @@ export function EventCard({
           {onEventDelete && event.source !== 'tasks' && (
             <button
               onClick={handleDelete}
-              className="p-0.5 bg-red-500 hover:bg-red-600 rounded transition-colors"
+              className="relative z-20 p-0.5 bg-red-500 hover:bg-red-600 rounded transition-colors"
               title="削除"
             >
               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

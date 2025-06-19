@@ -104,6 +104,28 @@ function groupAppointmentsByProcessing(appointments: AppointmentWithDetails[]) {
     }
   });
 
+  // PENDINGカラムは混合ソート：カレンダーイベント日付優先、次に作成日
+  if (groups.PENDING) {
+    groups.PENDING.sort((a, b) => {
+      // カレンダーイベントがあるものを優先
+      const aHasEvent = a.calendar_events && a.calendar_events.length > 0;
+      const bHasEvent = b.calendar_events && b.calendar_events.length > 0;
+      
+      if (aHasEvent && !bHasEvent) return -1;
+      if (!aHasEvent && bHasEvent) return 1;
+      
+      // 両方にカレンダーイベントがある場合、イベント日付でソート
+      if (aHasEvent && bHasEvent && a.calendar_events && b.calendar_events) {
+        const aEventDate = new Date(a.calendar_events[0].date + ' ' + a.calendar_events[0].time);
+        const bEventDate = new Date(b.calendar_events[0].date + ' ' + b.calendar_events[0].time);
+        return aEventDate.getTime() - bEventDate.getTime(); // 昇順（近い日付が上）
+      }
+      
+      // 両方にカレンダーイベントがない場合、作成日でソート（新しいものが上）
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }
+
   return groups;
 }
 
@@ -128,15 +150,16 @@ function groupAppointmentsByRelationship(appointments: AppointmentWithDetails[])
 
 function groupAppointmentsByPhase(appointments: AppointmentWithDetails[]) {
   const groups: Record<string, AppointmentWithDetails[]> = {
-    CONTACT: [],
-    MEETING: [],
+    LEAD: [],
+    PROSPECT: [],
     PROPOSAL: [],
-    CONTRACT: [],
-    CLOSED: []
+    NEGOTIATION: [],
+    CLOSING: [],
+    POST_SALE: []
   };
 
   appointments.forEach(appointment => {
-    const phase = appointment.details?.phaseStatus || 'CONTACT';
+    const phase = appointment.details?.phaseStatus || 'LEAD';
     if (groups[phase]) {
       groups[phase].push(appointment);
     }

@@ -102,7 +102,7 @@ export class KanbanDataTransformer {
       // 拡張フィールド
       processingStatus: appointment.details?.processingStatus,
       relationshipStatus: appointment.details?.relationshipStatus,
-      salesPhase: appointment.salesPhase,
+      salesPhase: appointment.details?.phaseStatus,
       sourceType: appointment.details?.sourceType,
       scheduledDate: appointment.scheduledDate,
       scheduledTime: appointment.scheduledTime,

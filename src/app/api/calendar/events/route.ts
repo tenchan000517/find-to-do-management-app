@@ -123,7 +123,12 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      include: { 
+      select: {
+        id: true,
+        companyName: true,
+        contactName: true,
+        priority: true,
+        nextAction: true,
         calendar_events: {
           include: {
             users: {
@@ -252,6 +257,7 @@ export async function GET(request: NextRequest) {
       companyName: string;
       contactName: string;
       priority: string;
+      nextAction: string;
       calendar_events: Array<{
         id: string;
         date: string;
@@ -270,7 +276,7 @@ export async function GET(request: NextRequest) {
     const appointmentEvents: CalendarEvent[] = appointments.flatMap((apt: AppointmentWithCalendarEvents) => 
       apt.calendar_events.map(ce => ({
         id: `apt_${apt.id}_${ce.id}`,
-        title: `${apt.companyName} - ${apt.contactName}`,
+        title: apt.nextAction || `${apt.companyName} - ${apt.contactName}`,
         date: ce.date,
         time: ce.time,
         endTime: ce.endTime || undefined,
