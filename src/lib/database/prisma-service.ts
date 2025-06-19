@@ -745,7 +745,7 @@ class PrismaDataService {
       
       return appointments.map((a: Awaited<ReturnType<typeof prisma.appointments.findMany>>[0]) => ({
         ...a,
-        assignedToId: '', // Add default assignedToId for compatibility
+        assignedToId: a.assignedTo || '', // Use actual assignedTo value
         status: reverseAppointmentStatusMap[a.status] || 'pending',
         priority: reversePriorityMap[a.priority] || 'medium',
         lastContact: a.lastContact || undefined,
@@ -799,6 +799,10 @@ class PrismaDataService {
       if (updates.status) updateData.status = appointmentStatusMap[updates.status];
       if (updates.priority) updateData.priority = priorityMap[updates.priority];
       
+      // Remove fields that don't exist in the database schema or are handled separately
+      delete updateData.assignedToId;
+      delete updateData.details;
+      
       const updatedAppointment = await prisma.appointments.update({
         where: { id },
         data: updateData
@@ -806,7 +810,7 @@ class PrismaDataService {
 
       return {
         ...updatedAppointment,
-        assignedToId: '', // Add default assignedToId for compatibility
+        assignedToId: updatedAppointment.assignedTo || '', // Map assignedTo to assignedToId for compatibility
         status: reverseAppointmentStatusMap[updatedAppointment.status] || 'pending',
         priority: reversePriorityMap[updatedAppointment.priority] || 'medium',
         lastContact: updatedAppointment.lastContact || undefined,

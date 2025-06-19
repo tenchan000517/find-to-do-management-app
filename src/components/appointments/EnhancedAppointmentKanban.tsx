@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useUsers } from '@/hooks/useUsers';
 import { 
   Appointment, 
   ProcessingStatus, 
@@ -40,6 +41,7 @@ interface EnhancedAppointmentKanbanProps {
   onDataRefresh?: () => void;
   sortBy?: 'priority' | 'phase' | 'date';
   sortOrder?: 'asc' | 'desc';
+  userFilter?: string;
 }
 
 interface Column {
@@ -103,6 +105,7 @@ interface AppointmentCardProps {
   onSchedule: (appointmentId: string) => void;
   onContract: (appointmentId: string) => void;
   onDelete?: (appointmentId: string) => void;
+  users?: any[];
 }
 
 function AppointmentCard({ 
@@ -112,7 +115,8 @@ function AppointmentCard({
   onComplete, 
   onSchedule, 
   onContract,
-  onDelete 
+  onDelete,
+  users = []
 }: AppointmentCardProps) {
   const {
     attributes,
@@ -243,6 +247,24 @@ function AppointmentCard({
             <div>📞 {appointment.phone}</div>
           )}
           
+          {/* 担当者情報 */}
+          {(() => {
+            const assignee = users.find(u => u.id === (appointment.assignedTo || appointment.assignedToId));
+            if (assignee) {
+              return (
+                <div className="mt-2">
+                  <div 
+                    className="inline-flex items-center justify-center px-2 py-1 rounded-full text-white text-xs font-medium"
+                    style={{ backgroundColor: assignee.color }}
+                  >
+                    {assignee.name}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {appointment.details && (
             <div className="grid grid-cols-2 gap-x-4 mt-1">
               {appointment.details.importance && (
@@ -375,6 +397,7 @@ interface DroppableColumnProps {
   onSchedule: (appointmentId: string) => void;
   onContract: (appointmentId: string) => void;
   onDelete?: (appointmentId: string) => void;
+  users?: any[];
 }
 
 function DroppableColumn({ 
@@ -387,7 +410,8 @@ function DroppableColumn({
   onComplete, 
   onSchedule, 
   onContract,
-  onDelete 
+  onDelete,
+  users = []
 }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -457,6 +481,7 @@ function DroppableColumn({
                       onSchedule={onSchedule}
                       onContract={onContract}
                       onDelete={onDelete}
+                      users={users}
                     />
                   ))}
                 </div>
@@ -500,25 +525,30 @@ export default function EnhancedAppointmentKanban({
   onDataRefresh,
   sortBy = 'date',
   sortOrder = 'desc',
+  userFilter = 'all',
 }: EnhancedAppointmentKanbanProps) {
   const [appointments, setAppointments] = useState<Record<string, Appointment[]>>({});
   const [loading, setLoading] = useState(true);
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null);
   const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
   const [successItems, setSuccessItems] = useState<Set<string>>(new Set());
+  const { users } = useUsers();
 
   const config = KANBAN_CONFIGS[kanbanType];
   const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
     loadKanbanData();
-  }, [kanbanType]);
+  }, [kanbanType, userFilter]);
 
   const loadKanbanData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 カンバンデータ読み込み開始:', kanbanType);
-      const response = await fetch(`/api/appointments/kanban/${kanbanType}`);
+      console.log('🔄 カンバンデータ読み込み開始:', kanbanType, 'userFilter:', userFilter);
+      const url = userFilter === 'all' 
+        ? `/api/appointments/kanban/${kanbanType}`
+        : `/api/appointments/kanban/${kanbanType}?userId=${userFilter}`;
+      const response = await fetch(url);
       console.log('🔄 カンバンAPI レスポンス:', response.status);
       if (response.ok) {
         const data = await response.json();
@@ -746,6 +776,7 @@ export default function EnhancedAppointmentKanban({
                 onSchedule={handleAppointmentSchedule}
                 onContract={handleAppointmentContract}
                 onDelete={handleAppointmentDelete}
+                users={users}
               />
             );
           })}
@@ -764,6 +795,7 @@ export default function EnhancedAppointmentKanban({
               onSchedule={onAppointmentSchedule}
               onContract={onAppointmentContract}
               onDelete={handleAppointmentDelete}
+              users={users}
             />
           ) : null}
         </DragOverlay>

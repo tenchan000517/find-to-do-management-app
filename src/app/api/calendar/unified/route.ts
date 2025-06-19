@@ -177,6 +177,14 @@ export async function GET(request: NextRequest) {
             contactName: true,
             priority: true,
             nextAction: true,
+            assignedTo: true,
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              }
+            },
             calendar_events: {
               include: {
                 users: {
@@ -328,10 +336,21 @@ export async function GET(request: NextRequest) {
           isRecurring: false,
           userId: calEvent.userId,
           appointmentId: appointment.id,
-          users: calEvent.users ? {
+          // アポイントメントの担当者を優先、フォールバックでカレンダーイベントのユーザー
+          users: appointment.assignee ? {
+            id: appointment.assignee.id,
+            name: appointment.assignee.name,
+            color: appointment.assignee.color,
+          } : calEvent.users ? {
             id: calEvent.users.id,
             name: calEvent.users.name,
             color: calEvent.users.color,
+          } : undefined,
+          // アポイントメント担当者情報を追加
+          assignee: appointment.assignee ? {
+            id: appointment.assignee.id,
+            name: appointment.assignee.name,
+            color: appointment.assignee.color,
           } : undefined,
           appointments: {
             id: appointment.id,

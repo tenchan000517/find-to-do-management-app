@@ -39,9 +39,18 @@ export async function GET(
 ) {
   try {
     const { type: kanbanType } = await params;
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
     
-    // Get all appointments with details
+    // Build where clause for filtering
+    const whereClause: any = {};
+    if (userId && userId !== 'all') {
+      whereClause.assignedTo = userId;
+    }
+    
+    // Get appointments with details
     const appointments = await prisma.appointments.findMany({
+      where: whereClause,
       include: {
         details: true,
         calendar_events: {

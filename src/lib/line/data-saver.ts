@@ -51,6 +51,10 @@ export async function saveClassifiedData(
     finalData = {
       ...extractedData,
       ...sessionInfo.data,
+      // セッションで選択されたtypeを強制的に優先（AIの誤分類を防ぐ）
+      type: sessionInfo.type,
+      // assigneeが明示的にnullまたは未設定の場合、作成者をデフォルトに設定
+      assignee: sessionInfo.data.assignee || extractedData?.assignee || systemUserId,
     };
     console.log(`📊 Processing ${type} with data:`, finalData);
     
@@ -231,23 +235,38 @@ export async function saveClassifiedData(
         let appointmentDate: string | undefined;
         let appointmentTime: string | undefined;
         
-        // notes, description, title, summaryフィールドから日付情報を解析
-        const dateText = finalData.notes || finalData.description || finalData.title || finalData.summary || '';
-        if (dateText) {
+        // finalData.datetimeが存在する場合はそれを優先使用
+        if (finalData.datetime) {
           try {
-            const { DateTimeParser } = await import('./datetime-parser');
-            const parser = new DateTimeParser();
-            const parsed = await parser.parse(dateText);
-            
-            if (parsed.confidence >= 0.5) {
-              appointmentDate = parsed.date;
-              appointmentTime = parsed.time;
-              console.log(`📅 日付解析成功: "${dateText}" → ${appointmentDate} ${appointmentTime} (confidence: ${parsed.confidence})`);
-            } else {
-              console.log(`⚠️ 日付解析信頼度不足: "${dateText}" (confidence: ${parsed.confidence})`);
-            }
+            const { getJSTDateString, getJSTTimeString } = await import('@/lib/utils/datetime-jst');
+            const datetimeObj = new Date(finalData.datetime);
+            appointmentDate = getJSTDateString(datetimeObj); // JST基準のYYYY-MM-DD
+            appointmentTime = getJSTTimeString(datetimeObj); // JST基準のHH:MM
+            console.log(`📅 直接日時使用(JST): ${finalData.datetime} → ${appointmentDate} ${appointmentTime}`);
           } catch (error) {
-            console.error('❌ 日付解析エラー:', error);
+            console.error('❌ datetime解析エラー:', error);
+          }
+        }
+        
+        // datetimeがない場合は従来の日付解析を実行
+        if (!appointmentDate) {
+          const dateText = finalData.notes || finalData.description || finalData.title || finalData.summary || '';
+          if (dateText) {
+            try {
+              const { DateTimeParser } = await import('./datetime-parser');
+              const parser = new DateTimeParser();
+              const parsed = await parser.parse(dateText);
+              
+              if (parsed.confidence >= 0.5) {
+                appointmentDate = parsed.date;
+                appointmentTime = parsed.time;
+                console.log(`📅 日付解析成功: "${dateText}" → ${appointmentDate} ${appointmentTime} (confidence: ${parsed.confidence})`);
+              } else {
+                console.log(`⚠️ 日付解析信頼度不足: "${dateText}" (confidence: ${parsed.confidence})`);
+              }
+            } catch (error) {
+              console.error('❌ 日付解析エラー:', error);
+            }
           }
         }
         
@@ -284,8 +303,8 @@ export async function saveClassifiedData(
             }
             
             // 2. notesから日付表現を除去してタイトル生成
-            if (dateText) {
-              const cleanTitle = dateText
+            if (finalData.notes) {
+              const cleanTitle = finalData.notes
                 // より具体的な日付・時刻パターンを除去
                 .replace(/(明日|明後日|明々後日|今日|きょう|あした|あさって|しあさって)(の|に)?\s*(\d{1,2}時\d{0,2}分?|\d{1,2}:\d{2})?\s*(に|で|から)?/g, '')
                 .replace(/\d{1,2}\/\d{1,2}\s*(に|で|から)?/g, '')

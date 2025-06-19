@@ -204,15 +204,16 @@ export default function AppointmentsPage() {
     const eventDateTime = formData.get('eventDateTime') as string;
     const eventData = eventDateTime ? {
       title: `${appointmentData.companyName} - ${appointmentData.nextAction}`,
-      startDate: new Date(eventDateTime).toISOString(),
-      endDate: formData.get('eventEndDateTime') ? new Date(formData.get('eventEndDateTime') as string).toISOString() : new Date(new Date(eventDateTime).getTime() + 60 * 60 * 1000).toISOString(), // デフォルト1時間後
-      type: 'meeting' as const,
+      date: new Date(eventDateTime).toISOString().split('T')[0], // YYYY-MM-DD format
+      time: new Date(eventDateTime).toLocaleTimeString('ja-JP', { hour12: false, hour: '2-digit', minute: '2-digit' }), // HH:MM format
+      endTime: formData.get('eventEndDateTime') ? new Date(formData.get('eventEndDateTime') as string).toLocaleTimeString('ja-JP', { hour12: false, hour: '2-digit', minute: '2-digit' }) : undefined,
+      category: 'APPOINTMENT' as const,
       description: appointmentData.notes || '',
       location: formData.get('eventLocation') as string || undefined,
-      meetingUrl: appointmentData.meetingUrl || undefined,
       participants: formData.get('eventParticipants') ? (formData.get('eventParticipants') as string).split(',').map(p => p.trim()) : [],
-      createdBy: assigneeId,
-      assignedTo: assigneeId,
+      appointmentId: editingAppointment?.id,
+      userId: assigneeId,
+      importance: 0.7,
     } : null;
 
     console.log('💾 送信データ:', { appointmentData, taskData, eventData });
@@ -956,17 +957,14 @@ export default function AppointmentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {(() => {
-                        const assignee = appointment.assignee || users.find(u => u.id === (appointment.assignedTo || appointment.assignedToId));
+                        const assignee = users.find(u => u.id === (appointment.assignedTo || appointment.assignedToId));
                         if (assignee) {
                           return (
-                            <div className="flex items-center space-x-2">
-                              <div 
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium"
-                                style={{ backgroundColor: assignee.color }}
-                              >
-                                {assignee.name.charAt(0)}
-                              </div>
-                              <span className="text-sm font-medium">{assignee.name}</span>
+                            <div 
+                              className="inline-flex items-center justify-center px-3 py-1 rounded-full text-white text-sm font-medium"
+                              style={{ backgroundColor: assignee.color }}
+                            >
+                              {assignee.name}
                             </div>
                           );
                         } else {
@@ -1041,6 +1039,7 @@ export default function AppointmentsPage() {
               onDataRefresh={refetchAppointments}
               sortBy={sortBy}
               sortOrder={sortOrder}
+              userFilter={userFilter}
             />
           </div>
         )}
@@ -1274,7 +1273,6 @@ export default function AppointmentsPage() {
                           type="tel"
                           name="phone"
                           defaultValue={editingAppointment?.phone || ''}
-                          required
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
@@ -1286,7 +1284,6 @@ export default function AppointmentsPage() {
                           type="email"
                           name="email"
                           defaultValue={editingAppointment?.email || ''}
-                          required
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
