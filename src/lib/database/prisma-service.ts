@@ -806,6 +806,29 @@ class PrismaDataService {
     }
   }
 
+  async getAppointmentById(id: string): Promise<Appointment | null> {
+    try {
+      const appointment = await prisma.appointments.findUnique({
+        where: { id }
+      });
+      
+      if (!appointment) return null;
+      
+      return {
+        ...appointment,
+        assignedToId: '', // Add default assignedToId for compatibility
+        status: reverseAppointmentStatusMap[appointment.status] || 'pending',
+        priority: reversePriorityMap[appointment.priority] || 'medium',
+        lastContact: appointment.lastContact || undefined,
+        createdAt: appointment.createdAt.toISOString(),
+        updatedAt: appointment.updatedAt.toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to get appointment by ID:', error);
+      return null;
+    }
+  }
+
   async deleteAppointment(id: string): Promise<boolean> {
     try {
       await prisma.appointments.delete({

@@ -33,6 +33,7 @@ const DueDateModal = dynamic(() => import('@/components/tasks/DueDateModal'), { 
 const CompletionModal = dynamic(() => import('@/components/tasks/CompletionModal'), { ssr: false });
 const SummaryModal = dynamic(() => import('@/components/tasks/SummaryModal'), { ssr: false });
 const TaskUpdateModal = dynamic(() => import('@/components/tasks/TaskUpdateModal'), { ssr: false });
+const DueDateResetModal = dynamic(() => import('@/components/tasks/DueDateResetModal'), { ssr: false });
 
 export function UniversalKanban({
   itemType,
@@ -61,6 +62,7 @@ export function UniversalKanban({
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showTaskUpdateModal, setShowTaskUpdateModal] = useState(false);
+  const [showDueDateResetModal, setShowDueDateResetModal] = useState(false);
   const [pendingMoveRequest, setPendingMoveRequest] = useState<KanbanMoveRequest | null>(null);
   const [targetTask, setTargetTask] = useState<TaskKanbanItem | null>(null);
   
@@ -190,6 +192,17 @@ export function UniversalKanban({
           setTargetTask(taskItem);
           setShowSummaryModal(true);
           return;
+          
+        case 'DO_TO_IDEA':
+        case 'DO_TO_PLAN':
+          // DOから他のステータスに移動時は期限リセット確認モーダル表示
+          if (taskItem.dueDate) {
+            setPendingMoveRequest(moveRequest);
+            setTargetTask(taskItem);
+            setShowDueDateResetModal(true);
+            return;
+          }
+          break;
           
         default:
           // その他の移行は直接実行
@@ -411,6 +424,25 @@ export function UniversalKanban({
     setTargetTask(null);
   }, [targetTask, executeMoveWithFeedback, onItemUpdate, onItemDelete]);
 
+  // 期限リセット確認ハンドラー
+  const handleDueDateResetConfirm = useCallback(async (resetDueDate: boolean) => {
+    if (!pendingMoveRequest || !targetTask) return;
+
+    try {
+      // 期限をリセットする場合、タスクの更新を行う
+      if (resetDueDate && onItemUpdate) {
+        await onItemUpdate(targetTask.id, { dueDate: null });
+      }
+
+      // ステータス移動を実行
+      await executeMoveWithFeedback(pendingMoveRequest);
+    } finally {
+      setShowDueDateResetModal(false);
+      setPendingMoveRequest(null);
+      setTargetTask(null);
+    }
+  }, [pendingMoveRequest, targetTask, executeMoveWithFeedback, onItemUpdate]);
+
   // スクロール状態の更新
   const updateScrollButtons = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -615,6 +647,17 @@ export function UniversalKanban({
             }}
             onSubmit={handleTaskUpdateAction}
             taskId={targetTask.id}
+          />
+
+          <DueDateResetModal
+            isOpen={showDueDateResetModal}
+            task={targetTask}
+            onConfirm={handleDueDateResetConfirm}
+            onCancel={() => {
+              setShowDueDateResetModal(false);
+              setPendingMoveRequest(null);
+              setTargetTask(null);
+            }}
           />
         </>
       )}
