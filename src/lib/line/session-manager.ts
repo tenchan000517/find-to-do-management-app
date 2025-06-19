@@ -90,6 +90,7 @@ class SessionManager {
       // メニューセッションのタイムアウトチェック（2分）
       if (session.isMenuSession && session.menuTimeout && now > session.menuTimeout) {
         console.log(`⏰ Menu session timeout for ${sessionKey}`);
+        this.sendTimeoutNotification(userId, groupId, 'menu');
         this.endSession(userId, groupId);
         return null;
       }
@@ -97,6 +98,7 @@ class SessionManager {
       // 通常セッション：30分でタイムアウト
       if (!session.isMenuSession && now - session.lastActivity > 30 * 60 * 1000) {
         console.log(`⏰ Regular session timeout for ${sessionKey}`);
+        this.sendTimeoutNotification(userId, groupId, 'detailed_input');
         this.endSession(userId, groupId);
         return null;
       }
@@ -230,6 +232,24 @@ class SessionManager {
       age: Date.now() - session.startTime,
       data: session.data
     };
+  }
+  
+  // タイムアウト通知送信
+  private async sendTimeoutNotification(userId: string, groupId: string | undefined, sessionType: 'menu' | 'detailed_input'): Promise<void> {
+    try {
+      const { sendGroupNotification } = await import('./notification');
+      const targetId = groupId || userId;
+      
+      if (sessionType === 'menu') {
+        const message = '⏰ メニューセッションが終了しました。\n\n再度利用する場合は「メニュー」と送信してください。';
+        await sendGroupNotification(targetId, message);
+      } else {
+        const message = '⏰ 詳細入力セッションが終了しました。\n\n追加で詳細を編集したい場合はダッシュボードから入力してください。';
+        await sendGroupNotification(targetId, message);
+      }
+    } catch (error) {
+      console.error('❗ タイムアウト通知送信エラー:', error);
+    }
   }
   
   // 古いセッションのクリーンアップ

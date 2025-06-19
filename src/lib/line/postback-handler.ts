@@ -263,19 +263,75 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
       const fieldKey = parts[parts.length - 1]; // 最後の要素がfieldKey
       const type = parts.slice(2, -1).join('_'); // skip_field_の後から最後の要素までがtype
       if (event.replyToken) {
-        await sendReplyMessage(event.replyToken, `⏭️ ${fieldKey}をスキップしました。`);
+        // フィールド名の日本語マッピング
+        const fieldLabels: Record<string, string> = {
+          title: 'タイトル',
+          description: '詳細',
+          assignee: '担当者',
+          deadline: '期限',
+          estimatedHours: '工数',
+          location: '場所',
+          datetime: '日時'
+        };
+        const fieldLabel = fieldLabels[fieldKey] || fieldKey;
         
-        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
-        try {
-          const { sendGroupNotification } = await import('./notification');
-          const groupId = event.source.groupId || event.source.userId;
-          
-          // 簡単な項目選択メニューをテキストで送信
-          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
-          await sendGroupNotification(groupId, menuText);
-        } catch (error) {
-          console.log('項目スキップ後の項目選択メニュー送信をスキップ:', error);
-        }
+        // ボタン付きのスキップ完了メッセージを送信
+        const { sendFlexMessage } = await import('./line-sender');
+        const flexContent = {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: `⏭️ ${fieldLabel}をスキップ`,
+                weight: 'bold',
+                size: 'lg',
+                color: '#FFA500'
+              },
+              {
+                type: 'text',
+                text: `${fieldLabel}の設定をスキップしました。`,
+                wrap: true,
+                color: '#333333',
+                size: 'md',
+                margin: 'md'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '💾 保存',
+                  data: `save_partial_${type}`
+                },
+                flex: 1
+              },
+              {
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '➕ 追加入力',
+                  data: `start_detailed_input_${type}`
+                },
+                flex: 1
+              }
+            ]
+          }
+        };
+        
+        await sendFlexMessage(event.replyToken, 'スキップ完了', flexContent);
       }
     } else if (data.startsWith('back_to_selection_')) {
       // 項目選択に戻る
@@ -438,6 +494,28 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
         const title = sessionData?.data?.title || sessionData?.data?.name || sessionData?.data?.summary || '';
         const itemName = title ? `「${title}」` : '';
         
+        // エンティティ別ダッシュボードURL生成
+        const getDashboardUrl = (entityType: string): string => {
+          const baseUrl = 'https://find-to-do-management-app.vercel.app';
+          switch (entityType) {
+            case 'personal_schedule':
+            case 'calendar_event':
+              return `${baseUrl}/calendar`;
+            case 'task':
+              return `${baseUrl}/tasks`;
+            case 'appointment':
+              return `${baseUrl}/appointments`;
+            case 'project':
+              return `${baseUrl}/projects`;
+            case 'connection':
+              return `${baseUrl}/connections`;
+            case 'knowledge_item':
+              return `${baseUrl}/knowledge`;
+            default:
+              return baseUrl;
+          }
+        };
+        
         // ボタン付きの完了メッセージを送信
         const { sendFlexMessage } = await import('./line-sender');
         const flexContent = {
@@ -464,7 +542,7 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
               },
               {
                 type: 'text',
-                text: '追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。',
+                text: '追加で詳細を編集したい場合は、ダッシュボードからお気軽にどうぞ。',
                 wrap: true,
                 color: '#666666',
                 size: 'sm',
@@ -485,18 +563,7 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
                 action: {
                   type: 'uri',
                   label: '📊 ダッシュボード',
-                  uri: 'https://find-to-do-management-app.vercel.app/'
-                },
-                flex: 1
-              },
-              {
-                type: 'button',
-                style: 'secondary',
-                height: 'sm',
-                action: {
-                  type: 'postback',
-                  label: '📝 詳細入力',
-                  data: `start_detailed_input_${type}`
+                  uri: getDashboardUrl(type)
                 },
                 flex: 1
               }
@@ -521,19 +588,63 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
         const user = await prismaDataService.getUserById(userId);
         const userName = user ? user.name : 'ユーザー';
         
-        await sendReplyMessage(event.replyToken, `✅ 担当者「${userName}」を設定しました！\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
+        // ボタン付きの設定完了メッセージを送信
+        const { sendFlexMessage } = await import('./line-sender');
+        const flexContent = {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '✅ 担当者設定完了',
+                weight: 'bold',
+                size: 'lg',
+                color: '#00C851'
+              },
+              {
+                type: 'text',
+                text: `担当者「${userName}」を設定しました！`,
+                wrap: true,
+                color: '#333333',
+                size: 'md',
+                margin: 'md'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '💾 保存',
+                  data: `save_partial_${type}`
+                },
+                flex: 1
+              },
+              {
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '➕ 追加入力',
+                  data: `start_detailed_input_${type}`
+                },
+                flex: 1
+              }
+            ]
+          }
+        };
         
-        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
-        try {
-          const { sendGroupNotification } = await import('./notification');
-          const groupId = event.source.groupId || event.source.userId;
-          
-          // 簡単な項目選択メニューをテキストで送信
-          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
-          await sendGroupNotification(groupId, menuText);
-        } catch (error) {
-          console.log('担当者選択後の項目選択メニュー送信をスキップ:', error);
-        }
+        await sendFlexMessage(event.replyToken, '設定完了', flexContent);
       }
     } else if (data.startsWith('select_priority_')) {
       // 優先度選択
@@ -548,57 +659,189 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
         const priorityLabels: Record<string, string> = { 'A': '高', 'B': '中', 'C': '低', 'D': '最低' };
         const priorityLabel = priorityLabels[priorityLevel] || priorityLevel;
         
-        await sendReplyMessage(event.replyToken, `✅ 優先度「${priorityLabel}」を設定しました！\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
+        // ボタン付きの設定完了メッセージを送信
+        const { sendFlexMessage } = await import('./line-sender');
+        const flexContent = {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '✅ 優先度設定完了',
+                weight: 'bold',
+                size: 'lg',
+                color: '#00C851'
+              },
+              {
+                type: 'text',
+                text: `優先度「${priorityLabel}」を設定しました！`,
+                wrap: true,
+                color: '#333333',
+                size: 'md',
+                margin: 'md'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '💾 保存',
+                  data: `save_partial_${type}`
+                },
+                flex: 1
+              },
+              {
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '➕ 追加入力',
+                  data: `start_detailed_input_${type}`
+                },
+                flex: 1
+              }
+            ]
+          }
+        };
         
-        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
-        try {
-          const { sendGroupNotification } = await import('./notification');
-          const groupId = event.source.groupId || event.source.userId;
-          
-          // 簡単な項目選択メニューをテキストで送信
-          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 👤 担当者\n\n「💾 保存」で完了できます。`;
-          await sendGroupNotification(groupId, menuText);
-        } catch (error) {
-          console.log('優先度選択後の項目選択メニュー送信をスキップ:', error);
-        }
+        await sendFlexMessage(event.replyToken, '設定完了', flexContent);
       }
     } else if (data.startsWith('skip_priority_')) {
       // 優先度スキップ
       const type = data.replace('skip_priority_', '');
       
       if (event.replyToken) {
-        await sendReplyMessage(event.replyToken, '⏭️ 優先度の設定をスキップしました。');
+        // ボタン付きのスキップ完了メッセージを送信
+        const { sendFlexMessage } = await import('./line-sender');
+        const flexContent = {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '⏭️ 優先度をスキップ',
+                weight: 'bold',
+                size: 'lg',
+                color: '#FFA500'
+              },
+              {
+                type: 'text',
+                text: '優先度の設定をスキップしました。',
+                wrap: true,
+                color: '#333333',
+                size: 'md',
+                margin: 'md'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '💾 保存',
+                  data: `save_partial_${type}`
+                },
+                flex: 1
+              },
+              {
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '➕ 追加入力',
+                  data: `start_detailed_input_${type}`
+                },
+                flex: 1
+              }
+            ]
+          }
+        };
         
-        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
-        try {
-          const { sendGroupNotification } = await import('./notification');
-          const groupId = event.source.groupId || event.source.userId;
-          
-          // 簡単な項目選択メニューをテキストで送信
-          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 👤 担当者\n\n「💾 保存」で完了できます。`;
-          await sendGroupNotification(groupId, menuText);
-        } catch (error) {
-          console.log('優先度スキップ後の項目選択メニュー送信をスキップ:', error);
-        }
+        await sendFlexMessage(event.replyToken, 'スキップ完了', flexContent);
       }
     } else if (data.startsWith('skip_assignee_')) {
       // 担当者スキップ
       const type = data.replace('skip_assignee_', '');
       
       if (event.replyToken) {
-        await sendReplyMessage(event.replyToken, '⏭️ 担当者の設定をスキップしました。');
+        // ボタン付きのスキップ完了メッセージを送信
+        const { sendFlexMessage } = await import('./line-sender');
+        const flexContent = {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '⏭️ 担当者をスキップ',
+                weight: 'bold',
+                size: 'lg',
+                color: '#FFA500'
+              },
+              {
+                type: 'text',
+                text: '担当者の設定をスキップしました。',
+                wrap: true,
+                color: '#333333',
+                size: 'md',
+                margin: 'md'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '💾 保存',
+                  data: `save_partial_${type}`
+                },
+                flex: 1
+              },
+              {
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '➕ 追加入力',
+                  data: `start_detailed_input_${type}`
+                },
+                flex: 1
+              }
+            ]
+          }
+        };
         
-        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
-        try {
-          const { sendGroupNotification } = await import('./notification');
-          const groupId = event.source.groupId || event.source.userId;
-          
-          // 簡単な項目選択メニューをテキストで送信
-          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
-          await sendGroupNotification(groupId, menuText);
-        } catch (error) {
-          console.log('担当者スキップ後の項目選択メニュー送信をスキップ:', error);
-        }
+        await sendFlexMessage(event.replyToken, 'スキップ完了', flexContent);
       }
     } else if (data === 'cancel_modification') {
       // 修正キャンセル

@@ -122,19 +122,64 @@ export async function handleSessionInput(event: LineWebhookEvent, inputText: str
     };
     
     const fieldName = fieldNames[sessionInfo.currentField] || sessionInfo.currentField;
-    await sendReplyMessage(event.replyToken, `✅ ${fieldName}を保存しました！\n\n「${inputText}」\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
     
-    // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
-    try {
-      const { sendGroupNotification } = await import('./notification');
-      const groupId = event.source.groupId || event.source.userId;
-      
-      // 簡単な項目選択メニューをテキストで送信
-      const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 🎯 優先度\n\n「💾 保存」で完了できます。`;
-      await sendGroupNotification(groupId, menuText);
-    } catch (error) {
-      console.log('項目選択メニュー送信をスキップ:', error);
-    }
+    // 新しいFlexメッセージ形式で送信
+    const { sendFlexMessage } = await import('./line-sender');
+    const flexContent = {
+      type: 'bubble',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: `✅ ${fieldName}設定完了`,
+            weight: 'bold',
+            size: 'lg',
+            color: '#00C851'
+          },
+          {
+            type: 'text',
+            text: `${fieldName}を「${inputText}」に設定しました！`,
+            wrap: true,
+            color: '#333333',
+            size: 'md',
+            margin: 'md'
+          }
+        ]
+      },
+      footer: {
+        type: 'box',
+        layout: 'horizontal',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            height: 'sm',
+            action: {
+              type: 'postback',
+              label: '💾 保存',
+              data: `save_partial_${sessionInfo.type}`
+            },
+            flex: 1
+          },
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            action: {
+              type: 'postback',
+              label: '➕ 追加入力',
+              data: `start_detailed_input_${sessionInfo.type}`
+            },
+            flex: 1
+          }
+        ]
+      }
+    };
+    
+    await sendFlexMessage(event.replyToken, '設定完了', flexContent);
   }
 }
 
