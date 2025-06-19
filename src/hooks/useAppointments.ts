@@ -49,21 +49,27 @@ export function useAppointments() {
 
   const updateAppointment = async (id: string, updates: Partial<Omit<Appointment, 'id' | 'createdAt'>>) => {
     try {
+      console.log('🔄 useAppointments.updateAppointment 開始:', { id, updates });
       const response = await fetch('/api/appointments', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...updates }),
       });
+      console.log('🔄 API レスポンス:', response.status, response.statusText);
+      
       if (!response.ok) throw new Error('Failed to update appointment');
       const updatedAppointment = await response.json();
+      console.log('🔄 更新されたアポイントメント:', updatedAppointment);
+      
       setAppointments(prev => 
         prev.map(appointment => 
           appointment.id === id ? updatedAppointment : appointment
         )
       );
+      console.log('🔄 状態更新完了');
       return updatedAppointment;
     } catch (error) {
-      console.error('Failed to update appointment:', error);
+      console.error('🔄 updateAppointment エラー:', error);
       throw error;
     }
   };

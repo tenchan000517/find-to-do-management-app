@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useUsers } from '@/hooks/useUsers';
 import { Appointment } from '@/lib/types';
@@ -99,6 +99,11 @@ export default function AppointmentsPage() {
     appointment: null
   });
 
+  // デバッグ用: 状態変更を監視
+  useEffect(() => {
+    console.log('🎯 モーダル状態変更:', { showModal, editingAppointment: editingAppointment?.id || null });
+  }, [showModal, editingAppointment]);
+
   const filteredAppointments = appointments.filter(appointment => {
     const matchesFilter = filter === 'all' || appointment.status === filter;
     const matchesSearch = searchTerm === '' || 
@@ -111,6 +116,9 @@ export default function AppointmentsPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log('💾 フォーム送信開始');
+    console.log('💾 編集中のアポイントメント:', editingAppointment);
+    
     const formData = new FormData(e.currentTarget);
     const assigneeId = formData.get('assigneeId') as string;
     const appointmentData = {
@@ -127,21 +135,28 @@ export default function AppointmentsPage() {
       assignedTo: assigneeId, // New assignee system
     };
 
+    console.log('💾 送信データ:', appointmentData);
+
     try {
       setIsSubmitting(true);
       if (editingAppointment) {
+        console.log('💾 アポイントメント更新処理:', editingAppointment.id);
         await updateAppointment(editingAppointment.id, appointmentData);
       } else {
+        console.log('💾 新規アポイントメント作成処理');
         await addAppointment(appointmentData);
       }
 
       // データ再読み込み
+      console.log('💾 データ再読み込み開始');
       await refetchAppointments();
       
+      console.log('💾 モーダル閉じる処理');
       setShowModal(false);
       setEditingAppointment(null);
+      console.log('💾 フォーム送信完了');
     } catch (error) {
-      console.error('Failed to save appointment:', error);
+      console.error('💾 アポイントメント保存エラー:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -189,6 +204,9 @@ export default function AppointmentsPage() {
   };
 
   const handleAppointmentEdit = (appointment: any) => {
+    console.log('🎯 カンバン編集ハンドラー呼び出し:', appointment);
+    console.log('🎯 編集前の状態:', { editingAppointment, showModal });
+    
     // Convert kanban appointment to appointment format
     const mappedAppointment: Appointment = {
       id: appointment.id,
@@ -201,12 +219,16 @@ export default function AppointmentsPage() {
       notes: appointment.notes,
       nextAction: appointment.nextAction || '',
       lastContact: appointment.lastContact,
-      assignedToId: appointment.assignedToId || 'user1',
+      assignedToId: appointment.assignedToId || appointment.assignedTo || 'user1',
+      assignedTo: appointment.assignedTo || appointment.assignedToId || 'user1', // 互換性のため両方設定
       createdAt: appointment.createdAt || new Date().toISOString(),
       updatedAt: appointment.updatedAt || new Date().toISOString()
     };
+    
+    console.log('🎯 マッピング後のアポイントメント:', mappedAppointment);
     setEditingAppointment(mappedAppointment);
     setShowModal(true);
+    console.log('🎯 カンバン編集状態設定完了');
   };
 
   const handleAppointmentComplete = async (appointmentId: string) => {
@@ -595,8 +617,11 @@ export default function AppointmentsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => {
+                          console.log('📝 編集ボタンクリック:', appointment);
+                          console.log('📝 編集前の状態:', { editingAppointment, showModal });
                           setEditingAppointment(appointment);
                           setShowModal(true);
+                          console.log('📝 編集後の状態設定完了');
                         }}
                         className="text-indigo-600 hover:text-indigo-900 mr-2 text-xs md:text-sm"
                       >
@@ -651,6 +676,13 @@ export default function AppointmentsPage() {
               <h2 className="text-lg md:text-xl font-bold mb-4">
                 {editingAppointment ? 'アポ情報編集' : '新規アポ'}
               </h2>
+              {/* デバッグ情報 */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+                  <p>🐛 デバッグ: showModal={String(showModal)}</p>
+                  <p>🐛 editingAppointment: {editingAppointment ? `ID: ${editingAppointment.id}` : 'null'}</p>
+                </div>
+              )}
               {isSubmitting && (
                 <LoadingSpinner size="sm" message="保存中..." className="mb-4" />
               )}

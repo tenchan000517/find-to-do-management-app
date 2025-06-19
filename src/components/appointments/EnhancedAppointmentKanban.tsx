@@ -148,13 +148,12 @@ function AppointmentCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
       className={`
-        bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2 cursor-grab hover:shadow-md transition-shadow
+        bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2 hover:shadow-md transition-shadow
         ${isDragging ? 'opacity-50' : ''}
       `}
     >
-      <div className="flex justify-between items-start mb-2">
+      <div className="flex justify-between items-start mb-2" {...listeners} style={{ cursor: 'grab' }}>
         <h4 className="font-medium text-sm text-gray-900 truncate flex-1">
           {appointment.companyName}
         </h4>
@@ -206,23 +205,40 @@ function AppointmentCard({
       
       <div className="flex justify-between items-center">
         <span className="text-xs text-gray-400">{getStatusValue()}</span>
-        <div className="flex space-x-1">
+        <div className="flex space-x-1" style={{ pointerEvents: 'auto' }} onMouseDown={(e) => e.stopPropagation()}>
           <button
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
+              if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+                e.nativeEvent.stopImmediatePropagation();
+              }
+              console.log('🎨 カンバン編集ボタンクリック:', appointment);
+              console.log('🎨 onEdit関数:', onEdit);
               onEdit(appointment);
+              console.log('🎨 onEdit呼び出し完了');
             }}
-            className="text-blue-600 hover:text-blue-800 text-xs px-1 py-1 rounded"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            style={{ pointerEvents: 'auto' }}
+            className="text-blue-600 hover:text-blue-800 text-xs px-1 py-1 rounded bg-white border border-blue-300 shadow-sm"
           >
             編集
           </button>
           {showScheduleButton && (
             <button
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
+                if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+                  e.nativeEvent.stopImmediatePropagation();
+                }
                 onSchedule(appointment.id);
               }}
-              className="text-purple-600 hover:text-purple-800 text-xs px-1 py-1 rounded"
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto' }}
+              className="text-purple-600 hover:text-purple-800 text-xs px-1 py-1 rounded bg-white border border-purple-300 shadow-sm"
             >
               日程
             </button>
@@ -230,20 +246,32 @@ function AppointmentCard({
           {showContractButton && (
             <button
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
+                if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+                  e.nativeEvent.stopImmediatePropagation();
+                }
                 onContract(appointment.id);
               }}
-              className="text-orange-600 hover:text-orange-800 text-xs px-1 py-1 rounded"
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto' }}
+              className="text-orange-600 hover:text-orange-800 text-xs px-1 py-1 rounded bg-white border border-orange-300 shadow-sm"
             >
               契約
             </button>
           )}
           <button
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
+              if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+                e.nativeEvent.stopImmediatePropagation();
+              }
               onComplete(appointment.id);
             }}
-            className="text-green-600 hover:text-green-800 text-xs px-1 py-1 rounded"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{ pointerEvents: 'auto' }}
+            className="text-green-600 hover:text-green-800 text-xs px-1 py-1 rounded bg-white border border-green-300 shadow-sm"
           >
             完了
           </button>
@@ -335,13 +363,16 @@ export default function EnhancedAppointmentKanban({
   const loadKanbanData = async () => {
     try {
       setLoading(true);
+      console.log('🔄 カンバンデータ読み込み開始:', kanbanType);
       const response = await fetch(`/api/appointments/kanban/${kanbanType}`);
+      console.log('🔄 カンバンAPI レスポンス:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('🔄 取得したカンバンデータ:', data);
         setAppointments(data);
       }
     } catch (error) {
-      console.error('Failed to load kanban data:', error);
+      console.error('🔄 カンバンデータ読み込みエラー:', error);
     } finally {
       setLoading(false);
     }

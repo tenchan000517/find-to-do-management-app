@@ -108,16 +108,15 @@ function groupAppointmentsByRelationship(appointments: AppointmentWithDetails[])
 
 function groupAppointmentsByPhase(appointments: AppointmentWithDetails[]) {
   const groups: Record<string, AppointmentWithDetails[]> = {
-    LEAD: [],
-    PROSPECT: [],
+    CONTACT: [],
+    MEETING: [],
     PROPOSAL: [],
-    NEGOTIATION: [],
-    CLOSING: [],
-    POST_SALE: []
+    CONTRACT: [],
+    CLOSED: []
   };
 
   appointments.forEach(appointment => {
-    const phase = appointment.details?.phaseStatus || 'LEAD';
+    const phase = appointment.details?.phaseStatus || 'CONTACT';
     if (groups[phase]) {
       groups[phase].push(appointment);
     }
