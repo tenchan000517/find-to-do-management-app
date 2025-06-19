@@ -494,6 +494,8 @@ class PrismaDataService {
       return connections.map((c: Awaited<ReturnType<typeof prisma.connections.findMany>>[0]) => ({
         ...c,
         type: reverseConnectionTypeMap[c.type] || 'company',
+        email: c.email || undefined,
+        phone: c.phone || undefined,
         businessCard: c.businessCard || undefined,
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString()
@@ -520,6 +522,8 @@ class PrismaDataService {
     return {
       ...newConnection,
       type: reverseConnectionTypeMap[newConnection.type] || 'company',
+      email: newConnection.email || undefined,
+      phone: newConnection.phone || undefined,
       businessCard: newConnection.businessCard || undefined,
       createdAt: newConnection.createdAt.toISOString(),
       updatedAt: newConnection.updatedAt.toISOString()
@@ -539,6 +543,8 @@ class PrismaDataService {
       return {
         ...updatedConnection,
         type: reverseConnectionTypeMap[updatedConnection.type] || 'company',
+        email: updatedConnection.email || undefined,
+        phone: updatedConnection.phone || undefined,
         businessCard: updatedConnection.businessCard || undefined,
         createdAt: updatedConnection.createdAt.toISOString(),
         updatedAt: updatedConnection.updatedAt.toISOString()
@@ -1286,18 +1292,6 @@ class PrismaDataService {
   }
 
   // Additional entity getters needed by RelationshipService
-  async getAppointmentById(id: string): Promise<any> {
-    try {
-      const appointment = await prisma.appointments.findUnique({
-        where: { id }
-      });
-      
-      return appointment;
-    } catch (error) {
-      console.error('Failed to get appointment by ID:', error);
-      return null;
-    }
-  }
 
   async getCalendarEventById(id: string): Promise<any> {
     try {

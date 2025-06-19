@@ -3,10 +3,11 @@ import { prismaDataService } from '@/lib/database/prisma-service';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const appointment = await prismaDataService.getAppointmentById(params.id);
+    const { id } = await params;
+    const appointment = await prismaDataService.getAppointmentById(id);
     if (!appointment) {
       return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
     }
@@ -19,11 +20,12 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    const appointment = await prismaDataService.updateAppointment(params.id, body);
+    const appointment = await prismaDataService.updateAppointment(id, body);
     if (!appointment) {
       return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
     }
@@ -36,10 +38,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const success = await prismaDataService.deleteAppointment(params.id);
+    const { id } = await params;
+    const success = await prismaDataService.deleteAppointment(id);
     return NextResponse.json({ success });
   } catch (error) {
     console.error('Failed to delete appointment:', error);

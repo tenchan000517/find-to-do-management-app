@@ -31,10 +31,10 @@ export default function DueDateResetModal({
   };
 
   return (
-    <Modal 
-      isOpen={isOpen} 
+    <Modal
+      isOpen={isOpen}
       onClose={onCancel}
-      className="max-w-md"
+      size="sm"
     >
       <div className="p-6">
         <div className="flex items-center gap-3 mb-4">
