@@ -21,7 +21,14 @@ export async function POST(
       scheduledTime,
       meetingLocation,
       agenda,
-      participants
+      participants,
+      // Additional form fields from flow modal
+      salesPhase,
+      relationshipStatus,
+      createNextAppointment,
+      nextAppointmentDate,
+      nextAppointmentPurpose,
+      nextAppointmentRelationshipStatus
     } = body;
 
     // アポイントメント更新
@@ -71,6 +78,55 @@ export async function POST(
         
         console.log('✅ 自動関係性進行:', appointment.companyName, '→ 関係性構築');
       }
+    }
+
+    // アポイントメント詳細の更新（processingStatusとフォームデータ）
+    const appointmentDetailsData: any = {
+      processingStatus: 'IN_PROGRESS' // 進行中ステータスを設定
+    };
+
+    // フローモーダルからの追加フィールドを処理
+    if (salesPhase) appointmentDetailsData.phaseStatus = salesPhase;
+    if (relationshipStatus) appointmentDetailsData.relationshipStatus = relationshipStatus;
+
+    await prisma.appointment_details.upsert({
+      where: { appointmentId: appointment.id },
+      create: {
+        appointmentId: appointment.id,
+        ...appointmentDetailsData
+      },
+      update: appointmentDetailsData
+    });
+
+    console.log('✅ 進行中ステータス更新:', appointment.companyName, '→ IN_PROGRESS');
+
+    // 次回アポイントメント作成
+    if (createNextAppointment && nextAppointmentDate && nextAppointmentPurpose) {
+      const nextAppointment = await prisma.appointments.create({
+        data: {
+          id: `apt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          companyName: appointment.companyName,
+          contactName: appointment.contactName,
+          phone: appointment.phone || '',
+          email: appointment.email || '',
+          nextAction: nextAppointmentPurpose,
+          priority: appointment.priority || 'C',
+          status: 'PENDING',
+          assignedTo: appointment.assignedTo || 'user1',
+          createdBy: appointment.assignedTo || 'user1'
+        }
+      });
+
+      // 次回アポイントメントの詳細も設定
+      await prisma.appointment_details.create({
+        data: {
+          appointmentId: nextAppointment.id,
+          processingStatus: 'PENDING',
+          relationshipStatus: nextAppointmentRelationshipStatus || 'RAPPORT_BUILDING'
+        }
+      });
+
+      console.log('✅ 次回アポイントメント作成:', nextAppointment.id);
     }
 
     // ステータス更新（簡略化）

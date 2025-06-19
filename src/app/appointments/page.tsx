@@ -395,7 +395,9 @@ export default function AppointmentsPage() {
         })
       });
 
+      console.log('🔄 アポイントメント移動完了 - データ更新開始');
       await refetchAppointments();
+      console.log('✅ アポイントメント移動完了 - データ更新終了');
       setIsKanbanUpdating(false);
     } catch (error) {
       console.error('Failed to move appointment:', error);
@@ -504,7 +506,9 @@ export default function AppointmentsPage() {
         body: JSON.stringify(data)
       });
 
+      console.log('🔄 フローモーダル送信完了 - データ更新開始');
       await refetchAppointments();
+      console.log('✅ フローモーダル送信完了 - データ更新終了');
       setAppointmentModal({ isOpen: false, type: 'schedule', appointment: null });
     } catch (error) {
       console.error('Failed to submit appointment flow:', error);

@@ -590,8 +590,8 @@ export default function EnhancedAppointmentKanban({
         });
       }, 1500);
       
+      // データ更新は親コンポーネントに委譲（重複を防ぐ）
       onDataRefresh?.();
-      await loadKanbanData();
     } catch (error) {
       console.error('Failed to move appointment:', error);
     } finally {
@@ -614,8 +614,8 @@ export default function EnhancedAppointmentKanban({
   const handleAppointmentComplete = async (appointmentId: string) => {
     try {
       await onAppointmentComplete(appointmentId);
+      // データ更新は親コンポーネントに委譲（重複を防ぐ）
       onDataRefresh?.();
-      await loadKanbanData();
     } catch (error) {
       console.error('Failed to complete appointment:', error);
     }
@@ -624,8 +624,8 @@ export default function EnhancedAppointmentKanban({
   const handleAppointmentSchedule = async (appointmentId: string) => {
     try {
       await onAppointmentSchedule(appointmentId);
+      // データ更新は親コンポーネントに委譲（重複を防ぐ）
       onDataRefresh?.();
-      await loadKanbanData();
     } catch (error) {
       console.error('Failed to schedule appointment:', error);
     }
@@ -634,8 +634,8 @@ export default function EnhancedAppointmentKanban({
   const handleAppointmentContract = async (appointmentId: string) => {
     try {
       await onAppointmentContract(appointmentId);
+      // データ更新は親コンポーネントに委譲（重複を防ぐ）
       onDataRefresh?.();
-      await loadKanbanData();
     } catch (error) {
       console.error('Failed to process contract:', error);
     }

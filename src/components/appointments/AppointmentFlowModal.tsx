@@ -75,15 +75,20 @@ export default function AppointmentFlowModal({
   useEffect(() => {
     if (calendarAction === 'overwrite' && appointment?.calendar_events?.[0]) {
       const latestEvent = appointment.calendar_events[0];
+      console.log('🔄 上書き編集: カレンダーイベントデータ', latestEvent);
       setFormData(prev => ({
         ...prev,
         scheduledDate: latestEvent.date || '',
         scheduledTime: latestEvent.time || '',
         meetingLocation: latestEvent.location || '',
         agenda: latestEvent.description || '',
-        participants: latestEvent.participants?.join(', ') || '',
+        participants: Array.isArray(latestEvent.participants) 
+          ? latestEvent.participants.join(', ') 
+          : (latestEvent.participants || ''),
       }));
+      console.log('✅ フォームデータ更新完了');
     } else if (calendarAction === 'new') {
+      console.log('🆕 新規作成: フォームデータクリア');
       setFormData(prev => ({
         ...prev,
         scheduledDate: '',
