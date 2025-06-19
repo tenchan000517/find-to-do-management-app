@@ -45,8 +45,13 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
       const type = data.replace('start_classification_', '');
       console.log('📋 Menu classification selected:', type);
       
-      // メニューセッションを通常セッションに変換
-      sessionManager.convertToDataSession(event.source.userId, event.source.groupId, type);
+      // 直接データセッションを開始（既存セッションがあれば変換、なければ新規作成）
+      const existingSession = sessionManager.getSession(event.source.userId, event.source.groupId);
+      if (existingSession && existingSession.isMenuSession) {
+        sessionManager.convertToDataSession(event.source.userId, event.source.groupId, type);
+      } else {
+        sessionManager.startSession(event.source.userId, event.source.groupId, type);
+      }
       
       if (event.replyToken) {
         await sendReplyMessage(event.replyToken, `✅ ${type === 'personal_schedule' ? '個人予定' : type === 'schedule' ? 'イベント・予定' : type === 'task' ? 'タスク' : type === 'project' ? 'プロジェクト' : type === 'contact' ? '人脈・コネクション' : type === 'appointment' ? 'アポイントメント' : 'メモ・ナレッジ'}モードに切り替わりました！\n\n内容を直接メッセージで送信してください。\n例: 「明日14時に会議」「企画書作成 来週まで」`);
@@ -101,11 +106,17 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
       if (event.replyToken) {
         const { createDetailedModificationMenu } = await import('./notification');
         const sessionInfo = sessionManager.getSessionInfo(userId, groupId);
-        const mockSessionData = {
-          currentType: sessionInfo?.type || 'task',
-          pendingItem: sessionInfo?.data || {}
-        };
-        await createDetailedModificationMenu(event.replyToken, mockSessionData);
+        if (sessionInfo) {
+          const sessionData = {
+            currentType: sessionInfo.type,
+            pendingItem: sessionInfo.data || {}
+          };
+          console.log('🎯 Creating detailed modification menu for:', sessionData);
+          await createDetailedModificationMenu(event.replyToken, sessionData);
+        } else {
+          console.error('❌ No session found for modification UI');
+          await sendReplyMessage(event.replyToken, '❌ セッション情報が見つかりません。もう一度お試しください。');
+        }
       }
     } else if (data === 'classification_change') {
       // 種類選択画面表示
@@ -205,6 +216,12 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
           const { createAssigneeSelectionMessage } = await import('./notification');
           await createAssigneeSelectionMessage(event.replyToken, type);
         }
+      } else if (fieldKey === 'priority') {
+        // 優先度フィールドの場合は専用UI表示
+        if (event.replyToken) {
+          const { createPrioritySelectionMessage } = await import('./notification');
+          await createPrioritySelectionMessage(event.replyToken, type);
+        }
       } else {
         // 通常のフィールド入力
         sessionManager.setCurrentField(event.source.userId, event.source.groupId, fieldKey);
@@ -224,6 +241,12 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
         if (event.replyToken) {
           const { createAssigneeSelectionMessage } = await import('./notification');
           await createAssigneeSelectionMessage(event.replyToken, type);
+        }
+      } else if (fieldKey === 'priority') {
+        // 優先度フィールドの場合は専用UI表示
+        if (event.replyToken) {
+          const { createPrioritySelectionMessage } = await import('./notification');
+          await createPrioritySelectionMessage(event.replyToken, type);
         }
       } else {
         // 現在入力中フィールドを設定
@@ -415,7 +438,73 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
         const title = sessionData?.data?.title || sessionData?.data?.name || sessionData?.data?.summary || '';
         const itemName = title ? `「${title}」` : '';
         
-        await sendReplyMessage(event.replyToken, `✅ ${typeText}${itemName}を保存しました！${savedFields}\n\n追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。\n\nダッシュボード: https://find-to-do-management-app.vercel.app/`);
+        // ボタン付きの完了メッセージを送信
+        const { sendFlexMessage } = await import('./line-sender');
+        const flexContent = {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '✅ 保存完了',
+                weight: 'bold',
+                size: 'xl',
+                color: '#00C851',
+                margin: 'md'
+              },
+              {
+                type: 'text',
+                text: `${typeText}${itemName}を保存しました！${savedFields}`,
+                wrap: true,
+                color: '#333333',
+                size: 'md',
+                margin: 'md'
+              },
+              {
+                type: 'text',
+                text: '追加で詳細を入力したい場合は、また「📝 詳細入力」ボタンからお気軽にどうぞ。',
+                wrap: true,
+                color: '#666666',
+                size: 'sm',
+                margin: 'md'
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'horizontal',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                height: 'sm',
+                color: '#1E90FF',
+                action: {
+                  type: 'uri',
+                  label: '📊 ダッシュボード',
+                  uri: 'https://find-to-do-management-app.vercel.app/'
+                },
+                flex: 1
+              },
+              {
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: {
+                  type: 'postback',
+                  label: '📝 詳細入力',
+                  data: `start_detailed_input_${type}`
+                },
+                flex: 1
+              }
+            ]
+          }
+        };
+        
+        await sendFlexMessage(event.replyToken, '保存完了', flexContent);
       }
     } else if (data.startsWith('select_assignee_')) {
       // 担当者選択
@@ -444,6 +533,52 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
           await sendGroupNotification(groupId, menuText);
         } catch (error) {
           console.log('担当者選択後の項目選択メニュー送信をスキップ:', error);
+        }
+      }
+    } else if (data.startsWith('select_priority_')) {
+      // 優先度選択
+      const parts = data.split('_');
+      const priorityLevel = parts[parts.length - 1]; // 最後の要素が優先度レベル
+      const type = parts.slice(2, -1).join('_'); // select_priority_の後から最後の要素までがtype
+      
+      // セッションに優先度を保存
+      sessionManager.saveFieldData(event.source.userId, event.source.groupId, 'priority', priorityLevel);
+      
+      if (event.replyToken) {
+        const priorityLabels: Record<string, string> = { 'A': '高', 'B': '中', 'C': '低', 'D': '最低' };
+        const priorityLabel = priorityLabels[priorityLevel] || priorityLevel;
+        
+        await sendReplyMessage(event.replyToken, `✅ 優先度「${priorityLabel}」を設定しました！\n\n続けて他の項目を追加するか、「💾 保存」で完了してください。`);
+        
+        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
+        try {
+          const { sendGroupNotification } = await import('./notification');
+          const groupId = event.source.groupId || event.source.userId;
+          
+          // 簡単な項目選択メニューをテキストで送信
+          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 👤 担当者\n\n「💾 保存」で完了できます。`;
+          await sendGroupNotification(groupId, menuText);
+        } catch (error) {
+          console.log('優先度選択後の項目選択メニュー送信をスキップ:', error);
+        }
+      }
+    } else if (data.startsWith('skip_priority_')) {
+      // 優先度スキップ
+      const type = data.replace('skip_priority_', '');
+      
+      if (event.replyToken) {
+        await sendReplyMessage(event.replyToken, '⏭️ 優先度の設定をスキップしました。');
+        
+        // replyTokenは一度だけ使用可能のため、pushMessageで項目選択画面を送信
+        try {
+          const { sendGroupNotification } = await import('./notification');
+          const groupId = event.source.groupId || event.source.userId;
+          
+          // 簡単な項目選択メニューをテキストで送信
+          const menuText = `📝 次に追加したい項目を選択してください：\n\n• 📋 タイトル\n• 📅 日時\n• 📍 場所\n• 📝 内容\n• 👤 担当者\n\n「💾 保存」で完了できます。`;
+          await sendGroupNotification(groupId, menuText);
+        } catch (error) {
+          console.log('優先度スキップ後の項目選択メニュー送信をスキップ:', error);
         }
       }
     } else if (data.startsWith('skip_assignee_')) {

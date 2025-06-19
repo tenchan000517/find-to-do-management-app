@@ -46,6 +46,7 @@ export {
   startDetailedInputFlow,
   createMenuMessage,
   createAssigneeSelectionMessage,
+  createPrioritySelectionMessage,
   createQuestionMessage,
   createFieldInputMessage
 } from './line-menu';

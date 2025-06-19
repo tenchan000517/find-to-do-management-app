@@ -6,7 +6,6 @@
  */
 
 import { sendFlexMessage, sendReplyMessage } from './line-sender';
-import { getTypeDisplayName } from '@/lib/constants/line-types';
 
 /**
  * 詳細入力開始メッセージ - 項目選択式
@@ -549,6 +548,91 @@ export async function createAssigneeSelectionMessage(replyToken: string, type: s
   } catch (error) {
     console.error('Error creating assignee selection message:', error);
     return await sendReplyMessage(replyToken, '❌ 担当者選択画面の作成に失敗しました。');
+  }
+}
+
+/**
+ * 優先度選択メッセージ作成
+ * @param replyToken 返信トークン
+ * @param type データタイプ
+ * @returns 送信成功フラグ
+ */
+export async function createPrioritySelectionMessage(replyToken: string, type: string): Promise<boolean> {
+  try {
+    console.log(`🎯 Creating priority selection for type: ${type}`);
+
+    const priorities = [
+      { level: 'A', label: '🔴 高 (A)', description: '緊急・重要' },
+      { level: 'B', label: '🟡 中 (B)', description: '重要' },
+      { level: 'C', label: '🟢 低 (C)', description: '通常' },
+      { level: 'D', label: '⚪ 最低 (D)', description: '後回し可' }
+    ];
+
+    const buttonContents = [
+      {
+        type: 'text',
+        text: '🎯 優先度選択',
+        weight: 'bold',
+        size: 'lg',
+        color: '#1DB446'
+      },
+      {
+        type: 'text',
+        text: '優先度を選択してください',
+        size: 'sm',
+        color: '#666666',
+        margin: 'sm'
+      },
+      {
+        type: 'separator',
+        margin: 'md'
+      }
+    ];
+
+    // 優先度ボタンを追加
+    priorities.forEach((priority, index) => {
+      buttonContents.push({
+        type: 'button',
+        style: 'secondary',
+        action: {
+          type: 'postback',
+          label: priority.label,
+          data: `select_priority_${type}_${priority.level}`
+        },
+        margin: index === 0 ? 'md' : 'sm'
+      } as any);
+    });
+
+    buttonContents.push(
+      {
+        type: 'separator',
+        margin: 'md'
+      },
+      {
+        type: 'button',
+        style: 'secondary',
+        action: {
+          type: 'postback',
+          label: '⏭️ スキップ',
+          data: `skip_priority_${type}`
+        }
+      } as any
+    );
+
+    const flexContent = {
+      type: 'bubble',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: buttonContents
+      }
+    };
+
+    return await sendFlexMessage(replyToken, '優先度選択', flexContent);
+  } catch (error) {
+    console.error('Error creating priority selection message:', error);
+    return await sendReplyMessage(replyToken, '❌ 優先度選択画面の作成に失敗しました。');
   }
 }
 

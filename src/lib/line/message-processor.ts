@@ -54,8 +54,8 @@ export function cleanMessageText(message: LineMessage): string {
 }
 
 export function extractCommand(text: string): string | undefined {
-  // メニューコマンド
-  if (text.includes('メニュー') || text.includes('menu') || text.includes('Menu')) {
+  // メニューコマンド（完全一致または単語として）
+  if (text.trim() === 'メニュー' || text.trim() === 'menu' || text.trim() === 'Menu') {
     return 'menu';
   }
   
@@ -64,20 +64,7 @@ export function extractCommand(text: string): string | undefined {
     return 'test_button';
   }
   
-  const commandPatterns = [
-    /^(予定|スケジュール|会議|ミーティング|アポ)/,
-    /^(タスク|作業|仕事|TODO|やること)/,
-    /^(プロジェクト|案件|PJ)/,
-    /^(人脈|連絡先|コンタクト|名刺)/,
-    /^(議事録|メモ|記録|要約)/
-  ];
-  
-  for (const pattern of commandPatterns) {
-    if (pattern.test(text)) {
-      return text.match(pattern)?.[1];
-    }
-  }
-  
+  // その他のコマンドパターンは削除（AI処理で適切に分類されるため）
   return undefined;
 }
 
@@ -155,30 +142,79 @@ export async function processTextMessage(event: LineWebhookEvent, cleanText: str
   console.log('🤖 Starting AI processing for:', cleanText);
   
   try {
-    const extracted = await extractDataFromTextWithAI(cleanText);
-    console.log('🧠 AI Analysis Result:', JSON.stringify(extracted, null, 2));
+    // 既存セッション確認
+    const existingSession = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
     
-    if (!extracted) {
-      console.log('❌ AI extraction failed');
-      if (event.replyToken) {
-        await sendReplyMessage(event.replyToken, '申し訳ありません。メッセージの解析に失敗しました。もう一度お試しください。');
+    if (existingSession) {
+      // メニューで分類選択済みの場合：データ抽出のみ行い直接保存
+      console.log(`📝 Menu-selected session active: ${existingSession.type}`);
+      
+      const extracted = await extractDataFromTextWithAI(cleanText);
+      console.log('🧠 AI Data Extraction Result:', JSON.stringify(extracted, null, 2));
+      
+      if (!extracted) {
+        console.log('❌ AI extraction failed');
+        if (event.replyToken) {
+          await sendReplyMessage(event.replyToken, '申し訳ありません。データの解析に失敗しました。もう一度お試しください。');
+        }
+        return;
       }
-      return;
-    }
 
-    // セッション開始
-    sessionManager.startSession(
-      event.source.userId, 
-      event.source.groupId, 
-      extracted.type || 'memo'
-    );
-    
-    console.log('✅ Session started successfully');
-    
-    // 分類確認メッセージを送信
-    if (event.replyToken) {
-      const { createClassificationConfirmMessage } = await import('./notification');
-      await createClassificationConfirmMessage(event.replyToken, extracted);
+      // AIの分析結果をセッションデータにマージ（分類は既存セッションを使用）
+      Object.entries(extracted).forEach(([key, value]) => {
+        if (key !== 'type' && value !== null && value !== undefined) {
+          sessionManager.saveFieldData(event.source.userId, event.source.groupId, key, value);
+        }
+      });
+
+      // 直接データベースに保存
+      const { saveClassifiedData } = await import('./data-saver');
+      const sessionInfo = sessionManager.getSessionInfo(event.source.userId, event.source.groupId);
+      
+      if (sessionInfo) {
+        const recordId = await saveClassifiedData(null, sessionInfo, event.source.userId);
+        
+        if (recordId) {
+          sessionManager.markAsSaved(event.source.userId, event.source.groupId, recordId);
+          console.log('✅ Data saved directly from menu session');
+          
+          // セッション終了
+          sessionManager.endSession(event.source.userId, event.source.groupId);
+          
+          if (event.replyToken) {
+            const { createCompletionMessage } = await import('./notification');
+            await createCompletionMessage(event.replyToken, sessionInfo.type, { 
+              title: sessionInfo.data.title || sessionInfo.data.name || sessionInfo.data.summary 
+            });
+          }
+        }
+      }
+    } else {
+      // 通常の分類処理（@メンション時など）
+      const extracted = await extractDataFromTextWithAI(cleanText);
+      console.log('🧠 AI Analysis Result:', JSON.stringify(extracted, null, 2));
+      
+      if (!extracted) {
+        console.log('❌ AI extraction failed');
+        if (event.replyToken) {
+          await sendReplyMessage(event.replyToken, '申し訳ありません。メッセージの解析に失敗しました。もう一度お試しください。');
+        }
+        return;
+      }
+
+      // 新規セッション開始
+      sessionManager.startSession(
+        event.source.userId, 
+        event.source.groupId, 
+        extracted.type || 'memo'
+      );
+      console.log('✅ Session started successfully');
+      
+      // 分類確認メッセージを送信
+      if (event.replyToken) {
+        const { createClassificationConfirmMessage } = await import('./notification');
+        await createClassificationConfirmMessage(event.replyToken, extracted);
+      }
     }
   } catch (error) {
     console.error('❌ Error in AI processing:', error);
@@ -259,6 +295,16 @@ export async function handleMessage(event: LineWebhookEvent): Promise<void> {
   });
 
   try {
+    // メニューコマンドの処理
+    if (command === 'menu') {
+      console.log('📋 Menu command detected');
+      if (event.replyToken) {
+        const { createMenuMessage } = await import('./notification');
+        await createMenuMessage(event.replyToken);
+      }
+      return;
+    }
+
     // テスト用ボタンコマンドの処理
     if (command === 'test_button') {
       console.log('🧪 Test button command detected');

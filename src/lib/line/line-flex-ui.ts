@@ -513,6 +513,7 @@ export async function createCompletionMessage(replyToken: string, type: string, 
               type: 'button',
               style: 'primary',
               height: 'sm',
+              color: '#1E90FF',
               action: {
                 type: 'uri',
                 label: '📊 ダッシュボード',
