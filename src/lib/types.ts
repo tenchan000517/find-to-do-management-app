@@ -108,6 +108,7 @@ export interface CalendarEvent {
   type: 'meeting' | 'event' | 'deadline';
   description: string;
   location?: string;
+  meetingUrl?: string;    // オンラインミーティングURL（Zoom、Google Meet等）
   createdAt: string;
   updatedAt: string;
   // 担当者システム統合
@@ -149,6 +150,9 @@ export interface Appointment {
   assignedToId: string; // Legacy field for backward compatibility
   createdAt: string;
   updatedAt: string;
+  // オンラインミーティング関連フィールド
+  meetingUrl?: string;      // オンラインミーティングURL（Zoom、Google Meet等）
+  informationUrl?: string;  // 関連情報URL
   // 担当者システム統合
   createdBy?: string | null;
   assignedTo?: string | null; // 営業担当者

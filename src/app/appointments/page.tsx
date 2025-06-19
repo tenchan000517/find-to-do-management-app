@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useUsers } from '@/hooks/useUsers';
-import { Appointment } from '@/lib/types';
+import { Appointment, SalesPhase, RelationshipStatus, SourceType } from '@/lib/types';
 import FullPageLoading from '@/components/FullPageLoading';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import EnhancedAppointmentKanban from '@/components/appointments/EnhancedAppointmentKanban';
@@ -154,6 +154,8 @@ export default function AppointmentsPage() {
     
     const formData = new FormData(e.currentTarget);
     const assigneeId = formData.get('assigneeId') as string;
+    
+    // アポイントメントデータ
     const appointmentData = {
       companyName: formData.get('companyName') as string,
       contactName: formData.get('contactName') as string,
@@ -164,20 +166,103 @@ export default function AppointmentsPage() {
       nextAction: formData.get('nextAction') as string,
       notes: formData.get('notes') as string,
       priority: formData.get('priority') as Appointment['priority'],
+      meetingUrl: formData.get('meetingUrl') as string || undefined,
+      informationUrl: formData.get('informationUrl') as string || undefined,
       assignedToId: assigneeId, // Legacy field for backward compatibility
       assignedTo: assigneeId, // New assignee system
+      details: {
+        phaseStatus: (formData.get('phaseStatus') as string || 'CONTACT') as SalesPhase,
+        relationshipStatus: (formData.get('relationshipStatus') as string || 'FIRST_CONTACT') as RelationshipStatus,
+        sourceType: (formData.get('sourceType') as string || 'REFERRAL') as SourceType,
+      }
     };
 
-    console.log('💾 送信データ:', appointmentData);
+    // タスクデータ（入力されている場合のみ）
+    const taskTitle = formData.get('taskTitle') as string;
+    const taskData = taskTitle ? {
+      title: taskTitle,
+      description: formData.get('taskDescription') as string || '',
+      dueDate: formData.get('taskDueDate') ? new Date(formData.get('taskDueDate') as string).toISOString() : undefined,
+      status: 'TODO' as const,
+      priority: 'MEDIUM' as const,
+      assignedTo: assigneeId,
+    } : null;
+
+    // カレンダーイベントデータ（入力されている場合のみ）
+    const eventDateTime = formData.get('eventDateTime') as string;
+    const eventData = eventDateTime ? {
+      title: `${appointmentData.companyName} - ${appointmentData.nextAction}`,
+      startDate: new Date(eventDateTime).toISOString(),
+      endDate: formData.get('eventEndDateTime') ? new Date(formData.get('eventEndDateTime') as string).toISOString() : new Date(new Date(eventDateTime).getTime() + 60 * 60 * 1000).toISOString(), // デフォルト1時間後
+      type: 'meeting' as const,
+      description: appointmentData.notes || '',
+      location: formData.get('eventLocation') as string || undefined,
+      meetingUrl: appointmentData.meetingUrl || undefined,
+      participants: formData.get('eventParticipants') ? (formData.get('eventParticipants') as string).split(',').map(p => p.trim()) : [],
+      createdBy: assigneeId,
+      assignedTo: assigneeId,
+    } : null;
+
+    console.log('💾 送信データ:', { appointmentData, taskData, eventData });
 
     try {
       setIsSubmitting(true);
+      let appointmentId: string;
+
+      // アポイントメントの作成/更新
       if (editingAppointment) {
         console.log('💾 アポイントメント更新処理:', editingAppointment.id);
         await updateAppointment(editingAppointment.id, appointmentData);
+        appointmentId = editingAppointment.id;
       } else {
         console.log('💾 新規アポイントメント作成処理');
-        await addAppointment(appointmentData);
+        const result = await addAppointment(appointmentData);
+        appointmentId = result.id || 'temp-id';
+      }
+
+      // タスク作成（入力されている場合のみ）
+      if (taskData) {
+        console.log('💾 関連タスク作成処理');
+        try {
+          const taskWithRelation = {
+            ...taskData,
+            description: `${taskData.description}\n\n関連アポイントメント: ${appointmentData.companyName} - ${appointmentData.contactName}`,
+          };
+          
+          const response = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(taskWithRelation),
+          });
+          
+          if (!response.ok) {
+            console.warn('⚠️ タスク作成に失敗しましたが、アポイントメントは正常に保存されました');
+          } else {
+            console.log('✅ 関連タスクを作成しました');
+          }
+        } catch (taskError) {
+          console.warn('⚠️ タスク作成エラー:', taskError);
+        }
+      }
+
+      // カレンダーイベント作成（入力されている場合のみ）
+      if (eventData) {
+        console.log('💾 カレンダーイベント作成処理');
+        try {
+          const response = await fetch('/api/calendar/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData),
+          });
+          
+          if (!response.ok) {
+            console.warn('⚠️ カレンダーイベント作成に失敗しましたが、アポイントメントは正常に保存されました');
+          } else {
+            console.log('✅ カレンダーイベントを作成しました');
+          }
+        } catch (eventError) {
+          console.warn('⚠️ カレンダーイベント作成エラー:', eventError);
+        }
       }
 
       // データ再読み込み
@@ -188,8 +273,21 @@ export default function AppointmentsPage() {
       setShowModal(false);
       setEditingAppointment(null);
       console.log('💾 フォーム送信完了');
+
+      // 成功通知
+      if (taskData && eventData) {
+        alert('アポイントメント、タスク、カレンダーイベントを作成しました！');
+      } else if (taskData) {
+        alert('アポイントメントとタスクを作成しました！');
+      } else if (eventData) {
+        alert('アポイントメントとカレンダーイベントを作成しました！');
+      } else {
+        alert('アポイントメントを保存しました！');
+      }
+      
     } catch (error) {
       console.error('💾 アポイントメント保存エラー:', error);
+      alert('保存中にエラーが発生しました。もう一度お試しください。');
     } finally {
       setIsSubmitting(false);
     }
@@ -781,7 +879,7 @@ export default function AppointmentsPage() {
 
         {/* モーダル */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-gray-700/80 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg md:text-xl font-bold mb-4">
                 {editingAppointment ? 'アポ情報編集' : '新規アポ'}
@@ -796,140 +894,351 @@ export default function AppointmentsPage() {
               {isSubmitting && (
                 <LoadingSpinner size="sm" message="保存中..." className="mb-4" />
               )}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      会社名
-                    </label>
-                    <input
-                      type="text"
-                      name="companyName"
-                      defaultValue={editingAppointment?.companyName || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      担当者名
-                    </label>
-                    <input
-                      type="text"
-                      name="contactName"
-                      defaultValue={editingAppointment?.contactName || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      電話番号
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      defaultValue={editingAppointment?.phone || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      メールアドレス
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      defaultValue={editingAppointment?.email || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ステータス
-                    </label>
-                    <select
-                      name="status"
-                      defaultValue={editingAppointment?.status || 'pending'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="pending">未接触</option>
-                      <option value="contacted">連絡済み</option>
-                      <option value="interested">興味あり</option>
-                      <option value="not_interested">興味なし</option>
-                      <option value="scheduled">アポ確定</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      優先度
-                    </label>
-                    <select
-                      name="priority"
-                      defaultValue={editingAppointment?.priority || 'C'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="A">最優先</option>
-                      <option value="B">重要</option>
-                      <option value="C">緊急</option>
-                      <option value="D">要検討</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      営業担当者
-                    </label>
-                    <select
-                      name="assigneeId"
-                      defaultValue={editingAppointment?.assignedTo || editingAppointment?.assignedToId || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">担当者を選択してください</option>
-                      {users.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      最終連絡日
-                    </label>
-                    <input
-                      type="date"
-                      name="lastContact"
-                      defaultValue={editingAppointment?.lastContact ? new Date(editingAppointment.lastContact).toISOString().split('T')[0] : ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      次のアクション
-                    </label>
-                    <input
-                      type="text"
-                      name="nextAction"
-                      defaultValue={editingAppointment?.nextAction || ''}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* アクション・メモセクション */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    メモ
-                  </label>
-                  <textarea
-                    name="notes"
-                    defaultValue={editingAppointment?.notes || ''}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <h3 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">アクション・メモ</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        最終連絡日
+                      </label>
+                      <input
+                        type="date"
+                        name="lastContact"
+                        defaultValue={editingAppointment?.lastContact ? new Date(editingAppointment.lastContact).toISOString().split('T')[0] : ''}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        次のアクション
+                      </label>
+                      <input
+                        type="text"
+                        name="nextAction"
+                        defaultValue={editingAppointment?.nextAction || ''}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      メモ
+                    </label>
+                    <textarea
+                      name="notes"
+                      defaultValue={editingAppointment?.notes || ''}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
+
+                {/* カレンダーイベント情報セクション */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">カレンダーイベント</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        イベント日時
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name="eventDateTime"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        終了時間
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name="eventEndDateTime"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        場所
+                      </label>
+                      <input
+                        type="text"
+                        name="eventLocation"
+                        placeholder="会議室、住所など"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        参加者（カンマ区切り）
+                      </label>
+                      <input
+                        type="text"
+                        name="eventParticipants"
+                        placeholder="田中,佐藤,山田"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ミーティング情報セクション */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">ミーティング情報</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        オンラインミーティングURL
+                      </label>
+                      <input
+                        type="url"
+                        name="meetingUrl"
+                        defaultValue={editingAppointment?.meetingUrl || ''}
+                        placeholder="https://zoom.us/j/... または https://meet.google.com/..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        関連情報・場所
+                      </label>
+                      <input
+                        type="text"
+                        name="informationUrl"
+                        defaultValue={editingAppointment?.informationUrl || ''}
+                        placeholder="資料リンク、会社HP、オフライン会議場所など"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 簡易タスク追加セクション */}
+                <details className="border border-gray-200 rounded-lg">
+                  <summary className="cursor-pointer bg-gray-50 px-4 py-3 text-lg font-medium text-gray-900 hover:bg-gray-100">
+                    ⚡ 簡易タスク追加
+                  </summary>
+                  <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          タスクタイトル
+                        </label>
+                        <input
+                          type="text"
+                          name="taskTitle"
+                          placeholder="例: 提案資料作成"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          期限
+                        </label>
+                        <input
+                          type="date"
+                          name="taskDueDate"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        タスク概要
+                      </label>
+                      <textarea
+                        name="taskDescription"
+                        rows={2}
+                        placeholder="タスクの詳細説明（任意）"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </details>
+
+                {/* 基本情報セクション */}
+                <details className="border border-gray-200 rounded-lg">
+                  <summary className="cursor-pointer bg-gray-50 px-4 py-3 text-lg font-medium text-gray-900 hover:bg-gray-100">
+                    📝 基本情報
+                  </summary>
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          会社名
+                        </label>
+                        <input
+                          type="text"
+                          name="companyName"
+                          defaultValue={editingAppointment?.companyName || ''}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          担当者名
+                        </label>
+                        <input
+                          type="text"
+                          name="contactName"
+                          defaultValue={editingAppointment?.contactName || ''}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          電話番号
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          defaultValue={editingAppointment?.phone || ''}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          メールアドレス
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          defaultValue={editingAppointment?.email || ''}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          インフォメーション
+                        </label>
+                        <input
+                          type="text"
+                          name="informationUrl"
+                          defaultValue={editingAppointment?.informationUrl || ''}
+                          placeholder="会社HP、資料リンクなど"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </details>
+
+                {/* ステータス・分類セクション */}
+                <details className="border border-gray-200 rounded-lg">
+                  <summary className="cursor-pointer bg-gray-50 px-4 py-3 text-lg font-medium text-gray-900 hover:bg-gray-100">
+                    🏷️ ステータス・分類
+                  </summary>
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          ステータス
+                        </label>
+                        <select
+                          name="status"
+                          defaultValue={editingAppointment?.status || 'pending'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="pending">未接触</option>
+                          <option value="contacted">連絡済み</option>
+                          <option value="interested">興味あり</option>
+                          <option value="not_interested">興味なし</option>
+                          <option value="scheduled">アポ確定</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          優先度
+                        </label>
+                        <select
+                          name="priority"
+                          defaultValue={editingAppointment?.priority || 'C'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="A">最優先</option>
+                          <option value="B">重要</option>
+                          <option value="C">緊急</option>
+                          <option value="D">要検討</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          フェーズ
+                        </label>
+                        <select
+                          name="phaseStatus"
+                          defaultValue={editingAppointment?.details?.phaseStatus || 'CONTACT'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="CONTACT">コンタクト</option>
+                          <option value="MEETING">ミーティング</option>
+                          <option value="PROPOSAL">提案</option>
+                          <option value="CONTRACT">契約</option>
+                          <option value="CLOSED">クローズ</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          関係性
+                        </label>
+                        <select
+                          name="relationshipStatus"
+                          defaultValue={editingAppointment?.details?.relationshipStatus || 'FIRST_CONTACT'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="FIRST_CONTACT">初回接触</option>
+                          <option value="RAPPORT_BUILDING">関係構築中</option>
+                          <option value="TRUST_ESTABLISHED">信頼関係確立</option>
+                          <option value="STRATEGIC_PARTNER">戦略的パートナー</option>
+                          <option value="LONG_TERM_CLIENT">長期クライアント</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          流入経路
+                        </label>
+                        <select
+                          name="sourceType"
+                          defaultValue={editingAppointment?.details?.sourceType || 'REFERRAL'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="REFERRAL">紹介</option>
+                          <option value="COLD_OUTREACH">コールドリーチ</option>
+                          <option value="NETWORKING_EVENT">ネットワーキングイベント</option>
+                          <option value="INBOUND_INQUIRY">インバウンド問い合わせ</option>
+                          <option value="SOCIAL_MEDIA">ソーシャルメディア</option>
+                          <option value="EXISTING_CLIENT">既存クライアント</option>
+                          <option value="PARTNER_REFERRAL">パートナー紹介</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          営業担当者
+                        </label>
+                        <select
+                          name="assigneeId"
+                          defaultValue={editingAppointment?.assignedTo || editingAppointment?.assignedToId || ''}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                          <option value="">担当者を選択してください</option>
+                          {users.map(user => (
+                            <option key={user.id} value={user.id}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </details>
                 <div className="flex gap-2 pt-4">
                   <button
                     type="submit"

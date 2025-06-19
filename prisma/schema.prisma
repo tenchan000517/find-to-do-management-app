@@ -19,6 +19,10 @@ model appointments {
   notes           String               @default("")
   priority        priority             @default(C)
   
+  // オンラインミーティング関連フィールド
+  meetingUrl      String?              // オンラインミーティングURL（Zoom、Google Meet等）
+  informationUrl  String?              // 関連情報URL
+  
   // 新しい担当者システム（業務実行エンティティ：移行中は任意）
   createdBy       String?              // 作成者ID（移行中は任意）
   assignedTo      String?              // 営業担当者ID（移行中は任意）
@@ -48,6 +52,7 @@ model calendar_events {
   description  String     @default("")
   participants String[]   @default([])
   location     String?
+  meetingUrl   String?    // オンラインミーティングURL（Zoom、Google Meet等）
 
   // 新しい担当者システム（パブリック・共有エンティティ：任意）
   createdBy     String?    // 作成者ID（必須）

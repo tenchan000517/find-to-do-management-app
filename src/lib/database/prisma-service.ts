@@ -578,6 +578,7 @@ class PrismaDataService {
         ...e,
         type: reverseEventTypeMap[e.type] || 'meeting',
         location: e.location || undefined,
+        meetingUrl: e.meetingUrl || undefined,
         startTime: e.date,
         createdAt: e.createdAt.toISOString(),
         updatedAt: e.updatedAt.toISOString()
@@ -608,6 +609,7 @@ class PrismaDataService {
       ...newEvent,
       type: reverseEventTypeMap[newEvent.type] || 'meeting',
       location: newEvent.location || undefined,
+      meetingUrl: newEvent.meetingUrl || undefined,
       startTime: newEvent.date,
       createdAt: newEvent.createdAt.toISOString(),
       updatedAt: newEvent.updatedAt.toISOString()
@@ -633,6 +635,7 @@ class PrismaDataService {
         ...updatedEvent,
         type: reverseEventTypeMap[updatedEvent.type] || 'meeting',
         location: updatedEvent.location || undefined,
+        meetingUrl: updatedEvent.meetingUrl || undefined,
         startTime: updatedEvent.date,
         createdAt: updatedEvent.createdAt.toISOString(),
         updatedAt: updatedEvent.updatedAt.toISOString()
@@ -746,6 +749,8 @@ class PrismaDataService {
         status: reverseAppointmentStatusMap[a.status] || 'pending',
         priority: reversePriorityMap[a.priority] || 'medium',
         lastContact: a.lastContact || undefined,
+        meetingUrl: a.meetingUrl || undefined,
+        informationUrl: a.informationUrl || undefined,
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString()
       }));
@@ -781,6 +786,8 @@ class PrismaDataService {
       status: reverseAppointmentStatusMap[newAppointment.status] || 'pending',
       priority: reversePriorityMap[newAppointment.priority] || 'medium',
       lastContact: newAppointment.lastContact || undefined,
+      meetingUrl: newAppointment.meetingUrl || undefined,
+      informationUrl: newAppointment.informationUrl || undefined,
       createdAt: newAppointment.createdAt.toISOString(),
       updatedAt: newAppointment.updatedAt.toISOString()
     };
@@ -803,6 +810,8 @@ class PrismaDataService {
         status: reverseAppointmentStatusMap[updatedAppointment.status] || 'pending',
         priority: reversePriorityMap[updatedAppointment.priority] || 'medium',
         lastContact: updatedAppointment.lastContact || undefined,
+        meetingUrl: updatedAppointment.meetingUrl || undefined,
+        informationUrl: updatedAppointment.informationUrl || undefined,
         createdAt: updatedAppointment.createdAt.toISOString(),
         updatedAt: updatedAppointment.updatedAt.toISOString()
       };
@@ -826,6 +835,8 @@ class PrismaDataService {
         status: reverseAppointmentStatusMap[appointment.status] || 'pending',
         priority: reversePriorityMap[appointment.priority] || 'medium',
         lastContact: appointment.lastContact || undefined,
+        meetingUrl: appointment.meetingUrl || undefined,
+        informationUrl: appointment.informationUrl || undefined,
         createdAt: appointment.createdAt.toISOString(),
         updatedAt: appointment.updatedAt.toISOString()
       };
