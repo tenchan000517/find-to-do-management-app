@@ -226,6 +226,32 @@ export async function saveClassifiedData(
         
       case 'appointment':
         createdRecordId = `appt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // 日付解析処理を追加
+        let appointmentDate: string | undefined;
+        let appointmentTime: string | undefined;
+        
+        // notes, description, title, summaryフィールドから日付情報を解析
+        const dateText = finalData.notes || finalData.description || finalData.title || finalData.summary || '';
+        if (dateText) {
+          try {
+            const { DateTimeParser } = await import('./datetime-parser');
+            const parser = new DateTimeParser();
+            const parsed = await parser.parse(dateText);
+            
+            if (parsed.confidence >= 0.5) {
+              appointmentDate = parsed.date;
+              appointmentTime = parsed.time;
+              console.log(`📅 日付解析成功: "${dateText}" → ${appointmentDate} ${appointmentTime} (confidence: ${parsed.confidence})`);
+            } else {
+              console.log(`⚠️ 日付解析信頼度不足: "${dateText}" (confidence: ${parsed.confidence})`);
+            }
+          } catch (error) {
+            console.error('❌ 日付解析エラー:', error);
+          }
+        }
+        
+        // アポイントメント作成
         await prisma.appointments.create({
           data: {
             id: createdRecordId,
@@ -236,6 +262,7 @@ export async function saveClassifiedData(
             nextAction: finalData.nextAction || finalData.title || finalData.summary || '面談',
             notes: finalData.notes || finalData.description || '',
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'B' : convertPriority(finalData.priority),
+            lastContact: appointmentDate || null, // 解析した日付をlastContactに設定
             // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト
             createdBy: systemUserId,
             assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
@@ -243,6 +270,71 @@ export async function saveClassifiedData(
                        : systemUserId, // デフォルト：作成者が営業担当者
           },
         });
+        
+        // 対応するcalendar_eventsレコードも作成
+        if (appointmentDate) {
+          const calendarEventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          // より適切なタイトル生成
+          function generateAppointmentTitle(): string {
+            // 1. finalDataの既存フィールドを優先的に使用
+            const nextAction = finalData.nextAction || finalData.title || finalData.summary;
+            if (nextAction && nextAction !== '面談' && nextAction.length > 3) {
+              return `🤝 ${nextAction}`;
+            }
+            
+            // 2. notesから日付表現を除去してタイトル生成
+            if (dateText) {
+              let cleanTitle = dateText
+                // より具体的な日付・時刻パターンを除去
+                .replace(/(明日|明後日|明々後日|今日|きょう|あした|あさって|しあさって)(の|に)?\s*(\d{1,2}時\d{0,2}分?|\d{1,2}:\d{2})?\s*(に|で|から)?/g, '')
+                .replace(/\d{1,2}\/\d{1,2}\s*(に|で|から)?/g, '')
+                .replace(/\d{1,2}日後\s*(に|で|から)?/g, '')
+                .replace(/(来週|再来週|先週)\s*(の|に)?\s*(火曜日|水曜日|木曜日|金曜日|土曜日|日曜日|月曜日)?\s*(に|で|から)?/g, '')
+                .replace(/\d+週間後\s*(に|で|から)?/g, '')
+                // 単独の時刻表現
+                .replace(/\d{1,2}:\d{2}\s*(に|で|から)?/g, '')
+                .replace(/\d{1,2}時\d{0,2}分?\s*(に|で|から)?/g, '')
+                // 残った助詞を除去
+                .replace(/^\s*(の|に|と|で|から|まで|は)\s*/g, '')
+                .replace(/\s*(の|に|と|で|から|まで|は)\s*$/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+              
+              if (cleanTitle && cleanTitle.length > 2) {
+                return `🤝 ${cleanTitle}`;
+              }
+            }
+            
+            // 3. フォールバック
+            const companyName = finalData.companyName || finalData.company;
+            if (companyName && companyName !== '新しい会社') {
+              return `🤝 ${companyName}との打ち合わせ`;
+            }
+            
+            return '🤝 アポイントメント';
+          }
+          
+          await prisma.calendar_events.create({
+            data: {
+              id: calendarEventId,
+              title: generateAppointmentTitle(),
+              date: appointmentDate,
+              time: appointmentTime || '00:00',
+              type: 'MEETING',
+              category: 'APPOINTMENT',
+              description: finalData.notes || finalData.description || '',
+              appointmentId: createdRecordId,
+              // 担当者システム対応
+              createdBy: systemUserId,
+              assignedTo: (finalData.assignee && finalData.assignee !== 'null') ? 
+                         (finalData.assignee.startsWith('user_') ? finalData.assignee : `user_${finalData.assignee}`)
+                         : systemUserId,
+            },
+          });
+          
+          console.log(`✅ カレンダーイベント作成完了: ${calendarEventId} (${appointmentDate} ${appointmentTime})`);
+        }
         break;
         
       case 'memo':
