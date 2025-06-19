@@ -18,6 +18,18 @@ export async function saveClassifiedData(
     console.log('💾 Starting database save process');
     console.log('📋 Input data:', { extractedData, sessionInfo, userId });
     
+    // extractedDataがnullの場合があるのでチェック
+    if (extractedData) {
+      console.log('📅 Date fields in extractedData:', {
+        date: extractedData.date,
+        datetime: extractedData.datetime,
+        deadline: extractedData.deadline,
+        dueDate: extractedData.dueDate,
+        startDate: extractedData.startDate,
+        endDate: extractedData.endDate
+      });
+    }
+    
     // LINEユーザーIDから システムユーザーIDを取得
     const systemUser = await prisma.users.findFirst({
       where: { lineUserId: userId }
@@ -122,12 +134,12 @@ export async function saveClassifiedData(
         break;
         
       case 'task':
-        // deadline/datetimeフィールドがある場合はパース
+        // deadline/datetime/dateフィールドがある場合はパース
         let taskParsedDueDate = finalData.dueDate;
         
-        if (finalData.deadline || finalData.datetime) {
+        if (finalData.deadline || finalData.datetime || finalData.date) {
           const { dateTimeParser } = await import('./datetime-parser');
-          const deadlineText = finalData.deadline || finalData.datetime;
+          const deadlineText = finalData.deadline || finalData.datetime || finalData.date;
           const parsed = await dateTimeParser.parse(deadlineText);
           
           if (parsed.confidence >= 0.5) {
@@ -138,6 +150,10 @@ export async function saveClassifiedData(
           }
         }
         
+        // 日付が設定されている場合は、ステータスを'DO'にする
+        const taskStatus = taskParsedDueDate ? 'DO' : 'IDEA';
+        console.log(`📊 タスクステータス決定: ${taskStatus} (dueDate: ${taskParsedDueDate || 'なし'})`);
+        
         createdRecordId = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         await prisma.tasks.create({
           data: {
@@ -145,7 +161,7 @@ export async function saveClassifiedData(
             title: finalData.title || finalData.summary || '新しいタスク',
             description: finalData.description || '',
             projectId: finalData.projectId || null,
-            status: 'IDEA',
+            status: taskStatus,
             priority: (finalData.priority === 'null' || !finalData.priority) ? 'C' : convertPriority(finalData.priority),
             dueDate: taskParsedDueDate,
             estimatedHours: finalData.estimatedHours || 0,
@@ -351,12 +367,12 @@ export async function updateExistingRecord(
         break;
         
       case 'task':
-        // deadline/datetimeフィールドがある場合はパース
+        // deadline/datetime/dateフィールドがある場合はパース
         let taskUpdatedDueDate;
         
-        if (updateData.deadline || updateData.datetime) {
+        if (updateData.deadline || updateData.datetime || updateData.date) {
           const { dateTimeParser } = await import('./datetime-parser');
-          const deadlineText = updateData.deadline || updateData.datetime;
+          const deadlineText = updateData.deadline || updateData.datetime || updateData.date;
           const parsed = await dateTimeParser.parse(deadlineText);
           
           if (parsed.confidence >= 0.5) {
@@ -367,6 +383,20 @@ export async function updateExistingRecord(
           }
         }
         
+        // 既存のタスクを取得してステータスを確認
+        const existingTask = await prisma.tasks.findUnique({
+          where: { id: recordId },
+          select: { status: true, dueDate: true }
+        });
+        
+        // 日付が新たに設定され、かつ現在のステータスがIDEAの場合、DOに変更
+        const shouldUpdateStatus = taskUpdatedDueDate && existingTask?.status === 'IDEA';
+        const updateStatus = shouldUpdateStatus ? 'DO' : undefined;
+        
+        if (shouldUpdateStatus) {
+          console.log(`📊 タスクステータス更新: IDEA → DO (新しい期限: ${taskUpdatedDueDate})`);
+        }
+        
         await prisma.tasks.update({
           where: { id: recordId },
           data: {
@@ -375,6 +405,7 @@ export async function updateExistingRecord(
             priority: (updateData.priority === 'null' || !updateData.priority) ? undefined : convertPriority(updateData.priority),
             dueDate: taskUpdatedDueDate || updateData.deadline || undefined,
             estimatedHours: updateData.estimatedHours ? parseInt(updateData.estimatedHours) : undefined,
+            status: updateStatus,
           },
         });
         break;

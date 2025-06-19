@@ -47,6 +47,7 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 注意: 
 - メッセージで「予定」という言葉が使われたら personal_schedule、「イベント」という言葉が使われたら schedule として分類する
 - 「明日」という言葉が含まれている場合は、明日の日付 (${tomorrow.toISOString().split('T')[0]}) を使用する
+- 「明後日」は今日から2日後、「明々後日」「明明後日」「しあさって」は今日から3日後
 - 時刻が指定されていない場合は、00:00:00 を使用する
 
 抽出すべき情報:
@@ -65,6 +66,7 @@ export async function extractDataFromTextWithAI(text: string): Promise<Extracted
 - 「明日 池本さんとの会議」→ タイトル: 「池本さんとの会議」
 - 「6月20日企画会議」→ タイトル: 「6月20日企画会議」（日付がタイトルの一部）
 - 「明後日 14時 歯医者」→ タイトル: 「歯医者」
+- 「明々後日 ものすっごい会議」→ タイトル: 「ものすっごい会議」
 - 「来週火曜日 打ち合わせ」→ タイトル: 「打ち合わせ」
 - 日時が文の最初にある場合は除去、日時がタイトルに含まれる場合は保持
 
@@ -296,6 +298,7 @@ function extractTitle(text: string, command?: string): string {
     /\b明日\s+\d{1,2}時\b/g,  // 明日 14時
     /\b今日\s+\d{1,2}時\b/g,  // 今日 14時
     /\b明後日\s+\d{1,2}時\b/g,  // 明後日 14時
+    /\b明々後日\s+\d{1,2}時\b/g,  // 明々後日 14時
     /\b\d{1}日後\s+\d{1,2}時\b/g,  // 3日後 14時
     /\b来週\w+\s+\d{1,2}時\b/g,  // 来週火曜 14時
     /\b午前\s*\d{1,2}時\b/g,  // 午前10時
@@ -317,13 +320,14 @@ function extractTitle(text: string, command?: string): string {
     /^明日$/,  // 明日（単体）
     /^今日$/,  // 今日（単体）
     /^明後日$/,  // 明後日（単体）
+    /^明々後日$/,  // 明々後日（単体）
     /^\d{1}日後$/,  // 3日後（単体）
   ];
   
   for (const pattern of singleTimePatterns) {
     if (pattern.test(title.trim())) {
       // 単体日時表現の場合は元テキストからコンテキストを抽出
-      const contextMatch = text.match(/(?:明日|今日|明後日|\d{1}日後).+?([ぁ-んァ-ヶー\w\s]+)/);
+      const contextMatch = text.match(/(?:明日|今日|明後日|明々後日|\d{1}日後).+?([ぁ-んァ-ヶー\w\s]+)/);
       if (contextMatch && contextMatch[1]) {
         title = contextMatch[1].trim();
       }
@@ -350,7 +354,7 @@ function calculateConfidence(text: string, command?: string): number {
   }
   
   // 日時表現の検出
-  if (/\d{1,2}[月\/]\d{1,2}[日]?|\d{1,2}時|\d{1,2}:\d{2}|明日|今日|来週|来月/.test(text)) {
+  if (/\d{1,2}[月\/]\d{1,2}[日]?|\d{1,2}時|\d{1,2}:\d{2}|明日|今日|明後日|明々後日|来週|来月/.test(text)) {
     confidence += 0.2;
   }
   

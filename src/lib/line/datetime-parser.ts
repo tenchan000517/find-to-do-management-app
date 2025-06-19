@@ -36,6 +36,8 @@ export class DateTimeParser {
       .replace(/きょう|キョウ/g, '今日')
       .replace(/らいしゅう|ライシュウ/g, '来週')
       .replace(/あさって|アサッテ/g, '明後日')
+      .replace(/しあさって|シアサッテ/g, '明々後日')
+      .replace(/明明後日/g, '明々後日')
       .replace(/ごぜん|ゴゼン/g, '午前')
       .replace(/ごご|ゴゴ/g, '午後')
       .trim();
@@ -188,6 +190,40 @@ export class DateTimeParser {
         
         return {
           date: dayAfterTomorrow.toISOString().split('T')[0],
+          time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+          confidence: 0.9,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // 明々後日系（時刻なし）
+    {
+      regex: /^明々後日(?:の)?(?!.*\d).*$/,
+      handler: (match: RegExpMatchArray) => {
+        const threeDaysLater = this.getJSTDate();
+        threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+        
+        return {
+          date: threeDaysLater.toISOString().split('T')[0],
+          time: "00:00",
+          confidence: 0.85,
+          method: 'pattern' as const
+        };
+      }
+    },
+
+    // 明々後日系（時刻あり）
+    {
+      regex: /明々後日(?:の)?(?:\s+)?(\d{1,2})(?:時|:(\d{2}))?/,
+      handler: (match: RegExpMatchArray) => {
+        const hour = parseInt(match[1]);
+        const minute = match[2] ? parseInt(match[2]) : 0;
+        const threeDaysLater = this.getJSTDate();
+        threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+        
+        return {
+          date: threeDaysLater.toISOString().split('T')[0],
           time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
           confidence: 0.9,
           method: 'pattern' as const
@@ -419,6 +455,18 @@ export class DateTimeParser {
   // パターンマッチング解析
   parseWithPatterns(input: string): ParsedDateTime | null {
     const cleanInput = this.normalizeInput(input);
+    
+    // ISO形式の日時が既に入力されている場合の処理
+    const isoMatch = cleanInput.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/);
+    if (isoMatch) {
+      console.log(`✅ ISO形式検出: "${input}"`);
+      return {
+        date: isoMatch[1],
+        time: isoMatch[2] || '00:00',
+        confidence: 1.0,
+        method: 'pattern' as const
+      };
+    }
     
     for (const pattern of this.patterns) {
       const match = cleanInput.match(pattern.regex);
