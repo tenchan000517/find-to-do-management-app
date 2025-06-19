@@ -64,8 +64,11 @@ const getPriorityStyle = (priority: string) => {
 export default function AppointmentsPage() {
   const { appointments, loading, addAppointment, updateAppointment, deleteAppointment, reload: refetchAppointments } = useAppointments();
   const { users, loading: usersLoading } = useUsers();
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [kanbanType, setKanbanType] = useState<'processing' | 'relationship' | 'phase' | 'source'>('processing');
+  const [userFilter, setUserFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'priority' | 'phase' | 'date'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filter, setFilter] = useState<'all' | 'pending' | 'contacted' | 'interested' | 'not_interested' | 'scheduled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -110,9 +113,39 @@ export default function AppointmentsPage() {
       appointment.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesUser = userFilter === 'all' || appointment.assignedToId === userFilter;
     
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesSearch && matchesUser;
   });
+
+  // ソート処理
+  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+    if (sortBy === 'priority') {
+      const priorityOrder = { 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
+      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 1;
+      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 1;
+      return sortOrder === 'desc' ? bPriority - aPriority : aPriority - bPriority;
+    } else if (sortBy === 'phase') {
+      const phaseOrder = { 'pending': 1, 'contacted': 2, 'interested': 3, 'scheduled': 4, 'not_interested': 5 };
+      const aPhase = phaseOrder[a.status as keyof typeof phaseOrder] || 1;
+      const bPhase = phaseOrder[b.status as keyof typeof phaseOrder] || 1;
+      return sortOrder === 'desc' ? bPhase - aPhase : aPhase - bPhase;
+    } else if (sortBy === 'date') {
+      const aDate = new Date(a.lastContact || a.createdAt || 0);
+      const bDate = new Date(b.lastContact || b.createdAt || 0);
+      return sortOrder === 'desc' ? bDate.getTime() - aDate.getTime() : aDate.getTime() - bDate.getTime();
+    }
+    return 0;
+  });
+
+  // サマリー統計
+  const appointmentsSummary = {
+    total: appointments.length,
+    pending: appointments.filter(a => a.status === 'pending').length,
+    contacted: appointments.filter(a => a.status === 'contacted').length,
+    interested: appointments.filter(a => a.status === 'interested').length,
+    scheduled: appointments.filter(a => a.status === 'scheduled').length
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -330,6 +363,23 @@ export default function AppointmentsPage() {
     }
   };
 
+  const handleAppointmentDelete = async (appointmentId: string) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+      }
+
+      await refetchAppointments();
+    } catch (error) {
+      console.error('Failed to delete appointment:', error);
+      throw error;
+    }
+  };
+
   const statusCounts = {
     all: appointments.length,
     pending: appointments.filter(a => a.status === 'pending').length,
@@ -358,10 +408,11 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        {/* ビューモード切り替え */}
+        {/* タブ・フィルター・サマリー（一行） */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-            <div className="flex gap-2">
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            {/* タブ */}
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${
@@ -382,82 +433,138 @@ export default function AppointmentsPage() {
               >
                 カンバン表示
               </button>
+              {viewMode === 'kanban' && (
+                <>
+                  <button
+                    onClick={() => setKanbanType('processing')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                      kanbanType === 'processing' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    処理状況
+                  </button>
+                  <button
+                    onClick={() => setKanbanType('relationship')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                      kanbanType === 'relationship' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    関係性
+                  </button>
+                  <button
+                    onClick={() => setKanbanType('phase')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                      kanbanType === 'phase' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    営業フェーズ
+                  </button>
+                  <button
+                    onClick={() => setKanbanType('source')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                      kanbanType === 'source' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    流入経路
+                  </button>
+                </>
+              )}
             </div>
-            
-            {viewMode === 'kanban' && (
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setKanbanType('processing')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                    kanbanType === 'processing' 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  処理状況
-                </button>
-                <button
-                  onClick={() => setKanbanType('relationship')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                    kanbanType === 'relationship' 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  関係性
-                </button>
-                <button
-                  onClick={() => setKanbanType('phase')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                    kanbanType === 'phase' 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  営業フェーズ
-                </button>
-                <button
-                  onClick={() => setKanbanType('source')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium ${
-                    kanbanType === 'source' 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  流入経路
-                </button>
+
+            {/* フィルター・ソート */}
+            <div className="flex gap-2 flex-wrap items-center">
+              {/* ユーザー別フィルター */}
+              <select
+                value={userFilter}
+                onChange={(e) => setUserFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="all">全ユーザー</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>{user.name}</option>
+                ))}
+              </select>
+
+              {/* 優先度ソート */}
+              <button
+                onClick={() => {
+                  setSortBy('priority');
+                  setSortOrder(sortBy === 'priority' && sortOrder === 'desc' ? 'asc' : 'desc');
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  sortBy === 'priority' 
+                    ? 'bg-orange-600 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                優先度 {sortBy === 'priority' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+              </button>
+
+              {/* フェーズソート */}
+              <button
+                onClick={() => {
+                  setSortBy('phase');
+                  setSortOrder(sortBy === 'phase' && sortOrder === 'desc' ? 'asc' : 'desc');
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  sortBy === 'phase' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                フェーズ {sortBy === 'phase' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+              </button>
+
+              {/* 日付ソート */}
+              <button
+                onClick={() => {
+                  setSortBy('date');
+                  setSortOrder(sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                  sortBy === 'date' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                日付 {sortBy === 'date' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
+              </button>
+            </div>
+
+            {/* サマリー（リスト表示時は左寄せ、カンバン表示時は中央） */}
+            <div className={`flex gap-4 flex-wrap ${viewMode === 'list' ? 'justify-start' : ''}`}>
+              <div className="text-sm">
+                <span className="font-medium text-gray-900">総件数:</span>
+                <span className="ml-1 text-gray-700">{appointmentsSummary.total}</span>
               </div>
-            )}
+              <div className="text-sm">
+                <span className="font-medium text-gray-600">未接触:</span>
+                <span className="ml-1 text-gray-600">{appointmentsSummary.pending}</span>
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-blue-600">連絡済み:</span>
+                <span className="ml-1 text-blue-600">{appointmentsSummary.contacted}</span>
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-green-600">興味あり:</span>
+                <span className="ml-1 text-green-600">{appointmentsSummary.interested}</span>
+              </div>
+              <div className="text-sm">
+                <span className="font-medium text-purple-600">アポ確定:</span>
+                <span className="ml-1 text-purple-600">{appointmentsSummary.scheduled}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 統計カード */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-3 md:p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-gray-900">{statusCounts.all}</div>
-            <div className="text-xs md:text-sm text-gray-500">総件数</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3 md:p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-gray-600">{statusCounts.pending}</div>
-            <div className="text-xs md:text-sm text-gray-500">未接触</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3 md:p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-blue-600">{statusCounts.contacted}</div>
-            <div className="text-xs md:text-sm text-gray-500">連絡済み</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3 md:p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-green-600">{statusCounts.interested}</div>
-            <div className="text-xs md:text-sm text-gray-500">興味あり</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3 md:p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-purple-600">{statusCounts.scheduled}</div>
-            <div className="text-xs md:text-sm text-gray-500">アポ確定</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-3 md:p-4 text-center">
-            <div className="text-xl md:text-2xl font-bold text-red-600">{statusCounts.not_interested}</div>
-            <div className="text-xs md:text-sm text-gray-500">興味なし</div>
-          </div>
-        </div>
 
         {/* 検索・フィルター（リストビューのみ） */}
         {viewMode === 'list' && (
@@ -559,7 +666,7 @@ export default function AppointmentsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAppointments.map((appointment) => (
+                {sortedAppointments.map((appointment) => (
                   <tr key={appointment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{appointment.companyName}</div>
@@ -656,7 +763,7 @@ export default function AppointmentsPage() {
           </div>
         ) : (
           /* カンバンビュー */
-          <div className="bg-white rounded-lg shadow-lg p-4">
+          <div className="bg-white rounded-lg shadow-lg p-1">
             <EnhancedAppointmentKanban
               kanbanType={kanbanType}
               onAppointmentMove={handleAppointmentMove}
@@ -664,7 +771,10 @@ export default function AppointmentsPage() {
               onAppointmentComplete={handleAppointmentComplete}
               onAppointmentSchedule={handleAppointmentSchedule}
               onAppointmentContract={handleAppointmentContract}
+              onAppointmentDelete={handleAppointmentDelete}
               onDataRefresh={refetchAppointments}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
             />
           </div>
         )}
