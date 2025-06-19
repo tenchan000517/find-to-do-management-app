@@ -10,19 +10,26 @@ export default function ConnectionsPage() {
   const { connections, loading, addConnection, updateConnection, deleteConnection } = useConnections();
   const { users, loading: usersLoading } = useUsers();
   const [filter, setFilter] = useState<'all' | 'student' | 'company'>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
 
+  // ユニークな会社リストを生成
+  const uniqueCompanies = Array.from(new Set(connections.map(c => c.company))).sort();
+
   const filteredConnections = connections.filter(connection => {
     const matchesFilter = filter === 'all' || connection.type === filter;
+    const matchesCompanyFilter = companyFilter === 'all' || connection.company === companyFilter;
     const matchesSearch = searchTerm === '' || 
       connection.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       connection.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      connection.location.toLowerCase().includes(searchTerm.toLowerCase());
+      connection.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (connection.email && connection.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (connection.phone && connection.phone.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesCompanyFilter && matchesSearch;
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,6 +42,8 @@ export default function ConnectionsPage() {
       company: formData.get('company') as string,
       name: formData.get('name') as string,
       position: formData.get('position') as string,
+      email: formData.get('email') as string || undefined,
+      phone: formData.get('phone') as string || undefined,
       type: formData.get('type') as Connection['type'],
       description: formData.get('description') as string,
       conversation: formData.get('conversation') as string,
@@ -85,47 +94,80 @@ export default function ConnectionsPage() {
 
         {/* 検索・フィルター */}
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4 md:items-center">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="名前、会社名、場所で検索..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4 md:items-center">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="名前、会社名、場所、メール、電話で検索..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'all' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  すべて
+                </button>
+                <button
+                  onClick={() => setFilter('company')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'company' 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  企業
+                </button>
+                <button
+                  onClick={() => setFilter('student')}
+                  className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
+                    filter === 'student' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  学生
+                </button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                すべて
-              </button>
-              <button
-                onClick={() => setFilter('company')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'company' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                企業
-              </button>
-              <button
-                onClick={() => setFilter('student')}
-                className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium ${
-                  filter === 'student' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                学生
-              </button>
+            
+            {/* 企業別フィルター */}
+            <div className="flex flex-col md:flex-row gap-4 md:items-center">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  企業別フィルター
+                </label>
+                <select
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">すべての企業</option>
+                  {uniqueCompanies.map(company => (
+                    <option key={company} value={company}>
+                      {company} ({connections.filter(c => c.company === company).length}名)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {companyFilter !== 'all' && (
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setCompanyFilter('all')}
+                    className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  >
+                    フィルターを解除
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -148,6 +190,9 @@ export default function ConnectionsPage() {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       名前・役職
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      連絡先
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       分類
@@ -184,6 +229,21 @@ export default function ConnectionsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 font-medium">{connection.name}</div>
                         <div className="text-sm text-gray-500">{connection.position}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {connection.email && (
+                          <div>
+                            <span className="text-xs text-gray-500">Email:</span> {connection.email}
+                          </div>
+                        )}
+                        {connection.phone && (
+                          <div>
+                            <span className="text-xs text-gray-500">Tel:</span> {connection.phone}
+                          </div>
+                        )}
+                        {!connection.email && !connection.phone && (
+                          <span className="text-xs text-gray-400">未登録</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -279,6 +339,19 @@ export default function ConnectionsPage() {
                   <div>
                     <span className="font-medium text-gray-700">場所:</span> {connection.location}
                   </div>
+                  {(connection.email || connection.phone) && (
+                    <div>
+                      <span className="font-medium text-gray-700">連絡先:</span>
+                      <div className="mt-1">
+                        {connection.email && (
+                          <div className="text-gray-600">Email: {connection.email}</div>
+                        )}
+                        {connection.phone && (
+                          <div className="text-gray-600">Tel: {connection.phone}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <span className="font-medium text-gray-700">人物:</span>
                     <p className="text-gray-600 mt-1">{connection.description}</p>
@@ -436,6 +509,30 @@ export default function ConnectionsPage() {
                       name="company"
                       defaultValue={editingConnection?.company || ''}
                       required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      メールアドレス（任意）
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      defaultValue={editingConnection?.email || ''}
+                      placeholder="email@example.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      電話番号（任意）
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      defaultValue={editingConnection?.phone || ''}
+                      placeholder="090-1234-5678"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>

@@ -82,6 +82,8 @@ export interface Connection {
   company: string;
   name: string;
   position: string;
+  email?: string;
+  phone?: string;
   type: 'student' | 'company';
   description: string;
   conversation: string;

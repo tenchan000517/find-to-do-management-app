@@ -104,6 +104,8 @@ model connections {
   company      String
   name         String
   position     String
+  email        String?
+  phone        String?
   type         connection_type @default(COMPANY)
   description  String
   conversation String
