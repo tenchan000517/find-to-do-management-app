@@ -249,7 +249,7 @@ export async function createClassificationConfirmMessage(replyToken: string, ext
               contents: [
                 {
                   type: 'text',
-                  text: '信頼度:',
+                  text: 'AI解析信頼度:',
                   size: 'sm',
                   color: '#555555',
                   flex: 1

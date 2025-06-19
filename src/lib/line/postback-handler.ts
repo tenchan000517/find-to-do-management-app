@@ -421,7 +421,7 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
           const meaningfulFields = Object.entries(displayData)
             .filter(([key, value]) => {
               // 内部フィールドを除外
-              const internalFields = ['confidence', 'method', 'id', 'createdAt', 'updatedAt', 'userId', 'createdBy', 'assignedTo', 'projectId', 'estimatedHours', 'resourceWeight', 'aiIssueLevel'];
+              const internalFields = ['confidence', 'method', 'id', 'createdAt', 'updatedAt', 'userId', 'createdBy', 'assignedTo', 'projectId', 'estimatedHours', 'resourceWeight', 'aiIssueLevel', 'difficultyScore'];
               if (internalFields.includes(key)) return false;
               // 空、null、'null'文字列、undefined、空配列を除外
               if (!value || value === 'null' || value === null || value === undefined) return false;
