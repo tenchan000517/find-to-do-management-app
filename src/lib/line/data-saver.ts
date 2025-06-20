@@ -213,7 +213,7 @@ export async function saveClassifiedData(
             location: finalData.location || '',
             company: finalData.company || '',
             position: finalData.position || '',
-            type: (finalData.type === 'null' || !finalData.type) ? 'COMPANY' : finalData.type,
+            type: 'COMPANY', // 'contact'タイプの場合は常にCOMPANYとして保存
             description: finalData.description || '',
             conversation: finalData.conversation || '',
             potential: finalData.potential || '',
