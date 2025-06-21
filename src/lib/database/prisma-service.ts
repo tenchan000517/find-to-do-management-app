@@ -679,7 +679,7 @@ class PrismaDataService {
   }
 
   async addKnowledge(knowledge: Omit<KnowledgeItem, 'id' | 'createdAt' | 'updatedAt' | 'likes'>): Promise<KnowledgeItem> {
-    const { author, creator, assignee, ...knowledgeData } = knowledge;
+    const { author, creator, assignee, assigneeId, ...knowledgeData } = knowledge as any;
     const newKnowledge = await prisma.knowledge_items.create({
       data: {
         id: `knowledge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -688,7 +688,7 @@ class PrismaDataService {
         author: author || 'Unknown',
         updatedAt: new Date(),
         createdBy: knowledgeData.createdBy || null,
-        assignedTo: knowledgeData.assignedTo || null
+        assignedTo: assigneeId || knowledgeData.assignedTo || null
       }
     });
 

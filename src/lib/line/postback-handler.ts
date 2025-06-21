@@ -134,7 +134,8 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
         // セッションの分類を新しいタイプに変更
         sessionInfo.type = newType;
         console.log('🔄 Reclassifying data as:', newType);
-        await saveClassifiedData(null, sessionInfo, userId);
+        const session = sessionManager.getSession(userId, groupId);
+        await saveClassifiedData(null, sessionInfo, userId, session?.originalMessage);
         
         // セッションを終了
         sessionManager.endSession(userId, groupId);

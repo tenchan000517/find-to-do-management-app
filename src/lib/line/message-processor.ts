@@ -253,6 +253,12 @@ export async function processTextMessage(event: LineWebhookEvent, cleanText: str
         event.source.groupId, 
         extracted.type || 'memo'
       );
+      
+      // memoタイプの場合は元のメッセージを保存
+      if ((extracted.type || 'memo') === 'memo') {
+        sessionManager.saveOriginalMessage(event.source.userId, event.source.groupId, cleanText);
+      }
+      
       console.log('✅ Session started successfully');
       
       // 分類確認メッセージを送信

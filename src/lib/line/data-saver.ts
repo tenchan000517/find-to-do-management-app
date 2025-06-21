@@ -4,7 +4,8 @@ import { convertPriority } from '@/lib/utils/line-helpers';
 export async function saveClassifiedData(
   extractedData: any,
   sessionInfo: { type: string; data: Record<string, any> } | null,
-  userId: string
+  userId: string,
+  originalMessage?: string
 ): Promise<string | null> {
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
@@ -363,7 +364,7 @@ export async function saveClassifiedData(
             id: createdRecordId,
             title: finalData.title || finalData.summary || '新しいナレッジ',
             category: (finalData.category === 'null' || !finalData.category) ? 'BUSINESS' : finalData.category,
-            content: finalData.content || finalData.description || '',
+            content: originalMessage || finalData.content || finalData.description || '',
             tags: finalData.tags || [],
             updatedAt: new Date(getJSTNow()),
             // 担当者中心設計: 作成者は常に記録、担当者は作成者がデフォルト

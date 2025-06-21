@@ -13,6 +13,7 @@ interface InputSession {
   dbRecordId?: string; // 保存されたレコードID
   isMenuSession?: boolean; // メニューセッション状態
   menuTimeout?: number; // メニューセッション自動終了時刻
+  originalMessage?: string; // 元のメッセージ（長文保存用）
 }
 
 class SessionManager {
@@ -126,6 +127,15 @@ class SessionManager {
       session.data[fieldKey] = value;
       session.currentField = undefined; // フィールド入力完了
       console.log(`💾 Data saved for ${this.getSessionKey(userId, groupId)}: ${fieldKey} = ${JSON.stringify(value)}`);
+    }
+  }
+  
+  // 元のメッセージ保存（長文ナレッジ用）
+  saveOriginalMessage(userId: string, groupId: string | undefined, originalMessage: string): void {
+    const session = this.getSession(userId, groupId);
+    if (session) {
+      session.originalMessage = originalMessage;
+      console.log(`📝 Original message saved for ${this.getSessionKey(userId, groupId)}: ${originalMessage.substring(0, 100)}...`);
     }
   }
   
