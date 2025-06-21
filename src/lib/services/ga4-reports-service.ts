@@ -69,7 +69,7 @@ export class GA4ReportsService {
 
     try {
       // Get summary metrics
-      const summaryResponse = await client.runReport({
+      const [summaryResponse] = await client.runReport({
         property,
         dateRanges: [{ startDate, endDate }],
         metrics: [
@@ -85,7 +85,7 @@ export class GA4ReportsService {
       const summary = this.extractSummaryMetrics(summaryResponse.rows?.[0]);
 
       // Get metrics by channel
-      const channelResponse = await client.runReport({
+      const [channelResponse] = await client.runReport({
         property,
         dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'sessionDefaultChannelGroup' }],
@@ -104,7 +104,7 @@ export class GA4ReportsService {
       const byChannel = this.extractDimensionData(channelResponse.rows || []);
 
       // Get metrics by page
-      const pageResponse = await client.runReport({
+      const [pageResponse] = await client.runReport({
         property,
         dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'pagePath' }],
@@ -123,7 +123,7 @@ export class GA4ReportsService {
       const byPage = this.extractDimensionData(pageResponse.rows || []);
 
       // Get metrics by device
-      const deviceResponse = await client.runReport({
+      const [deviceResponse] = await client.runReport({
         property,
         dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'deviceCategory' }],
@@ -206,7 +206,7 @@ export class GA4ReportsService {
     const property = `properties/${this.propertyId}`;
 
     try {
-      const response = await client.runRealtimeReport({
+      const [response] = await client.runRealtimeReport({
         property,
         dimensions: [
           { name: 'country' },
@@ -219,11 +219,11 @@ export class GA4ReportsService {
 
       return {
         activeUsers: parseInt(response.rows?.[0]?.metricValues?.[0]?.value || '0'),
-        byCountry: response.rows?.map(row => ({
+        byCountry: response.rows?.map((row: any) => ({
           country: row.dimensionValues?.[0]?.value || 'Unknown',
           activeUsers: parseInt(row.metricValues?.[0]?.value || '0'),
         })) || [],
-        byDevice: response.rows?.map(row => ({
+        byDevice: response.rows?.map((row: any) => ({
           device: row.dimensionValues?.[1]?.value || 'Unknown',
           activeUsers: parseInt(row.metricValues?.[0]?.value || '0'),
         })) || [],
