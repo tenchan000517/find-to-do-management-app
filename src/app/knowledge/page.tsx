@@ -96,12 +96,14 @@ export default function KnowledgePage() {
   };
 
   const extractLinks = (text: string): string[] => {
-    const urlRegex = /(https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
+    // 改良版URL検出正規表現 - より多くのURL形式に対応
+    const urlRegex = /(https?:\/\/(?:[-\w.])+(?:\:[0-9]+)?(?:\/(?:[\w\/_.])*)?(?:\?(?:[\w&=%.])*)?(?:\#(?:[\w.])*)?)/g;
     return text.match(urlRegex) || [];
   };
 
   const shouldTruncate = (content: string): boolean => {
-    return content.split('\n').length > 2 || content.length > 150;
+    // より合理的な切り詰め条件: 5行または300文字以上
+    return content.split('\n').length > 5 || content.length > 300;
   };
 
   const filteredKnowledge = knowledge.filter(item => {
@@ -320,16 +322,18 @@ export default function KnowledgePage() {
                       </div>
                       
                       {/* コンテンツ表示 - アコーディオン対応 */}
-                      <div 
-                        className={`text-sm md:text-base text-gray-600 mb-4 ${
-                          shouldTruncateContent && !isExpanded ? 'line-clamp-2 cursor-pointer' : ''
-                        }`}
-                        onClick={() => shouldTruncateContent && toggleExpanded(item.id)}
-                      >
-                        {shouldTruncateContent && !isExpanded 
-                          ? item.content.slice(0, 150) + '...' 
-                          : item.content
-                        }
+                      <div className="text-sm md:text-base text-gray-600 mb-4">
+                        {shouldTruncateContent && !isExpanded ? (
+                          <div className="space-y-2">
+                            <div className="line-clamp-3">
+                              {item.content}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap">
+                            {item.content}
+                          </div>
+                        )}
                       </div>
                       
                       {/* 読みもっと/畑むボタン */}
@@ -377,27 +381,33 @@ export default function KnowledgePage() {
                           <span className="text-gray-400">{new Date(item.createdAt).toLocaleDateString('ja-JP')}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                          {/* ソースリンクボタン */}
+                          {/* ソースリンクボタン - 改善版UI */}
                           {links.length > 0 && (
-                            <div className="flex gap-1">
-                              {links.slice(0, 2).map((link, index) => (
-                                <a
-                                  key={index}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 transition-colors p-1 rounded hover:bg-blue-50 flex items-center gap-1"
-                                  title={`ソース: ${link}`}
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                  </svg>
-                                  <span className="text-xs">ソース{links.length > 1 ? ` ${index + 1}` : ''}</span>
-                                </a>
-                              ))}
-                              {links.length > 2 && (
-                                <span className="text-xs text-gray-400">+{links.length - 2}</span>
-                              )}
+                            <div className="flex flex-wrap gap-2">
+                              {links.map((link, index) => {
+                                let domain = 'リンク';
+                                try {
+                                  domain = new URL(link).hostname.replace('www.', '');
+                                } catch (e) {
+                                  domain = 'リンク';
+                                }
+                                return (
+                                  <a
+                                    key={index}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded-full text-xs font-medium transition-all duration-200 border border-blue-200 hover:border-blue-300"
+                                    title={`ソース: ${link}`}
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    <span className="max-w-[100px] truncate">{domain}</span>
+                                    {links.length > 1 && <span className="text-blue-500">#{index + 1}</span>}
+                                  </a>
+                                );
+                              })}
                             </div>
                           )}
                           
