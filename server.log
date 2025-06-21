@@ -25,3 +25,10 @@
  ○ Compiling /_not-found/page ...
  ✓ Compiled /_not-found/page in 10.2s
  GET /analytics 404 in 10827ms
+ GET /api/analytics/dashboard?days=7 200 in 8589ms
+ GET /api/analytics/dashboard?days=7 200 in 6455ms
+   Reload env: .env.local
+ GET /api/analytics/test 500 in 4065ms
+   Reload env: .env.local
+ GET /api/analytics/test 200 in 5200ms
+ GET /api/analytics/dashboard?days=7 200 in 4957ms

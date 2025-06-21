@@ -52,7 +52,7 @@ export default function TrafficTrendChart({ ga4Data, searchConsoleData }: Traffi
       const impressionsFactor = searchConsoleData.summary.impressions / 7;
       
       data.push({
-        date: date.toLocaleDateString('ja-JP', { month: 'M', day: 'D' }),
+        date: date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }),
         sessions: Math.floor(sessionsFactor * (0.8 + Math.random() * 0.4)),
         users: Math.floor(sessionsFactor * 0.8 * (0.8 + Math.random() * 0.4)),
         clicks: Math.floor(clicksFactor * (0.8 + Math.random() * 0.4)),
