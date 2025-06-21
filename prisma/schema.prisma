@@ -18,88 +18,64 @@ model appointments {
   nextAction      String
   notes           String               @default("")
   priority        priority             @default(C)
-  
-  // オンラインミーティング関連フィールド
-  meetingUrl      String?              // オンラインミーティングURL（Zoom、Google Meet等）
-  informationUrl  String?              // 関連情報URL
-  
-  // 新しい担当者システム（業務実行エンティティ：移行中は任意）
-  createdBy       String?              // 作成者ID（移行中は任意）
-  assignedTo      String?              // 営業担当者ID（移行中は任意）
-  
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
+  assignedTo      String?
+  createdBy       String?
+  informationUrl  String?
+  meetingUrl      String?
   details         appointment_details?
-  calendar_events calendar_events[]
-  
-  // 新しいリレーション
-  creator         users?               @relation("AppointmentCreator", fields: [createdBy], references: [id])
   assignee        users?               @relation("AppointmentAssignee", fields: [assignedTo], references: [id])
+  creator         users?               @relation("AppointmentCreator", fields: [createdBy], references: [id])
+  calendar_events calendar_events[]
 
-  @@index([status], name: "idx_appointments_status")
-  @@index([createdBy], name: "idx_appointments_created_by")
-  @@index([assignedTo], name: "idx_appointments_assigned_to")
-  @@index([updatedAt], name: "idx_appointments_updated")
+  @@index([status], map: "idx_appointments_status")
+  @@index([createdBy], map: "idx_appointments_created_by")
+  @@index([assignedTo], map: "idx_appointments_assigned_to")
+  @@index([updatedAt], map: "idx_appointments_updated")
 }
 
 model calendar_events {
-  id           String     @id
-  title        String
-  date         String
-  time         String
-  endTime      String?
-  type         event_type @default(MEETING)
-  description  String     @default("")
-  participants String[]   @default([])
-  location     String?
-  meetingUrl   String?    // オンラインミーティングURL（Zoom、Google Meet等）
-
-  // 新しい担当者システム（パブリック・共有エンティティ：任意）
-  createdBy     String?    // 作成者ID（必須）
-  assignedTo    String?    // イベント責任者ID（任意・パブリック可能）
-  
-  // 既存フィールド（後方互換性のため保持）
-  userId        String?
-  projectId     String?
-  taskId        String?
-  appointmentId String?
-
-  // カテゴリ・重要度
-  category   event_category @default(EVENT)
-  importance Float          @default(0.5)
-
-  // 繰り返し設定
-  isRecurring      Boolean @default(false)
-  recurringPattern String?
+  id               String           @id
+  title            String
+  date             String
+  time             String
+  type             event_type       @default(MEETING)
+  description      String           @default("")
+  participants     String[]         @default([])
+  location         String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  appointmentId    String?
+  category         event_category   @default(EVENT)
+  colorCode        String?
+  endTime          String?
+  importance       Float            @default(0.5)
+  isAllDay         Boolean          @default(false)
+  isRecurring      Boolean          @default(false)
+  projectId        String?
   recurringEnd     String?
+  recurringPattern String?
+  taskId           String?
+  userId           String?
+  assignedTo       String?
+  createdBy        String?
+  meetingUrl       String?
+  appointments     appointments?    @relation(fields: [appointmentId], references: [id])
+  assignee         users?           @relation("CalendarAssignee", fields: [assignedTo], references: [id])
+  creator          users?           @relation("CalendarCreator", fields: [createdBy], references: [id])
+  projects         projects?        @relation(fields: [projectId], references: [id])
+  recurring_rules  recurring_rules? @relation(fields: [recurringPattern], references: [id])
+  tasks            tasks?           @relation(fields: [taskId], references: [id])
+  users            users?           @relation("CalendarUser", fields: [userId], references: [id])
 
-  // 表示設定
-  colorCode String?
-  isAllDay  Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // リレーション
-  projects        projects?        @relation(fields: [projectId], references: [id])
-  tasks           tasks?           @relation(fields: [taskId], references: [id])
-  appointments    appointments?    @relation(fields: [appointmentId], references: [id])
-  recurring_rules recurring_rules? @relation(fields: [recurringPattern], references: [id])
-  
-  // 新しいリレーション
-  creator         users?           @relation("CalendarCreator", fields: [createdBy], references: [id])
-  assignee        users?           @relation("CalendarAssignee", fields: [assignedTo], references: [id])
-  
-  // 既存リレーション（互換性のため保持）
-  users           users?           @relation("CalendarUser", fields: [userId], references: [id])
-
-  @@index([date], name: "idx_calendar_date")
-  @@index([userId, date], name: "idx_calendar_user_date")
-  @@index([createdBy], name: "idx_calendar_created_by")
-  @@index([assignedTo, date], name: "idx_calendar_assigned_date")
-  @@index([appointmentId], name: "idx_calendar_appointment")
-  @@index([taskId], name: "idx_calendar_task")
-  @@index([projectId], name: "idx_calendar_project")
+  @@index([date], map: "idx_calendar_date")
+  @@index([userId, date], map: "idx_calendar_user_date")
+  @@index([createdBy], map: "idx_calendar_created_by")
+  @@index([assignedTo, date], map: "idx_calendar_assigned_date")
+  @@index([appointmentId], map: "idx_calendar_appointment")
+  @@index([taskId], map: "idx_calendar_task")
+  @@index([projectId], map: "idx_calendar_project")
 }
 
 model connections {
@@ -109,62 +85,52 @@ model connections {
   company      String
   name         String
   position     String
-  email        String?
-  phone        String?
   type         connection_type @default(COMPANY)
   description  String
   conversation String
   potential    String
   businessCard String?
-  
-  // 新しい担当者システム（パブリック・共有エンティティ：任意）
-  createdBy    String?         // 作成者ID（任意）
-  assignedTo   String?         // 関係構築担当者ID（任意・共有人脈）
-  
   createdAt    DateTime        @default(now())
   updatedAt    DateTime
-  
-  // 新しいリレーション
-  creator      users?          @relation("ConnectionCreator", fields: [createdBy], references: [id])
+  assignedTo   String?
+  createdBy    String?
+  email        String?
+  phone        String?
   assignee     users?          @relation("ConnectionAssignee", fields: [assignedTo], references: [id])
+  creator      users?          @relation("ConnectionCreator", fields: [createdBy], references: [id])
 
-  @@index([type], name: "idx_connections_type")
-  @@index([createdBy], name: "idx_connections_created_by")
-  @@index([assignedTo], name: "idx_connections_assigned_to")
-  @@index([updatedAt], name: "idx_connections_updated")
+  @@index([type], map: "idx_connections_type")
+  @@index([createdBy], map: "idx_connections_created_by")
+  @@index([assignedTo], map: "idx_connections_assigned_to")
+  @@index([updatedAt], map: "idx_connections_updated")
 }
 
 model knowledge_items {
-  id                  String             @id
-  title               String
-  category            knowledge_category @default(BUSINESS)
-  content             String
-  author              String
-  tags                String[]           @default([])
-  likes               Int                @default(0)
-  source_type         String?
-  source_document_id  String?
-  source_page_number  Int?
-  source_url          String?
-  auto_generated      Boolean            @default(false)
-  
-  // 新しい担当者システム（パブリック・共有エンティティ：任意）
-  createdBy           String?            // 作成者ID（任意）
-  assignedTo          String?            // 管理担当者ID（任意・ナレッジ共有）
-  
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  
-  // 新しいリレーション
-  creator             users?             @relation("KnowledgeCreator", fields: [createdBy], references: [id])
-  assignee            users?             @relation("KnowledgeAssignee", fields: [assignedTo], references: [id])
+  id                 String             @id
+  title              String
+  category           knowledge_category @default(BUSINESS)
+  content            String
+  author             String
+  tags               String[]           @default([])
+  likes              Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  auto_generated     Boolean            @default(false)
+  source_document_id String?
+  source_page_number Int?
+  source_type        String?
+  source_url         String?
+  assignedTo         String?
+  createdBy          String?
+  assignee           users?             @relation("KnowledgeAssignee", fields: [assignedTo], references: [id])
+  creator            users?             @relation("KnowledgeCreator", fields: [createdBy], references: [id])
 
-  @@index([category], name: "idx_knowledge_category")
-  @@index([createdAt], name: "idx_knowledge_created")
-  @@index([source_document_id], name: "idx_knowledge_source")
-  @@index([auto_generated], name: "idx_knowledge_auto")
-  @@index([createdBy], name: "idx_knowledge_created_by")
-  @@index([assignedTo], name: "idx_knowledge_assigned_to")
+  @@index([category], map: "idx_knowledge_category")
+  @@index([createdAt], map: "idx_knowledge_created")
+  @@index([source_document_id], map: "idx_knowledge_source")
+  @@index([auto_generated], map: "idx_knowledge_auto")
+  @@index([createdBy], map: "idx_knowledge_created_by")
+  @@index([assignedTo], map: "idx_knowledge_assigned_to")
 }
 
 model line_integration_logs {
@@ -192,11 +158,6 @@ model projects {
   progress              Int                     @default(0)
   startDate             String
   endDate               String?
-  
-  // 新しい担当者システム（業務実行エンティティ：移行中は任意）
-  createdBy             String?                 // 作成者ID（移行中は任意）
-  assignedTo            String?                 // プロジェクトマネージャーID（移行中は任意）
-  
   teamMembers           String[]                @default([])
   priority              priority                @default(C)
   createdAt             DateTime                @default(now())
@@ -208,25 +169,21 @@ model projects {
   connectionPower       Int                     @default(0)
   lastActivityDate      DateTime                @default(now())
   phaseChangeDate       DateTime                @default(now())
-  
-  // リレーション
-  tasks                 tasks[]
-  project_relationships project_relationships[]
+  assignedTo            String?
+  createdBy             String?
+  calendar_events       calendar_events[]
   project_alerts        project_alerts[]
   project_phase_history project_phase_history[]
-  calendar_events       calendar_events[]
-  
-  // MECE関係性リレーション - Phase 3で追加
-  task_relationships    task_relationships[]
-  
-  // 新しいリレーション
-  creator               users?                  @relation("ProjectCreator", fields: [createdBy], references: [id])
+  project_relationships project_relationships[]
   manager               users?                  @relation("ProjectManager", fields: [assignedTo], references: [id])
+  creator               users?                  @relation("ProjectCreator", fields: [createdBy], references: [id])
+  task_relationships    task_relationships[]
+  tasks                 tasks[]
 
-  @@index([status], name: "idx_projects_status")
-  @@index([createdBy], name: "idx_projects_created_by")
-  @@index([assignedTo], name: "idx_projects_assigned_to")
-  @@index([updatedAt], name: "idx_projects_updated")
+  @@index([status], map: "idx_projects_status")
+  @@index([createdBy], map: "idx_projects_created_by")
+  @@index([assignedTo], map: "idx_projects_assigned_to")
+  @@index([updatedAt], map: "idx_projects_updated")
 }
 
 model task_archives {
@@ -249,53 +206,40 @@ model task_collaborators {
 }
 
 model tasks {
-  id                 String               @id
-  title              String
-  description        String               @default("")
-  projectId          String?
-  
-  // 新しい担当者システム（業務実行エンティティ：移行中は任意）
-  createdBy          String?              // 作成者ID（移行中は任意）
-  assignedTo         String?              // 担当者ID（移行中は任意）
-  
-  // 既存フィールド（後方互換性のため保持）
-  userId             String
-  
-  status             task_status          @default(IDEA)
-  priority           priority             @default(C)
-  dueDate            String?
-  isArchived         Boolean              @default(false)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  estimatedHours     Float                @default(0)
-  actualHours        Float                @default(0)
-  difficultyScore    Int                  @default(3)
-  aiIssueLevel       String               @default("C")
-  resourceWeight     Float                @default(1.0)
-  
-  // リレーション
-  task_collaborators task_collaborators[]
-  projects           projects?            @relation(fields: [projectId], references: [id])
-  calendar_events    calendar_events[]
-  
-  // 新しいリレーション
-  creator            users?               @relation("TaskCreator", fields: [createdBy], references: [id])
-  assignee           users?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
-  
-  // MECE関係性リレーション - Phase 3で追加
+  id                  String               @id
+  title               String
+  description         String               @default("")
+  projectId           String?
+  userId              String
+  status              task_status          @default(IDEA)
+  priority            priority             @default(C)
+  dueDate             String?
+  isArchived          Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  estimatedHours      Float                @default(0)
+  actualHours         Float                @default(0)
+  difficultyScore     Int                  @default(3)
+  aiIssueLevel        String               @default("C")
+  resourceWeight      Float                @default(1.0)
+  assignedTo          String?
+  createdBy           String?
+  calendar_events     calendar_events[]
+  task_collaborators  task_collaborators[]
   sourceRelationships task_relationships[] @relation("SourceTask")
   targetRelationships task_relationships[] @relation("TargetTask")
-  
-  // 既存リレーション（互換性のため保持）
-  users              users                @relation("TaskUser", fields: [userId], references: [id])
+  assignee            users?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  creator             users?               @relation("TaskCreator", fields: [createdBy], references: [id])
+  projects            projects?            @relation(fields: [projectId], references: [id])
+  users               users                @relation("TaskUser", fields: [userId], references: [id])
 
-  @@index([dueDate], name: "idx_tasks_due")
-  @@index([userId, isArchived, status], name: "idx_tasks_filter")
-  @@index([projectId], name: "idx_tasks_project")
-  @@index([createdAt], name: "idx_tasks_created")
-  @@index([createdBy], name: "idx_tasks_created_by")
-  @@index([assignedTo], name: "idx_tasks_assigned_to")
-  @@index([assignedTo, status], name: "idx_tasks_assigned_status")
+  @@index([dueDate], map: "idx_tasks_due")
+  @@index([userId, isArchived, status], map: "idx_tasks_filter")
+  @@index([projectId], map: "idx_tasks_project")
+  @@index([createdAt], map: "idx_tasks_created")
+  @@index([createdBy], map: "idx_tasks_created_by")
+  @@index([assignedTo], map: "idx_tasks_assigned_to")
+  @@index([assignedTo, status], map: "idx_tasks_assigned_status")
 }
 
 model users {
@@ -311,96 +255,26 @@ model users {
   skills                Json                    @default("{}")
   preferences           Json                    @default("{}")
   workStyle             Json                    @default("{}")
-  
-  // 既存リレーション
-  task_collaborators    task_collaborators[]
-  user_alerts           user_alerts[]
-  project_phase_history project_phase_history[]
-  personal_schedules    personal_schedules[]
-  
-  // 新しいリレーション - 作成者として
-  created_tasks         tasks[]                 @relation("TaskCreator")
-  created_projects      projects[]              @relation("ProjectCreator")
-  created_appointments  appointments[]          @relation("AppointmentCreator")
-  created_events        calendar_events[]       @relation("CalendarCreator")
-  created_connections   connections[]           @relation("ConnectionCreator")
-  created_knowledge     knowledge_items[]       @relation("KnowledgeCreator")
-  created_ai_analysis   ai_content_analysis[]   @relation("AIAnalysisCreator")
-  
-  // 新しいリレーション - 担当者として
-  assigned_tasks        tasks[]                 @relation("TaskAssignee")
-  managed_projects      projects[]              @relation("ProjectManager")
-  assigned_appointments appointments[]          @relation("AppointmentAssignee")
-  assigned_events       calendar_events[]       @relation("CalendarAssignee")
-  assigned_connections  connections[]           @relation("ConnectionAssignee")
-  assigned_knowledge    knowledge_items[]       @relation("KnowledgeAssignee")
   assigned_ai_analysis  ai_content_analysis[]   @relation("AIAnalysisAssignee")
-  
-  // 既存リレーション（互換性のため保持）
-  tasks                 tasks[]                 @relation("TaskUser")
+  created_ai_analysis   ai_content_analysis[]   @relation("AIAnalysisCreator")
+  assigned_appointments appointments[]          @relation("AppointmentAssignee")
+  created_appointments  appointments[]          @relation("AppointmentCreator")
+  assigned_events       calendar_events[]       @relation("CalendarAssignee")
+  created_events        calendar_events[]       @relation("CalendarCreator")
   calendar_events       calendar_events[]       @relation("CalendarUser")
-}
-
-enum appointment_status {
-  PENDING
-  CONTACTED
-  INTERESTED
-  NOT_INTERESTED
-  SCHEDULED
-}
-
-enum archive_level {
-  SOFT
-  PERMANENT
-}
-
-enum connection_type {
-  STUDENT
-  COMPANY
-}
-
-enum event_type {
-  MEETING
-  EVENT
-  DEADLINE
-}
-
-enum knowledge_category {
-  INDUSTRY
-  SALES
-  TECHNICAL
-  BUSINESS
-}
-
-enum priority {
-  A
-  B
-  C
-  D
-}
-
-enum processing_status {
-  PENDING
-  PROCESSED
-  FAILED
-  MANUAL_REVIEW
-}
-
-enum project_status {
-  PLANNING
-  ACTIVE
-  ON_HOLD
-  COMPLETED
-}
-
-enum task_status {
-  IDEA
-  PLAN
-  DO
-  CHECK
-  COMPLETE
-  KNOWLEDGE
-  DELETE
+  assigned_connections  connections[]           @relation("ConnectionAssignee")
+  created_connections   connections[]           @relation("ConnectionCreator")
+  assigned_knowledge    knowledge_items[]       @relation("KnowledgeAssignee")
+  created_knowledge     knowledge_items[]       @relation("KnowledgeCreator")
+  personal_schedules    personal_schedules[]
+  project_phase_history project_phase_history[]
+  managed_projects      projects[]              @relation("ProjectManager")
+  created_projects      projects[]              @relation("ProjectCreator")
+  task_collaborators    task_collaborators[]
+  assigned_tasks        tasks[]                 @relation("TaskAssignee")
+  created_tasks         tasks[]                 @relation("TaskCreator")
+  tasks                 tasks[]                 @relation("TaskUser")
+  user_alerts           user_alerts[]
 }
 
 model discord_metrics {
@@ -483,8 +357,8 @@ model project_phase_history {
   changedBy String?
   reason    String?
   createdAt DateTime @default(now())
-  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
   users     users?   @relation(fields: [changedBy], references: [id])
+  projects  projects @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ai_call_logs {
@@ -527,6 +401,262 @@ model appointment_details {
   appointments       appointments           @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 }
 
+model recurring_rules {
+  id              String            @id @default(cuid())
+  ruleName        String
+  recurrenceType  recurrence_type
+  weekdays        Int[]             @default([])
+  monthDay        Int?
+  monthWeek       Int?
+  monthWeekday    Int?
+  interval        Int               @default(1)
+  startDate       String
+  endDate         String?
+  maxOccurrences  Int?
+  excludeDates    String[]          @default([])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  calendar_events calendar_events[]
+}
+
+model personal_schedules {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  time        String
+  endTime     String?
+  description String?  @default("")
+  location    String?
+  userId      String
+  priority    priority @default(C)
+  isAllDay    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([date], map: "idx_personal_date")
+  @@index([userId, date], map: "idx_personal_user_date")
+  @@map("personal_schedules")
+}
+
+model google_docs_sources {
+  id            String                  @id @default(cuid())
+  document_id   String                  @unique
+  document_url  String
+  title         String
+  last_modified DateTime
+  sync_status   google_docs_sync_status @default(PENDING)
+  trigger_type  String                  @default("manual")
+  word_count    Int                     @default(0)
+  gas_version   String                  @default("2.0")
+  content_hash  String?
+  last_error    String?
+  page_count    Int                     @default(0)
+  error_message String?
+  last_synced   DateTime?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@index([trigger_type], map: "idx_trigger_type")
+  @@index([content_hash], map: "idx_content_hash")
+  @@index([sync_status], map: "idx_sync_status")
+  @@index([document_id], map: "idx_document_id")
+  @@map("google_docs_sources")
+}
+
+model ai_content_analysis {
+  id                 String           @id @default(cuid())
+  source_document_id String
+  analysis_type      ai_analysis_type @default(COMPREHENSIVE)
+  extracted_tasks    Json             @default("[]")
+  extracted_events   Json             @default("[]")
+  extracted_projects Json             @default("[]")
+  extracted_contacts Json             @default("[]")
+  extracted_dates    Json             @default("[]")
+  confidence_score   Float            @default(0.0)
+  model_version      String           @default("gemini-1.5")
+  processing_time    Int              @default(0)
+  keywords           String[]         @default([])
+  sentiment_score    Float?
+  urgency_level      urgency_level    @default(MEDIUM)
+  business_value     Float            @default(0.0)
+  recommendations    Json             @default("[]")
+  auto_suggestions   Json             @default("[]")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  summary            String           @default("")
+  title              String           @default("")
+  assignedTo         String?
+  createdBy          String?
+  assignee           users?           @relation("AIAnalysisAssignee", fields: [assignedTo], references: [id])
+  creator            users?           @relation("AIAnalysisCreator", fields: [createdBy], references: [id])
+
+  @@index([source_document_id], map: "idx_ai_analysis_source")
+  @@index([analysis_type], map: "idx_ai_analysis_type")
+  @@index([confidence_score], map: "idx_ai_analysis_confidence")
+  @@index([urgency_level], map: "idx_ai_analysis_urgency")
+  @@index([createdBy], map: "idx_ai_analysis_created_by")
+  @@index([assignedTo], map: "idx_ai_analysis_assigned_to")
+  @@map("ai_content_analysis")
+}
+
+model content_recommendations {
+  id                  String                @id @default(cuid())
+  analysis_id         String
+  recommendation_type recommendation_type   @default(TASK_CREATION)
+  title               String
+  description         String
+  suggested_data      Json                  @default("{}")
+  target_entity_type  String
+  status              recommendation_status @default(PENDING)
+  user_feedback       String?
+  accepted_at         DateTime?
+  rejected_at         DateTime?
+  created_entity_id   String?
+  relevance_score     Float                 @default(0.0)
+  priority_score      Float                 @default(0.0)
+  implementation_ease Float                 @default(0.0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([analysis_id], map: "idx_recommendation_analysis")
+  @@index([recommendation_type], map: "idx_recommendation_type")
+  @@index([status], map: "idx_recommendation_status")
+  @@index([relevance_score], map: "idx_recommendation_relevance")
+  @@map("content_recommendations")
+}
+
+model content_processing_logs {
+  id                 String                 @id @default(cuid())
+  source_document_id String
+  processing_step    processing_step        @default(CONTENT_EXTRACTION)
+  step_status        processing_step_status @default(IN_PROGRESS)
+  input_data         Json?                  @default("{}")
+  output_data        Json?                  @default("{}")
+  processing_time    Int                    @default(0)
+  error_message      String?
+  retry_count        Int                    @default(0)
+  max_retries        Int                    @default(3)
+  worker_id          String?
+  gas_version        String?
+  system_version     String                 @default("2.0")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([source_document_id], map: "idx_processing_logs_source")
+  @@index([processing_step], map: "idx_processing_logs_step")
+  @@index([step_status], map: "idx_processing_logs_status")
+  @@index([createdAt], map: "idx_processing_logs_created")
+  @@map("content_processing_logs")
+}
+
+model gas_sync_metrics {
+  id                       String   @id @default(cuid())
+  metric_date              DateTime @unique @db.Date
+  total_syncs              Int      @default(0)
+  successful_syncs         Int      @default(0)
+  failed_syncs             Int      @default(0)
+  manual_triggers          Int      @default(0)
+  edit_triggers            Int      @default(0)
+  scheduled_triggers       Int      @default(0)
+  avg_processing_time      Float    @default(0.0)
+  max_processing_time      Int      @default(0)
+  min_processing_time      Int      @default(0)
+  ai_analyses_performed    Int      @default(0)
+  avg_confidence_score     Float    @default(0.0)
+  recommendations_made     Int      @default(0)
+  recommendations_accepted Int      @default(0)
+  total_knowledge_items    Int      @default(0)
+  avg_content_length       Float    @default(0.0)
+  unique_documents         Int      @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([metric_date], map: "idx_gas_metrics_date")
+  @@map("gas_sync_metrics")
+}
+
+model task_relationships {
+  id               String            @id @default(cuid())
+  sourceTaskId     String            @map("source_task_id")
+  targetTaskId     String?           @map("target_task_id")
+  projectId        String?           @map("project_id")
+  relationshipType relationship_type @map("relationship_type")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  project          projects?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceTask       tasks             @relation("SourceTask", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTask       tasks?            @relation("TargetTask", fields: [targetTaskId], references: [id], onDelete: Cascade)
+
+  @@index([sourceTaskId], map: "idx_task_relationships_source")
+  @@index([targetTaskId], map: "idx_task_relationships_target")
+  @@index([projectId], map: "idx_task_relationships_project")
+  @@index([relationshipType], map: "idx_task_relationships_type")
+  @@map("task_relationships")
+}
+
+enum appointment_status {
+  PENDING
+  CONTACTED
+  INTERESTED
+  NOT_INTERESTED
+  SCHEDULED
+}
+
+enum archive_level {
+  SOFT
+  PERMANENT
+}
+
+enum connection_type {
+  STUDENT
+  COMPANY
+}
+
+enum event_type {
+  MEETING
+  EVENT
+  DEADLINE
+}
+
+enum knowledge_category {
+  INDUSTRY
+  SALES
+  TECHNICAL
+  BUSINESS
+}
+
+enum priority {
+  A
+  B
+  C
+  D
+}
+
+enum processing_status {
+  PENDING
+  PROCESSED
+  FAILED
+  MANUAL_REVIEW
+}
+
+enum project_status {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum task_status {
+  IDEA
+  PLAN
+  DO
+  CHECK
+  COMPLETE
+  KNOWLEDGE
+  DELETE
+}
+
 enum appointment_processing {
   PENDING
   IN_PROGRESS
@@ -562,7 +692,6 @@ enum appointment_source {
   PARTNER_REFERRAL
 }
 
-// カレンダー機能用の新規enum
 enum event_category {
   GENERAL
   MEETING
@@ -582,233 +711,12 @@ enum recurrence_type {
   CUSTOM
 }
 
-// 繰り返しルールテーブル
-model recurring_rules {
-  id              String            @id @default(cuid())
-  ruleName        String
-  recurrenceType  recurrence_type
-  weekdays        Int[]             @default([])
-  monthDay        Int?
-  monthWeek       Int?
-  monthWeekday    Int?
-  interval        Int               @default(1)
-  startDate       String
-  endDate         String?
-  maxOccurrences  Int?
-  excludeDates    String[]          @default([])
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  calendar_events calendar_events[]
-}
-
-model personal_schedules {
-  id          String   @id @default(cuid())
-  title       String
-  date        String
-  time        String
-  endTime     String?
-  description String?  @default("")
-  location    String?
-  userId      String
-  priority    priority @default(C)
-  isAllDay    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  users       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([date], name: "idx_personal_date")
-  @@index([userId, date], name: "idx_personal_user_date")
-  @@map("personal_schedules")
-}
-
-model google_docs_sources {
-  id             String                   @id @default(cuid())
-  document_id    String                   @unique
-  document_url   String
-  title          String
-  last_modified  DateTime
-  sync_status    google_docs_sync_status  @default(PENDING)
-  trigger_type   String                   @default("manual")
-  word_count     Int                      @default(0)
-  gas_version    String                   @default("2.0")
-  content_hash   String?
-  last_error     String?
-  page_count     Int                      @default(0)
-  error_message  String?
-  last_synced    DateTime?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-
-  @@index([trigger_type], name: "idx_trigger_type")
-  @@index([content_hash], name: "idx_content_hash")
-  @@index([sync_status], name: "idx_sync_status")
-  @@index([document_id], name: "idx_document_id")
-  @@map("google_docs_sources")
-}
-
-// 高度コンテンツ処理・AI分析システム用テーブル
-
-// AI分析結果テーブル - コンテンツから抽出された構造化データ
-model ai_content_analysis {
-  id                 String                      @id @default(cuid())
-  source_document_id String                      // google_docs_sources.document_id
-  title              String                      @default("") // AIが生成した議事録タイトル
-  summary            String                      @default("") // AIが生成した要約
-  analysis_type      ai_analysis_type            @default(COMPREHENSIVE)
-  
-  // 抽出されたエンティティ
-  extracted_tasks    Json                        @default("[]")
-  extracted_events   Json                        @default("[]")
-  extracted_projects Json                        @default("[]")
-  extracted_contacts Json                        @default("[]")
-  extracted_dates    Json                        @default("[]")
-  
-  // AI信頼度スコア
-  confidence_score   Float                       @default(0.0)
-  model_version      String                      @default("gemini-1.5")
-  processing_time    Int                         @default(0) // ミリ秒
-  
-  // 分析メタデータ
-  keywords           String[]                    @default([])
-  sentiment_score    Float?                      // センチメント分析
-  urgency_level      urgency_level               @default(MEDIUM)
-  business_value     Float                       @default(0.0)
-  
-  // レコメンデーション
-  recommendations    Json                        @default("[]")
-  auto_suggestions   Json                        @default("[]")
-  
-  // 新しい担当者システム（パブリック・共有エンティティ：任意）
-  createdBy          String?                     // 作成者ID（任意）
-  assignedTo         String?                     // レビュー担当者ID（任意・全員閲覧可能）
-  
-  createdAt          DateTime                    @default(now())
-  updatedAt          DateTime                    @updatedAt
-  
-  // 新しいリレーション
-  creator            users?                      @relation("AIAnalysisCreator", fields: [createdBy], references: [id])
-  assignee           users?                      @relation("AIAnalysisAssignee", fields: [assignedTo], references: [id])
-  
-  @@index([source_document_id], name: "idx_ai_analysis_source")
-  @@index([analysis_type], name: "idx_ai_analysis_type")
-  @@index([confidence_score], name: "idx_ai_analysis_confidence")
-  @@index([urgency_level], name: "idx_ai_analysis_urgency")
-  @@index([createdBy], name: "idx_ai_analysis_created_by")
-  @@index([assignedTo], name: "idx_ai_analysis_assigned_to")
-  @@map("ai_content_analysis")
-}
-
-// レコメンデーション管理テーブル
-model content_recommendations {
-  id                   String                 @id @default(cuid())
-  analysis_id          String                 // ai_content_analysis.id
-  recommendation_type  recommendation_type    @default(TASK_CREATION)
-  
-  // レコメンド内容
-  title                String
-  description          String
-  suggested_data       Json                   @default("{}")
-  target_entity_type   String                 // 'task', 'project', 'appointment', 'event'
-  
-  // ユーザー操作
-  status               recommendation_status  @default(PENDING)
-  user_feedback        String?
-  accepted_at          DateTime?
-  rejected_at          DateTime?
-  created_entity_id    String?                // 作成されたエンティティのID
-  
-  // システム評価
-  relevance_score      Float                  @default(0.0)
-  priority_score       Float                  @default(0.0)
-  implementation_ease  Float                  @default(0.0)
-  
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  
-  @@index([analysis_id], name: "idx_recommendation_analysis")
-  @@index([recommendation_type], name: "idx_recommendation_type")
-  @@index([status], name: "idx_recommendation_status")
-  @@index([relevance_score], name: "idx_recommendation_relevance")
-  @@map("content_recommendations")
-}
-
-// コンテンツ処理ログテーブル - 処理監視用
-model content_processing_logs {
-  id                String                    @id @default(cuid())
-  source_document_id String
-  processing_step   processing_step            @default(CONTENT_EXTRACTION)
-  
-  // 処理詳細
-  step_status       processing_step_status     @default(IN_PROGRESS)
-  input_data        Json?                      @default("{}")
-  output_data       Json?                      @default("{}")
-  processing_time   Int                        @default(0)
-  
-  // エラー情報
-  error_message     String?
-  retry_count       Int                        @default(0)
-  max_retries       Int                        @default(3)
-  
-  // システム情報
-  worker_id         String?                    // 処理したワーカーID
-  gas_version       String?                    // GASバージョン
-  system_version    String                     @default("2.0")
-  
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  
-  @@index([source_document_id], name: "idx_processing_logs_source")
-  @@index([processing_step], name: "idx_processing_logs_step")
-  @@index([step_status], name: "idx_processing_logs_status")
-  @@index([createdAt], name: "idx_processing_logs_created")
-  @@map("content_processing_logs")
-}
-
-// リアルタイム監視用メトリクステーブル
-model gas_sync_metrics {
-  id                    String   @id @default(cuid())
-  metric_date           DateTime @unique @db.Date
-  
-  // 同期統計
-  total_syncs           Int      @default(0)
-  successful_syncs      Int      @default(0)
-  failed_syncs          Int      @default(0)
-  
-  // トリガー別統計
-  manual_triggers       Int      @default(0)
-  edit_triggers         Int      @default(0)
-  scheduled_triggers    Int      @default(0)
-  
-  // パフォーマンス統計
-  avg_processing_time   Float    @default(0.0)
-  max_processing_time   Int      @default(0)
-  min_processing_time   Int      @default(0)
-  
-  // AI分析統計
-  ai_analyses_performed Int      @default(0)
-  avg_confidence_score  Float    @default(0.0)
-  recommendations_made  Int      @default(0)
-  recommendations_accepted Int   @default(0)
-  
-  // コンテンツ統計
-  total_knowledge_items Int      @default(0)
-  avg_content_length    Float    @default(0.0)
-  unique_documents      Int      @default(0)
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  @@index([metric_date], name: "idx_gas_metrics_date")
-  @@map("gas_sync_metrics")
-}
-
-// AI分析・コンテンツ処理用のEnum定義
 enum ai_analysis_type {
-  COMPREHENSIVE      // 全体的な分析
-  TASK_FOCUSED      // タスク抽出に特化
-  EVENT_FOCUSED     // イベント抽出に特化
-  PROJECT_FOCUSED   // プロジェクト抽出に特化
-  SENTIMENT_ONLY    // センチメント分析のみ
+  COMPREHENSIVE
+  TASK_FOCUSED
+  EVENT_FOCUSED
+  PROJECT_FOCUSED
+  SENTIMENT_ONLY
 }
 
 enum urgency_level {
@@ -863,31 +771,8 @@ enum google_docs_sync_status {
   FAILED
 }
 
-// MECE関係性テーブル - Phase 3で追加
-model task_relationships {
-  id               String            @id @default(cuid())
-  sourceTaskId     String            @map("source_task_id")
-  targetTaskId     String?           @map("target_task_id")
-  projectId        String?           @map("project_id")
-  relationshipType relationship_type @map("relationship_type")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
-  
-  // リレーション
-  sourceTask       tasks             @relation("SourceTask", fields: [sourceTaskId], references: [id], onDelete: Cascade)
-  targetTask       tasks?            @relation("TargetTask", fields: [targetTaskId], references: [id], onDelete: Cascade)
-  project          projects?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  @@index([sourceTaskId], name: "idx_task_relationships_source")
-  @@index([targetTaskId], name: "idx_task_relationships_target")
-  @@index([projectId], name: "idx_task_relationships_project")
-  @@index([relationshipType], name: "idx_task_relationships_type")
-  @@map("task_relationships")
-}
-
-// MECE関係性タイプ
 enum relationship_type {
-  TRANSFERABLE   // 移譲可能（タスクを他の人に任せられる）
-  SIMULTANEOUS   // 同時実行可能（同時に進行できる）
-  DEPENDENT      // 依存関係（前提条件）
+  TRANSFERABLE
+  SIMULTANEOUS
+  DEPENDENT
 }
