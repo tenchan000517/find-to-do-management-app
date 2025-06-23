@@ -66,14 +66,15 @@ export default function SEOInsightsPanel({ data }: SEOInsightsPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'matrix'>('overview');
 
-  // Generate sample query data for demonstration
-  const sampleQueryData = [
-    { query: 'プロジェクト管理', clicks: 250, impressions: 3500, ctr: 0.071, position: 4.2 },
-    { query: 'タスク管理 アプリ', clicks: 180, impressions: 2800, ctr: 0.064, position: 5.1 },
-    { query: 'TODO リスト', clicks: 150, impressions: 2200, ctr: 0.068, position: 3.8 },
-    { query: '人脈管理', clicks: 120, impressions: 1800, ctr: 0.067, position: 6.2 },
-    { query: 'スケジュール管理', clicks: 100, impressions: 1500, ctr: 0.067, position: 7.5 },
-  ];
+  // Use real query data if available
+  const queryData = data?.byQuery && data.byQuery.length > 0 ? 
+    data.byQuery.slice(0, 5).map((item: any) => ({
+      query: item.dimension || 'Unknown',
+      clicks: item.metrics?.clicks || 0,
+      impressions: item.metrics?.impressions || 0,
+      ctr: item.metrics?.ctr || 0,
+      position: item.metrics?.position || 0
+    })) : [];
 
   const handleAnalyze = async () => {
     if (!analysisUrl.trim()) {
@@ -142,8 +143,18 @@ export default function SEOInsightsPanel({ data }: SEOInsightsPanelProps) {
   const getInsights = () => {
     const insights = [];
     
+    if (queryData.length === 0) {
+      insights.push({
+        type: 'info',
+        title: 'データ不足',
+        message: 'Search Consoleデータを収集中です',
+        icon: '📊'
+      });
+      return insights;
+    }
+    
     // High CTR queries
-    const highCTRQueries = sampleQueryData.filter(q => q.ctr >= 0.07);
+    const highCTRQueries = queryData.filter(q => q.ctr >= 0.07);
     if (highCTRQueries.length > 0) {
       insights.push({
         type: 'success',
@@ -154,7 +165,7 @@ export default function SEOInsightsPanel({ data }: SEOInsightsPanelProps) {
     }
 
     // Low position queries with high impressions
-    const lowPositionHighImpressions = sampleQueryData.filter(q => q.position > 7 && q.impressions > 1000);
+    const lowPositionHighImpressions = queryData.filter(q => q.position > 7 && q.impressions > 1000);
     if (lowPositionHighImpressions.length > 0) {
       insights.push({
         type: 'warning',
@@ -165,13 +176,15 @@ export default function SEOInsightsPanel({ data }: SEOInsightsPanelProps) {
     }
 
     // Top performing queries
-    const topQuery = sampleQueryData[0];
-    insights.push({
-      type: 'info',
-      title: 'トップクエリ',
-      message: `「${topQuery.query}」が最多の${topQuery.clicks}クリックを獲得`,
-      icon: '🏆'
-    });
+    if (queryData.length > 0) {
+      const topQuery = queryData[0];
+      insights.push({
+        type: 'info',
+        title: 'トップクエリ',
+        message: `「${topQuery.query}」が最多の${topQuery.clicks}クリックを獲得`,
+        icon: '🏆'
+      });
+    }
 
     return insights;
   };
@@ -238,25 +251,25 @@ export default function SEOInsightsPanel({ data }: SEOInsightsPanelProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-3 bg-blue-50 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">
-              {data.summary.clicks.toLocaleString()}
+              {data?.summary?.clicks?.toLocaleString() || '0'}
             </div>
             <div className="text-sm text-gray-600">総クリック数</div>
           </div>
           <div className="text-center p-3 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-600">
-              {data.summary.impressions.toLocaleString()}
+              {data?.summary?.impressions?.toLocaleString() || '0'}
             </div>
             <div className="text-sm text-gray-600">総表示回数</div>
           </div>
           <div className="text-center p-3 bg-purple-50 rounded-lg">
             <div className="text-2xl font-bold text-purple-600">
-              {formatPercentage(data.summary.ctr)}
+              {data?.summary?.ctr ? formatPercentage(data.summary.ctr) : '0.0%'}
             </div>
             <div className="text-sm text-gray-600">平均CTR</div>
           </div>
           <div className="text-center p-3 bg-orange-50 rounded-lg">
             <div className="text-2xl font-bold text-orange-600">
-              {data.summary.position.toFixed(1)}
+              {data?.summary?.position ? data.summary.position.toFixed(1) : '0.0'}
             </div>
             <div className="text-sm text-gray-600">平均順位</div>
           </div>
@@ -470,66 +483,79 @@ export default function SEOInsightsPanel({ data }: SEOInsightsPanelProps) {
       )}
 
       {/* Query Performance Chart */}
-      <div className="mb-6">
-        <h4 className="text-md font-medium text-gray-800 mb-4">検索クエリ別パフォーマンス</h4>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sampleQueryData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="query" 
-                stroke="#666"
-                fontSize={10}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis stroke="#666" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="clicks" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      {queryData.length > 0 && (
+        <div className="mb-6">
+          <h4 className="text-md font-medium text-gray-800 mb-4">検索クエリ別パフォーマンス</h4>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={queryData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="query" 
+                  stroke="#666"
+                  fontSize={10}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis stroke="#666" fontSize={12} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="clicks" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Top Queries Table */}
-      <div className="mb-6">
-        <h4 className="text-md font-medium text-gray-800 mb-4">トップ検索クエリ</h4>
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 font-medium text-gray-600 text-sm">クエリ</th>
-                <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">クリック</th>
-                <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">表示回数</th>
-                <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">CTR</th>
-                <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">順位</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sampleQueryData.map((query, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-2 px-3 text-sm text-gray-900 max-w-xs truncate">
-                    {query.query}
-                  </td>
-                  <td className="text-right py-2 px-3 text-sm text-gray-900">
-                    {query.clicks}
-                  </td>
-                  <td className="text-right py-2 px-3 text-sm text-gray-900">
-                    {query.impressions.toLocaleString()}
-                  </td>
-                  <td className={`text-right py-2 px-3 text-sm ${getCTRColor(query.ctr)}`}>
-                    {formatPercentage(query.ctr)}
-                  </td>
-                  <td className={`text-right py-2 px-3 text-sm ${getPositionColor(query.position)}`}>
-                    {query.position.toFixed(1)}
-                  </td>
+      {queryData.length > 0 ? (
+        <div className="mb-6">
+          <h4 className="text-md font-medium text-gray-800 mb-4">トップ検索クエリ</h4>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-3 font-medium text-gray-600 text-sm">クエリ</th>
+                  <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">クリック</th>
+                  <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">表示回数</th>
+                  <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">CTR</th>
+                  <th className="text-right py-2 px-3 font-medium text-gray-600 text-sm">順位</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {queryData.map((query, index) => (
+                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2 px-3 text-sm text-gray-900 max-w-xs truncate">
+                      {query.query}
+                    </td>
+                    <td className="text-right py-2 px-3 text-sm text-gray-900">
+                      {query.clicks}
+                    </td>
+                    <td className="text-right py-2 px-3 text-sm text-gray-900">
+                      {query.impressions.toLocaleString()}
+                    </td>
+                    <td className={`text-right py-2 px-3 text-sm ${getCTRColor(query.ctr)}`}>
+                      {formatPercentage(query.ctr)}
+                    </td>
+                    <td className={`text-right py-2 px-3 text-sm ${getPositionColor(query.position)}`}>
+                      {query.position.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-6">
+          <h4 className="text-md font-medium text-gray-800 mb-4">トップ検索クエリ</h4>
+          <div className="py-8 text-center bg-gray-50 rounded-lg">
+            <div className="text-gray-400 text-lg mb-2">🔍</div>
+            <p className="text-gray-500">検索クエリデータがありません</p>
+            <p className="text-gray-400 text-sm mt-1">Search Consoleからデータが取得されるまでお待ちください</p>
+          </div>
+        </div>
+      )}
 
       {/* Insights */}
       <div>

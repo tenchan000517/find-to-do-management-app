@@ -23,6 +23,7 @@ interface OverviewMetricsProps {
 
 export default function OverviewMetrics({ data }: OverviewMetricsProps) {
   const formatNumber = (num: number) => {
+    if (!num || isNaN(num)) return '0';
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     }
@@ -33,13 +34,20 @@ export default function OverviewMetrics({ data }: OverviewMetricsProps) {
   };
 
   const formatPercentage = (num: number) => {
+    if (!num || isNaN(num)) return '0.0%';
     return (num * 100).toFixed(1) + '%';
   };
 
   const formatDuration = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatPosition = (position: number) => {
+    if (!position || isNaN(position)) return '0.0';
+    return position.toFixed(1);
   };
 
   const metrics = [
@@ -67,7 +75,7 @@ export default function OverviewMetrics({ data }: OverviewMetricsProps) {
     {
       label: '検索表示回数',
       value: formatNumber(data.organicTraffic.impressions),
-      subValue: `平均順位: ${data.organicTraffic.avgPosition.toFixed(1)}位`,
+      subValue: `平均順位: ${formatPosition(data.organicTraffic.avgPosition)}位`,
       icon: '📈',
       color: 'bg-orange-500',
     },

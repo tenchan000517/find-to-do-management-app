@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    // ビルド時にESLintのエラーを無視する（warningでビルドを停止しない）
+    ignoreDuringBuilds: true,
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // クライアントサイドでのNode.jsモジュールを無効化

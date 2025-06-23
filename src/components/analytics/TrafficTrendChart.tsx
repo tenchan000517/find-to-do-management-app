@@ -35,35 +35,23 @@ interface TrafficTrendChartProps {
 }
 
 export default function TrafficTrendChart({ ga4Data, searchConsoleData }: TrafficTrendChartProps) {
-  // Since we don't have time-series data in the current API response,
-  // we'll create sample data for demonstration
-  // In a real implementation, this would come from the API
-  const generateSampleData = () => {
-    const data = [];
-    const today = new Date();
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      // Generate sample data based on actual totals
-      const sessionsFactor = ga4Data.summary.sessions / 7;
-      const clicksFactor = searchConsoleData.summary.clicks / 7;
-      const impressionsFactor = searchConsoleData.summary.impressions / 7;
-      
-      data.push({
-        date: date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }),
-        sessions: Math.floor(sessionsFactor * (0.8 + Math.random() * 0.4)),
-        users: Math.floor(sessionsFactor * 0.8 * (0.8 + Math.random() * 0.4)),
-        clicks: Math.floor(clicksFactor * (0.8 + Math.random() * 0.4)),
-        impressions: Math.floor(impressionsFactor * (0.8 + Math.random() * 0.4)),
-      });
-    }
-    
-    return data;
-  };
-
-  const chartData = generateSampleData();
+  // Check if we have valid data
+  const hasValidData = ga4Data?.summary && searchConsoleData?.summary;
+  
+  // For now, we'll show an empty state since we don't have time-series data from the API
+  // In a real implementation, the API should return daily data points
+  const chartData: Array<{
+    date: string;
+    sessions: number;
+    users: number;
+    clicks: number;
+    impressions: number;
+  }> = [];
+  
+  // Calculate totals
+  const totalSessions = ga4Data?.summary?.sessions || 0;
+  const totalUsers = ga4Data?.summary?.users || 0;
+  const totalClicks = searchConsoleData?.summary?.clicks || 0;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -102,65 +90,74 @@ export default function TrafficTrendChart({ ga4Data, searchConsoleData }: Traffi
       </div>
 
       <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="date" 
-              stroke="#666"
-              fontSize={12}
-            />
-            <YAxis 
-              stroke="#666"
-              fontSize={12}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="sessions"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-              name="セッション"
-            />
-            <Line
-              type="monotone"
-              dataKey="users"
-              stroke="#10b981"
-              strokeWidth={2}
-              dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-              name="ユーザー"
-            />
-            <Line
-              type="monotone"
-              dataKey="clicks"
-              stroke="#8b5cf6"
-              strokeWidth={2}
-              dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
-              name="検索クリック"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#666"
+                fontSize={12}
+              />
+              <YAxis 
+                stroke="#666"
+                fontSize={12}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="sessions"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                name="セッション"
+              />
+              <Line
+                type="monotone"
+                dataKey="users"
+                stroke="#10b981"
+                strokeWidth={2}
+                dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                name="ユーザー"
+              />
+              <Line
+                type="monotone"
+                dataKey="clicks"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                name="検索クリック"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full bg-gray-50 rounded">
+            <div className="text-center">
+              <div className="text-gray-400 text-2xl mb-2">📈</div>
+              <p className="text-gray-500">時系列データなし</p>
+              <p className="text-gray-400 text-sm mt-1">APIが日別データを返すように改善が必要です</p>
+            </div>
+          </div>
+        )}</div>
 
       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
         <div className="p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-gray-600">総セッション</p>
           <p className="text-lg font-semibold text-blue-600">
-            {ga4Data.summary.sessions.toLocaleString()}
+            {totalSessions.toLocaleString()}
           </p>
         </div>
         <div className="p-3 bg-green-50 rounded-lg">
           <p className="text-sm text-gray-600">総ユーザー</p>
           <p className="text-lg font-semibold text-green-600">
-            {ga4Data.summary.users.toLocaleString()}
+            {totalUsers.toLocaleString()}
           </p>
         </div>
         <div className="p-3 bg-purple-50 rounded-lg">
           <p className="text-sm text-gray-600">総クリック</p>
           <p className="text-lg font-semibold text-purple-600">
-            {searchConsoleData.summary.clicks.toLocaleString()}
+            {totalClicks.toLocaleString()}
           </p>
         </div>
       </div>

@@ -11,69 +11,19 @@ export default function PagePerformanceTable({
   ga4Pages, 
   searchConsolePages 
 }: PagePerformanceTableProps) {
-  // Create sample data for demonstration since API returns empty arrays
-  const samplePages = [
-    {
-      page: '/',
-      title: 'ホームページ',
-      sessions: 1250,
-      pageViews: 2100,
-      bounceRate: 0.45,
-      avgSessionDuration: 185,
-      clicks: 890,
-      impressions: 12500,
-      ctr: 0.071,
-      position: 4.2
-    },
-    {
-      page: '/about',
-      title: '会社概要',
-      sessions: 680,
-      pageViews: 820,
-      bounceRate: 0.38,
-      avgSessionDuration: 220,
-      clicks: 340,
-      impressions: 6800,
-      ctr: 0.05,
-      position: 7.8
-    },
-    {
-      page: '/services',
-      title: 'サービス一覧',
-      sessions: 450,
-      pageViews: 720,
-      bounceRate: 0.32,
-      avgSessionDuration: 195,
-      clicks: 280,
-      impressions: 4200,
-      ctr: 0.067,
-      position: 5.5
-    },
-    {
-      page: '/contact',
-      title: 'お問い合わせ',
-      sessions: 320,
-      pageViews: 380,
-      bounceRate: 0.28,
-      avgSessionDuration: 150,
-      clicks: 180,
-      impressions: 2400,
-      ctr: 0.075,
-      position: 3.9
-    },
-    {
-      page: '/blog',
-      title: 'ブログ',
-      sessions: 280,
-      pageViews: 450,
-      bounceRate: 0.42,
-      avgSessionDuration: 240,
-      clicks: 120,
-      impressions: 1800,
-      ctr: 0.067,
-      position: 6.2
-    }
-  ];
+  // Always use real data, no fallback
+  const displayPages = topPages?.map((page: any) => ({
+    page: page.url,
+    title: page.url === '/' ? 'ホームページ' : page.url.replace(/^\//, '').replace(/\//g, ' / '),
+    sessions: page.ga4?.sessions || 0,
+    pageViews: page.ga4?.pageViews || 0,
+    bounceRate: page.ga4?.bounceRate || 0,
+    avgSessionDuration: page.ga4?.avgSessionDuration || 0,
+    clicks: page.searchConsole?.clicks || 0,
+    impressions: page.searchConsole?.impressions || 0,
+    ctr: page.searchConsole?.ctr || 0,
+    position: page.searchConsole?.position || 0
+  })) || [];
 
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -113,67 +63,75 @@ export default function PagePerformanceTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-600">ページ</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">セッション</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">PV</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">直帰率</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">滞在時間</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">クリック</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">表示回数</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">CTR</th>
-              <th className="text-right py-3 px-4 font-medium text-gray-600">平均順位</th>
-            </tr>
-          </thead>
-          <tbody>
-            {samplePages.map((page, index) => (
-              <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-3 px-4">
-                  <div>
-                    <div className="font-medium text-gray-900 truncate max-w-xs">
-                      {page.title}
-                    </div>
-                    <div className="text-sm text-gray-500 truncate max-w-xs">
-                      {page.page}
-                    </div>
-                  </div>
-                </td>
-                <td className="text-right py-3 px-4 text-gray-900">
-                  {page.sessions.toLocaleString()}
-                </td>
-                <td className="text-right py-3 px-4 text-gray-900">
-                  {page.pageViews.toLocaleString()}
-                </td>
-                <td className={`text-right py-3 px-4 ${getPerformanceColor(page.bounceRate, 'bounceRate')}`}>
-                  {formatPercentage(page.bounceRate)}
-                </td>
-                <td className="text-right py-3 px-4 text-gray-900">
-                  {formatDuration(page.avgSessionDuration)}
-                </td>
-                <td className="text-right py-3 px-4 text-gray-900">
-                  {page.clicks.toLocaleString()}
-                </td>
-                <td className="text-right py-3 px-4 text-gray-900">
-                  {page.impressions.toLocaleString()}
-                </td>
-                <td className={`text-right py-3 px-4 ${getPerformanceColor(page.ctr, 'ctr')}`}>
-                  {formatPercentage(page.ctr)}
-                </td>
-                <td className={`text-right py-3 px-4 ${getPerformanceColor(page.position, 'position')}`}>
-                  {page.position.toFixed(1)}
-                </td>
+      {displayPages.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-600">ページ</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">セッション</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">PV</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">直帰率</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">滞在時間</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">クリック</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">表示回数</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">CTR</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-600">平均順位</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {displayPages.map((page, index) => (
+                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <div>
+                      <div className="font-medium text-gray-900 truncate max-w-xs">
+                        {page.title}
+                      </div>
+                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                        {page.page}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-right py-3 px-4 text-gray-900">
+                    {page.sessions.toLocaleString()}
+                  </td>
+                  <td className="text-right py-3 px-4 text-gray-900">
+                    {page.pageViews.toLocaleString()}
+                  </td>
+                  <td className={`text-right py-3 px-4 ${getPerformanceColor(page.bounceRate, 'bounceRate')}`}>
+                    {formatPercentage(page.bounceRate)}
+                  </td>
+                  <td className="text-right py-3 px-4 text-gray-900">
+                    {formatDuration(page.avgSessionDuration)}
+                  </td>
+                  <td className="text-right py-3 px-4 text-gray-900">
+                    {page.clicks.toLocaleString()}
+                  </td>
+                  <td className="text-right py-3 px-4 text-gray-900">
+                    {page.impressions.toLocaleString()}
+                  </td>
+                  <td className={`text-right py-3 px-4 ${getPerformanceColor(page.ctr, 'ctr')}`}>
+                    {formatPercentage(page.ctr)}
+                  </td>
+                  <td className={`text-right py-3 px-4 ${getPerformanceColor(page.position, 'position')}`}>
+                    {page.position.toFixed(1)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="py-12 text-center">
+          <div className="text-gray-400 text-lg mb-2">📊</div>
+          <p className="text-gray-500">まだデータがありません</p>
+          <p className="text-gray-400 text-sm mt-1">トラフィックデータが蓄積されるまでお待ちください</p>
+        </div>
+      )}
 
       <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
         <div>
-          {samplePages.length}ページ表示中
+          {displayPages.length}ページ表示中
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center">

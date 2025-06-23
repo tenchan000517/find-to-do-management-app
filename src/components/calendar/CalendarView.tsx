@@ -470,7 +470,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={`${className} flex flex-col h-full w-full overflow-hidden`}>
+      <div className={`${className} flex flex-col h-full w-full`}>
         {/* 統合ヘッダー: 色分けタブ + 日付ナビ + 表示モード */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
           <ColorTabs
@@ -494,7 +494,7 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         </div>
 
         {/* カレンダー本体 */}
-        <div className="flex-1 relative overflow-hidden min-h-0">
+        <div className="flex-1 relative overflow-auto min-h-0">
           {loading && (
             <LoadingSpinner overlay message="カレンダーデータを読み込んでいます..." />
           )}

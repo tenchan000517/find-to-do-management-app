@@ -289,12 +289,12 @@ export class SEOAnalysisService {
   private analyzeStructuredData($: any): SEOCategoryResult {
     const checks: SEOCheckResult[] = [];
     let score = 0;
-    let totalChecks = 1;
+    const totalChecks = 1;
 
     const jsonLdScripts = $('script[type="application/ld+json"]');
     if (jsonLdScripts.length > 0) {
       let validJsonLd = true;
-      let schemaTypes: string[] = [];
+      const schemaTypes: string[] = [];
 
       jsonLdScripts.each((_: any, script: any) => {
         try {

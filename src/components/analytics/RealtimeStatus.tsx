@@ -23,31 +23,41 @@ export default function RealtimeStatus({ data }: RealtimeStatusProps) {
     return () => clearInterval(timer);
   }, []);
 
-  // Generate sample device data for demonstration
-  const sampleDeviceData = [
-    { device: 'Desktop', users: Math.floor(data.activeUsers * 0.6), percentage: 60 },
-    { device: 'Mobile', users: Math.floor(data.activeUsers * 0.35), percentage: 35 },
-    { device: 'Tablet', users: Math.floor(data.activeUsers * 0.05), percentage: 5 },
-  ];
+  const activeUsers = data?.activeUsers || 0;
 
-  // Generate sample country data for demonstration
-  const sampleCountryData = [
-    { country: '日本', users: Math.floor(data.activeUsers * 0.8), flag: '🇯🇵' },
-    { country: 'アメリカ', users: Math.floor(data.activeUsers * 0.1), flag: '🇺🇸' },
-    { country: 'その他', users: Math.floor(data.activeUsers * 0.1), flag: '🌍' },
-  ];
+  // Use real device data if available
+  const deviceData = data?.byDevice?.length > 0 ? 
+    data.byDevice.slice(0, 3).map((item: any) => ({
+      device: item.device || 'Unknown',
+      users: item.activeUsers || 0,
+      percentage: activeUsers > 0 ? Math.round((item.activeUsers / activeUsers) * 100) : 0
+    })) : [];
+
+  // Use real country data if available
+  const countryData = data?.byCountry?.length > 0 ? 
+    data.byCountry.slice(0, 3).map((item: any) => ({
+      country: item.country || 'Unknown',
+      users: item.activeUsers || 0,
+      flag: getCountryFlag(item.country)
+    })) : [];
+
+  const getCountryFlag = (country: string) => {
+    const countryFlags: { [key: string]: string } = {
+      'JP': '🇯🇵', 'JPN': '🇯🇵', 'Japan': '🇯🇵', '日本': '🇯🇵',
+      'US': '🇺🇸', 'USA': '🇺🇸', 'United States': '🇺🇸', 'アメリカ': '🇺🇸',
+      'CN': '🇨🇳', 'China': '🇨🇳', '中国': '🇨🇳',
+      'KR': '🇰🇷', 'Korea': '🇰🇷', '韓国': '🇰🇷',
+      'GB': '🇬🇧', 'UK': '🇬🇧', 'United Kingdom': '🇬🇧', 'イギリス': '🇬🇧',
+    };
+    return countryFlags[country] || '🌍';
+  };
 
   const getDeviceIcon = (device: string) => {
-    switch (device) {
-      case 'Desktop':
-        return '💻';
-      case 'Mobile':
-        return '📱';
-      case 'Tablet':
-        return '📲';
-      default:
-        return '🖥️';
-    }
+    const deviceLower = device.toLowerCase();
+    if (deviceLower.includes('desktop') || deviceLower.includes('computer')) return '💻';
+    if (deviceLower.includes('mobile') || deviceLower.includes('phone')) return '📱';
+    if (deviceLower.includes('tablet')) return '📲';
+    return '🖥️';
   };
 
   return (
@@ -73,7 +83,7 @@ export default function RealtimeStatus({ data }: RealtimeStatusProps) {
             </div>
           </div>
           <div className="text-3xl font-bold text-green-600 mb-1">
-            {data.activeUsers || 0}
+            {activeUsers}
           </div>
           <div className="text-sm text-gray-600">現在のアクティブユーザー</div>
         </div>
@@ -81,45 +91,57 @@ export default function RealtimeStatus({ data }: RealtimeStatusProps) {
         {/* Device Breakdown */}
         <div>
           <h4 className="text-sm font-medium text-gray-700 mb-3">デバイス別</h4>
-          <div className="space-y-2">
-            {sampleDeviceData.map((device, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">{getDeviceIcon(device.device)}</span>
-                  <span className="text-sm text-gray-600">{device.device}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-16 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${device.percentage}%` }}
-                    ></div>
+          {deviceData.length > 0 ? (
+            <div className="space-y-2">
+              {deviceData.map((device, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{getDeviceIcon(device.device)}</span>
+                    <span className="text-sm text-gray-600">{device.device}</span>
                   </div>
-                  <span className="text-sm font-medium text-gray-900 w-8 text-right">
-                    {device.users}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${device.percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 w-8 text-right">
+                      {device.users}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm">データなし</p>
+            </div>
+          )}
         </div>
 
         {/* Country Breakdown */}
         <div>
           <h4 className="text-sm font-medium text-gray-700 mb-3">国別</h4>
-          <div className="space-y-2">
-            {sampleCountryData.map((country, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">{country.flag}</span>
-                  <span className="text-sm text-gray-600">{country.country}</span>
+          {countryData.length > 0 ? (
+            <div className="space-y-2">
+              {countryData.map((country: any, index: number) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{country.flag}</span>
+                    <span className="text-sm text-gray-600">{country.country}</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {country.users}
+                  </span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">
-                  {country.users}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm">データなし</p>
+            </div>
+          )}
         </div>
       </div>
 
