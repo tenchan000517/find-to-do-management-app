@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/database/prisma';
 
+// CORS headers for Discord Bot integration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -34,6 +45,7 @@ export async function GET(request: NextRequest) {
       channelMessageStats: metric.channelMessageStats,
       staffChannelStats: metric.staffChannelStats,
       roleCounts: metric.roleCounts,
+      reactionStats: metric.reactionStats,
       createdAt: metric.createdAt.toISOString(),
       updatedAt: metric.updatedAt.toISOString()
     }));
@@ -42,19 +54,30 @@ export async function GET(request: NextRequest) {
       data: formattedMetrics.reverse(),
       total: formattedMetrics.length,
       daysRequested: days
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('Discord metrics API error:', error);
     return NextResponse.json(
       { error: 'メトリクスデータの取得に失敗しました' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Authorization check for POST requests
+    const authHeader = request.headers.get('authorization');
+    const token = process.env.DISCORD_API_TOKEN;
+    
+    if (token && authHeader !== `Bearer ${token}`) {
+      return NextResponse.json(
+        { error: '認証エラー: 無効なトークンです' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
     const body = await request.json();
     const {
       date,
@@ -67,7 +90,8 @@ export async function POST(request: NextRequest) {
       engagementScore,
       channelMessageStats,
       staffChannelStats,
-      roleCounts
+      roleCounts,
+      reactionStats
     } = body;
 
     const metric = await prisma.discord_metrics.upsert({
@@ -85,6 +109,7 @@ export async function POST(request: NextRequest) {
         channelMessageStats: channelMessageStats || {},
         staffChannelStats: staffChannelStats || {},
         roleCounts: roleCounts || {},
+        reactionStats: reactionStats || {},
         updatedAt: new Date()
       },
       create: {
@@ -98,20 +123,21 @@ export async function POST(request: NextRequest) {
         engagementScore,
         channelMessageStats: channelMessageStats || {},
         staffChannelStats: staffChannelStats || {},
-        roleCounts: roleCounts || {}
+        roleCounts: roleCounts || {},
+        reactionStats: reactionStats || {}
       }
     });
 
     return NextResponse.json({
       success: true,
       data: metric
-    });
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('Discord metrics POST error:', error);
     return NextResponse.json(
       { error: 'メトリクスデータの保存に失敗しました' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

@@ -6,6 +6,8 @@ import FullPageLoading from '@/components/FullPageLoading';
 import RoleLineChart from '@/components/charts/RoleLineChart';
 import RolePieChart from '@/components/charts/RolePieChart';
 import MemberChart from '@/components/charts/MemberChart';
+import ReactionChart from '@/components/charts/ReactionChart';
+import ReactionBarChart from '@/components/charts/ReactionBarChart';
 
 interface DiscordMetric {
   id: string;
@@ -20,6 +22,7 @@ interface DiscordMetric {
   channelMessageStats: any;
   staffChannelStats: any;
   roleCounts: any;
+  reactionStats?: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -144,7 +147,10 @@ export default function DiscordInsights() {
       '1383347155548504175': '経営幹部',
       '1383347231188586628': '学生',
       '1383347303347257486': 'フリーランス',
-      '1383347353141907476': 'エンジョイ'
+      '1383347353141907476': 'エンジョイ',
+      '1386267058307600525': '最新情報',
+      '1386289811027005511': 'オンライン講座情報',
+      '1386366903395815494': 'AI・テック情報'
     };
     return roleNames[roleKey] || roleKey;
   };
@@ -364,7 +370,10 @@ export default function DiscordInsights() {
                       date: dateStr,
                       'FIND to DO': 0,
                       'イベント情報': 0,
-                      'みんなの告知': 0
+                      'みんなの告知': 0,
+                      '最新情報': 0,
+                      'オンライン講座情報': 0,
+                      'AI・テック情報': 0
                     };
                   }
                   
@@ -376,14 +385,20 @@ export default function DiscordInsights() {
                     date: dateStr,
                     'FIND to DO': roleCounts['1332242428459221046']?.count || 0,
                     'イベント情報': roleCounts['1381201663045668906']?.count || 0,
-                    'みんなの告知': roleCounts['1382167308180394145']?.count || 0
+                    'みんなの告知': roleCounts['1382167308180394145']?.count || 0,
+                    '最新情報': roleCounts['1386267058307600525']?.count || 0,
+                    'オンライン講座情報': roleCounts['1386289811027005511']?.count || 0,
+                    'AI・テック情報': roleCounts['1386366903395815494']?.count || 0
                   };
                 });
 
                 const lines = [
                   { dataKey: 'FIND to DO', stroke: '#3b82f6' },
                   { dataKey: 'イベント情報', stroke: '#10b981' },
-                  { dataKey: 'みんなの告知', stroke: '#f59e0b' }
+                  { dataKey: 'みんなの告知', stroke: '#f59e0b' },
+                  { dataKey: '最新情報', stroke: '#8b5cf6' },
+                  { dataKey: 'オンライン講座情報', stroke: '#ef4444' },
+                  { dataKey: 'AI・テック情報', stroke: '#06b6d4' }
                 ];
 
                 return <RoleLineChart data={chartData} lines={lines} />;
@@ -404,7 +419,10 @@ export default function DiscordInsights() {
                 const systemRoles = [
                   { id: '1332242428459221046', name: 'FIND to DO', color: '#3b82f6' },
                   { id: '1381201663045668906', name: 'イベント情報', color: '#10b981' },
-                  { id: '1382167308180394145', name: 'みんなの告知', color: '#f59e0b' }
+                  { id: '1382167308180394145', name: 'みんなの告知', color: '#f59e0b' },
+                  { id: '1386267058307600525', name: '最新情報', color: '#8b5cf6' },
+                  { id: '1386289811027005511', name: 'オンライン講座情報', color: '#ef4444' },
+                  { id: '1386366903395815494', name: 'AI・テック情報', color: '#06b6d4' }
                 ];
                 
                 const pieData = systemRoles.map(role => ({
@@ -493,6 +511,81 @@ export default function DiscordInsights() {
             </div>
           </div>
         </div>
+
+        {/* リアクション統計 */}
+        {latestMetric && latestMetric.reactionStats && (
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">🎉 リアクション統計</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+              {/* リアクション概要カード */}
+              <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">リアクション概要</h3>
+                <div className="space-y-3">
+                  {(() => {
+                    const stats = typeof latestMetric.reactionStats === 'string'
+                      ? JSON.parse(latestMetric.reactionStats)
+                      : latestMetric.reactionStats;
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
+                          <span className="text-sm text-gray-700">総リアクション数</span>
+                          <span className="text-lg font-bold text-purple-600">{stats.total_reactions || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-pink-50 rounded">
+                          <span className="text-sm text-gray-700">ユニーク絵文字数</span>
+                          <span className="text-lg font-bold text-pink-600">{stats.unique_emojis || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-indigo-50 rounded">
+                          <span className="text-sm text-gray-700">リアクションしたユーザー</span>
+                          <span className="text-lg font-bold text-indigo-600">{stats.reaction_users || 0}人</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* 人気の絵文字 */}
+              <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">人気の絵文字 TOP10</h3>
+                <div className="h-64">
+                  {(() => {
+                    const stats = typeof latestMetric.reactionStats === 'string'
+                      ? JSON.parse(latestMetric.reactionStats)
+                      : latestMetric.reactionStats;
+                    
+                    const emojiData = (stats.top_emojis || []).map((item: any) => ({
+                      emoji: item.emoji,
+                      count: item.count
+                    }));
+                    
+                    return <ReactionChart data={emojiData} />;
+                  })()}
+                </div>
+              </div>
+
+              {/* チャンネル別リアクション */}
+              <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 lg:col-span-2">
+                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">チャンネル別リアクション数</h3>
+                <div className="h-64">
+                  {(() => {
+                    const stats = typeof latestMetric.reactionStats === 'string'
+                      ? JSON.parse(latestMetric.reactionStats)
+                      : latestMetric.reactionStats;
+                    
+                    const channelData = Object.entries(stats.channel_reactions || {}).map(([channel, data]: [string, any]) => ({
+                      channel: channel,
+                      reactions: data.total_reactions || 0
+                    }));
+                    
+                    return <ReactionBarChart data={channelData} />;
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* メトリクス詳細 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
