@@ -67,11 +67,29 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Authorization check for POST requests
+    // Authorization check for POST requests - REQUIRED
     const authHeader = request.headers.get('authorization');
     const token = process.env.DISCORD_API_TOKEN;
     
-    if (token && authHeader !== `Bearer ${token}`) {
+    // Check if token is configured
+    if (!token) {
+      console.error('DISCORD_API_TOKEN environment variable is not set');
+      return NextResponse.json(
+        { error: 'サーバー設定エラー: APIトークンが設定されていません' },
+        { status: 500, headers: corsHeaders }
+      );
+    }
+    
+    // Check if authorization header is present
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: '認証エラー: Authorizationヘッダーが必要です' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+    
+    // Check if token matches
+    if (authHeader !== `Bearer ${token}`) {
       return NextResponse.json(
         { error: '認証エラー: 無効なトークンです' },
         { status: 401, headers: corsHeaders }
