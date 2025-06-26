@@ -39,8 +39,8 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const body = await request.json();
+    const { id } = body;
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }

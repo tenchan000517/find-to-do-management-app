@@ -49,7 +49,7 @@ export default function ConnectionsPage() {
       conversation: formData.get('conversation') as string,
       potential: formData.get('potential') as string,
       businessCard: formData.get('businessCard') as string || undefined,
-      createdById: 'user1', // Legacy field for backward compatibility
+      createdBy: null, // Will be set when proper auth is implemented
       assignedTo: assigneeId, // New assignee system for relationship manager
     };
 

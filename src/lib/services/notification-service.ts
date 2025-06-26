@@ -93,7 +93,7 @@ export class NotificationService {
     }
   }
 
-  private async sendLineNotification(lineUserId: string, message: string): Promise<void> {
+  async sendLineNotification(lineUserId: string, message: string): Promise<void> {
     try {
       if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
         console.warn('LINE_CHANNEL_ACCESS_TOKEN not set, skipping LINE notification');

@@ -65,54 +65,77 @@ export class SearchConsoleService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const baseRequest = {
-      siteUrl: this.siteUrl,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      rowLimit: 10,
-    };
-
     try {
       // Get summary metrics
-      const summaryResponse = await client.searchanalytics.query({
-        ...baseRequest,
-        aggregationType: 'auto',
+      const summaryResponse = await retryWithBackoff(async () => {
+        return await client.searchanalytics.query({
+          siteUrl: this.siteUrl,
+          requestBody: {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            rowLimit: 1000,
+          }
+        });
       });
 
       const summary = this.extractSummaryMetrics(summaryResponse.data.rows);
 
       // Get metrics by query
-      const queryResponse = await client.searchanalytics.query({
-        ...baseRequest,
-        dimensions: ['query'],
-        aggregationType: 'auto',
+      const queryResponse = await retryWithBackoff(async () => {
+        return await client.searchanalytics.query({
+          siteUrl: this.siteUrl,
+          requestBody: {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            dimensions: ['query'],
+            rowLimit: 10,
+          }
+        });
       });
 
       const byQuery = this.extractDimensionData(queryResponse.data.rows || [], 'query');
 
       // Get metrics by page
-      const pageResponse = await client.searchanalytics.query({
-        ...baseRequest,
-        dimensions: ['page'],
-        aggregationType: 'byPage',
+      const pageResponse = await retryWithBackoff(async () => {
+        return await client.searchanalytics.query({
+          siteUrl: this.siteUrl,
+          requestBody: {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            dimensions: ['page'],
+            rowLimit: 10,
+          }
+        });
       });
 
       const byPage = this.extractDimensionData(pageResponse.data.rows || [], 'page');
 
       // Get metrics by country
-      const countryResponse = await client.searchanalytics.query({
-        ...baseRequest,
-        dimensions: ['country'],
-        aggregationType: 'auto',
+      const countryResponse = await retryWithBackoff(async () => {
+        return await client.searchanalytics.query({
+          siteUrl: this.siteUrl,
+          requestBody: {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            dimensions: ['country'],
+            rowLimit: 10,
+          }
+        });
       });
 
       const byCountry = this.extractDimensionData(countryResponse.data.rows || [], 'country');
 
       // Get metrics by device
-      const deviceResponse = await client.searchanalytics.query({
-        ...baseRequest,
-        dimensions: ['device'],
-        aggregationType: 'auto',
+      const deviceResponse = await retryWithBackoff(async () => {
+        return await client.searchanalytics.query({
+          siteUrl: this.siteUrl,
+          requestBody: {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            dimensions: ['device'],
+            rowLimit: 10,
+          }
+        });
       });
 
       const byDevice = this.extractDimensionData(deviceResponse.data.rows || [], 'device');
@@ -124,8 +147,8 @@ export class SearchConsoleService {
         byCountry,
         byDevice,
         timeRange: {
-          startDate: baseRequest.startDate,
-          endDate: baseRequest.endDate,
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
         },
       };
     } catch (error) {
@@ -198,9 +221,13 @@ export class SearchConsoleService {
     
     try {
       // Get URL inspection data
-      const response = await client.urlInspection.index.inspect({
-        siteUrl: this.siteUrl,
-        inspectionUrl: this.siteUrl,
+      const response = await retryWithBackoff(async () => {
+        return await client.urlInspection.index.inspect({
+          requestBody: {
+            siteUrl: this.siteUrl,
+            inspectionUrl: this.siteUrl,
+          }
+        });
       });
 
       return {

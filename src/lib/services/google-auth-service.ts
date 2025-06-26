@@ -31,18 +31,8 @@ export class GoogleAuthService {
         });
       } else {
         // Fallback to environment variables for service account key
-        const credentials = {
-          type: "service_account",
-          project_id: process.env.GOOGLE_PROJECT_ID,
-          private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-          private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          client_email: process.env.GOOGLE_CLIENT_EMAIL,
-          client_id: process.env.GOOGLE_CLIENT_ID,
-          auth_uri: "https://accounts.google.com/o/oauth2/auth",
-          token_uri: "https://oauth2.googleapis.com/token",
-          auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-          client_x509_cert_url: process.env.GOOGLE_CLIENT_X509_CERT_URL,
-        };
+        const credentials = this.buildCredentialsFromEnv();
+        this.validateCredentials(credentials);
 
         this.auth = new google.auth.GoogleAuth({
           credentials,
@@ -54,6 +44,48 @@ export class GoogleAuthService {
       }
     } catch (error) {
       console.error('Google Auth initialization failed:', error);
+      throw new Error(`Authentication setup failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private buildCredentialsFromEnv() {
+    return {
+      type: "service_account",
+      project_id: process.env.GOOGLE_PROJECT_ID?.trim(),
+      private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID?.trim(),
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n').trim(),
+      client_email: process.env.GOOGLE_CLIENT_EMAIL?.trim(),
+      client_id: process.env.GOOGLE_CLIENT_ID?.trim(),
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: process.env.GOOGLE_CLIENT_X509_CERT_URL?.trim(),
+    };
+  }
+
+  private validateCredentials(credentials: any) {
+    const requiredFields = [
+      'project_id',
+      'private_key_id',
+      'private_key',
+      'client_email',
+      'client_id'
+    ];
+
+    for (const field of requiredFields) {
+      if (!credentials[field]) {
+        throw new Error(`Missing required credential field: ${field}`);
+      }
+    }
+
+    // Validate private key format
+    if (!credentials.private_key.includes('BEGIN PRIVATE KEY')) {
+      throw new Error('Invalid private key format');
+    }
+
+    // Validate email format
+    if (!credentials.client_email.includes('@') || !credentials.client_email.includes('iam.gserviceaccount.com')) {
+      throw new Error('Invalid service account email format');
     }
   }
 
@@ -65,18 +97,8 @@ export class GoogleAuthService {
             keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
           });
         } else {
-          const credentials = {
-            type: "service_account",
-            project_id: process.env.GOOGLE_PROJECT_ID,
-            private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-            private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-            client_email: process.env.GOOGLE_CLIENT_EMAIL,
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            auth_uri: "https://accounts.google.com/o/oauth2/auth",
-            token_uri: "https://oauth2.googleapis.com/token",
-            auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-            client_x509_cert_url: process.env.GOOGLE_CLIENT_X509_CERT_URL,
-          };
+          const credentials = this.buildCredentialsFromEnv();
+          this.validateCredentials(credentials);
 
           this.ga4Client = new BetaAnalyticsDataClient({
             credentials,
@@ -84,7 +106,7 @@ export class GoogleAuthService {
         }
       } catch (error) {
         console.error('GA4 Client initialization failed:', error);
-        throw error;
+        throw new Error(`GA4 client setup failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     return this.ga4Client;

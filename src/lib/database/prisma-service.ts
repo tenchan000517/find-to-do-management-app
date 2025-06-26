@@ -703,8 +703,11 @@ class PrismaDataService {
 
   async updateKnowledge(id: string, updates: Partial<Omit<KnowledgeItem, 'id' | 'createdAt'>>): Promise<KnowledgeItem | null> {
     try {
-      const updateData: any = { ...updates };
+      const { assigneeId, authorId, creator, assignee, updatedAt, ...validUpdates } = updates as any;
+      const updateData: any = { ...validUpdates };
+      
       if (updates.category) updateData.category = knowledgeCategoryMap[updates.category];
+      if (assigneeId !== undefined) updateData.assignedTo = assigneeId || null;
       
       const updatedKnowledge = await prisma.knowledge_items.update({
         where: { id },

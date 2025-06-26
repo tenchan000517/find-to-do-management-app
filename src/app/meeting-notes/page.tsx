@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { AIJsonParser } from '@/lib/utils/ai-json-parser'; // この行を追加
+import { MarkdownContent } from '@/components/MarkdownContent';
+import { AIJsonParser } from '@/lib/utils/ai-json-parser';
 
 interface MeetingNote {
   id: string;
@@ -226,8 +227,8 @@ export default function MeetingNotesPage() {
 
     setIsSubmitting(true);
     try {
-      // 新規作成のみ対応（編集は一旦無効化）
       if (!selectedNote) {
+        // 新規作成
         const newId = Date.now().toString();
         const note: MeetingNote = {
           ...newNote as MeetingNote,
@@ -236,6 +237,16 @@ export default function MeetingNotesPage() {
           updatedAt: new Date().toISOString()
         };
         setNotes([...notes, note]);
+      } else {
+        // 編集
+        const updatedNote: MeetingNote = {
+          ...selectedNote,
+          ...newNote as MeetingNote,
+          id: selectedNote.id,
+          createdAt: selectedNote.createdAt,
+          updatedAt: new Date().toISOString()
+        };
+        setNotes(notes.map(note => note.id === selectedNote.id ? updatedNote : note));
       }
       
       closeModal();
@@ -246,8 +257,24 @@ export default function MeetingNotesPage() {
     }
   };
 
-  const deleteNote = (id: string) => {
-    setNotes(notes.filter(note => note.id !== id));
+  const deleteNote = async (id: string) => {
+    if (!confirm('この議事録を削除してもよろしいですか？')) {
+      return;
+    }
+    
+    try {
+      // API呼び出しの実装が必要な場合はここに追加
+      // const response = await fetch(`/api/meeting-notes/${id}`, { method: 'DELETE' });
+      // if (!response.ok) {
+      //   throw new Error('削除に失敗しました');
+      // }
+      
+      // 現在はローカル状態から削除のみ
+      setNotes(notes.filter(note => note.id !== id));
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+      alert('削除に失敗しました');
+    }
   };
 
   const getStatusColor = (status: MeetingNote['status']) => {
@@ -498,7 +525,12 @@ export default function MeetingNotesPage() {
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <h3 className="text-lg md:text-xl font-semibold text-gray-900 line-clamp-2">{note.title}</h3>
+                      <h3 className="text-lg md:text-xl font-semibold text-gray-900 break-all">
+                        {note.title.length > 80 && note.title.startsWith('http') ? 
+                          `${note.title.substring(0, 40)}...${note.title.substring(note.title.length - 20)}` : 
+                          note.title
+                        }
+                      </h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(note.status)} flex-shrink-0`}>
                         {note.status === 'draft' ? '下書き' : '確定'}
                       </span>
@@ -521,39 +553,6 @@ export default function MeetingNotesPage() {
                     <span className="text-gray-400">{new Date(note.updatedAt).toLocaleDateString('ja-JP')}</span>
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  {note.documentUrl && (
-                    <a
-                      href={note.documentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-600 hover:text-green-800 text-xs md:text-sm font-medium transition-colors p-1 rounded hover:bg-green-50"
-                      title="Google Docsで開く"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  )}
-                  <button
-                    onClick={() => openModal(note)}
-                    className="text-blue-600 hover:text-blue-800 text-xs md:text-sm font-medium transition-colors p-1 rounded hover:bg-blue-50"
-                    disabled
-                    title="編集機能は準備中です"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => deleteNote(note.id)}
-                    className="text-red-600 hover:text-red-800 text-xs md:text-sm font-medium transition-colors p-1 rounded hover:bg-red-50"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
               </div>
               
               <div className="mb-4">
@@ -575,10 +574,25 @@ export default function MeetingNotesPage() {
                     </svg>
                     概要・議題
                   </h4>
-                  <p className="text-gray-700 text-sm md:text-base bg-gray-50 p-3 rounded-lg">{note.agenda}</p>
+                  <div className="text-gray-700 text-sm md:text-base bg-gray-50 p-3 rounded-lg">
+                    <MarkdownContent content={note.agenda} />
+                  </div>
                 </div>
               )}
 
+              {note.notes && (
+                <div className="mb-4">
+                  <h4 className="font-medium text-gray-900 mb-2 text-sm md:text-base flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    議事録内容
+                  </h4>
+                  <div className="text-gray-700 text-sm md:text-base bg-white p-4 rounded-lg border border-gray-200">
+                    <MarkdownContent content={note.notes} />
+                  </div>
+                </div>
+              )}
 
               {note.participants.length > 0 && (
                 <div className="mb-4">
@@ -610,12 +624,48 @@ export default function MeetingNotesPage() {
                     {note.actionItems.map((item, index) => (
                       <li key={index} className="flex items-start gap-2 text-gray-700 text-sm md:text-base">
                         <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
-                        {item}
+                        <MarkdownContent content={item} />
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
+              
+              {/* ボタン行（最下部） */}
+              <div className="flex flex-wrap items-center gap-1 md:gap-2 mt-4 pt-4 border-t border-gray-200">
+                {note.documentUrl && (
+                  <a
+                    href={note.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-50 hover:bg-green-100 text-green-700 hover:text-green-800 rounded text-xs font-medium transition-all duration-200 border border-green-200 hover:border-green-300"
+                    title="Google Docsで開く"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    <span>元ファイル</span>
+                  </a>
+                )}
+                <button
+                  onClick={() => openModal(note)}
+                  className="flex items-center gap-1 px-2 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors border border-blue-200 hover:border-blue-300"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>編集</span>
+                </button>
+                <button
+                  onClick={() => deleteNote(note.id)}
+                  className="flex items-center gap-1 px-2 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors border border-red-200 hover:border-red-300"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>削除</span>
+                </button>
+              </div>
             </div>
             ))}
           </div>
@@ -692,6 +742,7 @@ export default function MeetingNotesPage() {
                     value={newNote.agenda || ''}
                     onChange={(e) => setNewNote({...newNote, agenda: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
+                    placeholder="議題を入力してください。マークダウン対応（**太字**、*斜体*、[link](url)など）"
                   />
                 </div>
 
@@ -701,7 +752,7 @@ export default function MeetingNotesPage() {
                     value={newNote.notes || ''}
                     onChange={(e) => setNewNote({...newNote, notes: e.target.value})}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-                    placeholder="議事録の内容を入力してください..."
+                    placeholder="議事録の内容を入力してください。マークダウン対応（**太字**、*斜体*、[link](url)など）"
                   />
                 </div>
 

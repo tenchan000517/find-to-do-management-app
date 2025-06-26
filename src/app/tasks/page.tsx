@@ -379,6 +379,7 @@ export default function TasksPage() {
           onSubmit={handleSubmit}
           onDataRefresh={refreshTasks}
         />
+        </div>
       </div>
     </div>
   );
