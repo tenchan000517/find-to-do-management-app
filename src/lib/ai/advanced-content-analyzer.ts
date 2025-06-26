@@ -152,16 +152,16 @@ export class AdvancedContentAnalyzer {
 
   // 高精度分析の閾値設定
   private static readonly THRESHOLDS = {
-    TASK_CONFIDENCE: 0.7,
+    TASK_CONFIDENCE: 0.6,
     APPOINTMENT_CONFIDENCE: 0.8,
     CONNECTION_CONFIDENCE: 0.6,
-    EVENT_CONFIDENCE: 0.7,
+    EVENT_CONFIDENCE: 0.6,
     PERSONAL_SCHEDULE_CONFIDENCE: 0.6,
     PROJECT_DENSITY: 0.8,
     PROJECT_MONETIZATION: 0.7,
     PROJECT_EXECUTABILITY: 0.8,
     MIN_CLUSTER_ENTITIES: 4,
-    MIN_CONTENT_LENGTH: 800, // 短すぎるコンテンツは分析しない（原文保存を促進）
+    MIN_CONTENT_LENGTH: 200, // 短すぎるコンテンツは分析しない（原文保存を促進）
   };
 
   static getInstance(): AdvancedContentAnalyzer {
@@ -791,8 +791,8 @@ ${content.substring(0, 2000)}${content.length > 2000 ? '...' : ''}
     const totalEntities = entities.tasks.length + entities.events.length +
       entities.appointments.length + entities.connections.length;
 
-    // コンテンツが短い場合（800文字以下）は原文をそのまま返す
-    if (content.trim().length <= 800) {
+    // コンテンツが短い場合（400文字以下）は原文をそのまま返す
+    if (content.trim().length <= 400) {
       console.log(`📄 短いコンテンツ(${content.trim().length}文字) - 原文保存`);
       return content.trim();
     }
