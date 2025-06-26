@@ -727,6 +727,189 @@ function emergencyResumeFromTab(startTabNumber = 30) {
 }
 
 /**
+ * 手動再分析: 直近3タブ（triggerType: manual）
+ */
+function manualReanalysisRecentThree() {
+  const startTime = new Date();
+
+  try {
+    console.log('🔄 手動再分析: 直近3タブ開始');
+    console.log('時刻:', new Date().toISOString());
+
+    const doc = DocumentApp.getActiveDocument();
+    console.log(`📄 ドキュメント: ${doc.getName()}`);
+
+    // 全タブ取得
+    const rootTabs = doc.getTabs();
+    const allTabs = [];
+
+    for (const tab of rootTabs) {
+      allTabs.push(tab);
+      if (tab.getChildTabs && tab.getChildTabs().length > 0) {
+        for (const childTab of tab.getChildTabs()) {
+          allTabs.push(childTab);
+        }
+      }
+    }
+
+    if (allTabs.length === 0) {
+      console.log('❌ タブなし');
+      return { success: false, error: 'No tabs' };
+    }
+
+    // 直近3タブ（末尾から3つ）
+    const recentTabs = allTabs.slice(-3);
+    console.log(`📋 手動再分析対象: 直近${recentTabs.length}タブ`);
+
+    // 各タブを手動トリガーで送信
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < recentTabs.length; i++) {
+      const tab = recentTabs[i];
+
+      try {
+        console.log(`送信中: ${i + 1}/${recentTabs.length} - ${tab.getTitle()}`);
+
+        const docTab = tab.asDocumentTab();
+        const content = docTab.getBody().getText().trim();
+
+        if (content.length < SYNC_CONFIG.minContentLength) {
+          console.log(`⏭️ スキップ: ${content.length}文字`);
+          continue;
+        }
+
+        const tabPayload = {
+          apiKey: SYNC_CONFIG.apiKey,
+          documentId: `${doc.getId()}_recent_${i + 1}`,
+          title: tab.getTitle(),
+          content: content,
+          url: `https://docs.google.com/document/d/${doc.getId()}/edit?tab=${tab.getId()}`,
+          lastModified: new Date().toISOString(),
+          triggerType: 'manual',  // 🔥 手動トリガー: 常に再分析実行
+          wordCount: content.length,
+          tabId: tab.getId(),
+          parentDocumentId: doc.getId(),
+          gasVersion: '4.0-UNIFIED-MANUAL',
+          contentHash: Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, content).toString(),
+          timestamp: new Date().toISOString()
+        };
+
+        const response = UrlFetchApp.fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'GAS-UnifiedSystem/4.0-MANUAL'
+          },
+          payload: JSON.stringify(tabPayload),
+          muteHttpExceptions: true
+        });
+
+        const code = response.getResponseCode();
+        if (code === 200) {
+          successCount++;
+          console.log(`✅ 成功: ${tab.getTitle()}`);
+        } else {
+          errorCount++;
+          console.log(`❌ 失敗: ${code}`);
+        }
+
+        Utilities.sleep(500);
+
+      } catch (e) {
+        errorCount++;
+        console.log(`❌ エラー: ${e.message}`);
+      }
+    }
+
+    console.log(`📊 手動再分析完了: 成功${successCount} エラー${errorCount}`);
+    return { success: true, successCount, errorCount, triggerType: 'manual' };
+
+  } catch (error) {
+    console.log(`❌ 手動再分析エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 手動再分析: 指定タブ（triggerType: manual）
+ */
+function manualReanalysisSpecificTab(tabIndex) {
+  try {
+    console.log(`🔄 手動再分析: タブ${tabIndex}指定`);
+
+    const doc = DocumentApp.getActiveDocument();
+    const rootTabs = doc.getTabs();
+    const allTabs = [];
+
+    for (const tab of rootTabs) {
+      allTabs.push(tab);
+      if (tab.getChildTabs && tab.getChildTabs().length > 0) {
+        for (const childTab of tab.getChildTabs()) {
+          allTabs.push(childTab);
+        }
+      }
+    }
+
+    if (tabIndex < 1 || tabIndex > allTabs.length) {
+      console.log(`❌ エラー: タブ${tabIndex}は存在しません（総タブ数: ${allTabs.length}）`);
+      return { success: false, error: 'Tab index out of range' };
+    }
+
+    const tab = allTabs[tabIndex - 1];
+    console.log(`📋 対象タブ: ${tab.getTitle()}`);
+
+    const docTab = tab.asDocumentTab();
+    const content = docTab.getBody().getText().trim();
+
+    if (content.length < SYNC_CONFIG.minContentLength) {
+      console.log(`❌ エラー: コンテンツ不足 (${content.length}文字)`);
+      return { success: false, error: 'Insufficient content' };
+    }
+
+    const tabPayload = {
+      apiKey: SYNC_CONFIG.apiKey,
+      documentId: `${doc.getId()}_tab_${tabIndex}`,
+      title: tab.getTitle(),
+      content: content,
+      url: `https://docs.google.com/document/d/${doc.getId()}/edit?tab=${tab.getId()}`,
+      lastModified: new Date().toISOString(),
+      triggerType: 'manual',  // 🔥 手動トリガー: 常に再分析実行
+      wordCount: content.length,
+      tabIndex: tabIndex,
+      tabId: tab.getId(),
+      parentDocumentId: doc.getId(),
+      gasVersion: '4.0-UNIFIED-MANUAL-SPECIFIC',
+      contentHash: Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, content).toString(),
+      timestamp: new Date().toISOString()
+    };
+
+    const response = UrlFetchApp.fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'GAS-UnifiedSystem/4.0-MANUAL-SPECIFIC'
+      },
+      payload: JSON.stringify(tabPayload),
+      muteHttpExceptions: true
+    });
+
+    const code = response.getResponseCode();
+    if (code === 200) {
+      console.log(`✅ 手動再分析成功: ${tab.getTitle()}`);
+      return { success: true, tabTitle: tab.getTitle(), triggerType: 'manual' };
+    } else {
+      console.log(`❌ 手動再分析失敗: ${code}`);
+      return { success: false, error: `HTTP ${code}` };
+    }
+
+  } catch (error) {
+    console.log(`❌ 手動再分析エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * 高速接続テスト
  */
 function connectionTest() {
@@ -787,6 +970,9 @@ function createUnifiedMenu() {
         .addItem('🔄 個別タブ順次送信（推奨）', 'sequentialTabsSync')
         .addItem('📅 直近3タブ送信', 'recentThreeTabsSync')
         .addItem('🧪 接続テスト', 'connectionTest'))
+      .addSubMenu(ui.createMenu('🔥 手動再分析（常に実行）')
+        .addItem('🎯 直近3タブ手動再分析', 'manualReanalysisRecentThree')
+        .addItem('📋 指定タブ手動再分析', 'manualReanalysisSpecificTabMenu'))
       .addSubMenu(ui.createMenu('🧪 テスト・デバッグ')
         .addItem('🔍 統合診断実行', 'runUnifiedDiagnostics')
         .addItem('🧪 URL解析テスト', 'testUrlParsing')
@@ -965,6 +1151,30 @@ function clearProperties() {
 
   } catch (error) {
     console.error('❌ PropertiesService クリアエラー:', error);
+  }
+}
+
+/**
+ * 指定タブ手動再分析のメニュー用ヘルパー
+ */
+function manualReanalysisSpecificTabMenu() {
+  const ui = DocumentApp.getUi();
+  const response = ui.prompt('手動再分析', 'タブ番号を入力してください（例: 65）:', ui.ButtonSet.OK_CANCEL);
+  
+  if (response.getSelectedButton() === ui.Button.OK) {
+    const tabIndex = parseInt(response.getResponseText());
+    if (isNaN(tabIndex) || tabIndex < 1) {
+      ui.alert('エラー', '有効なタブ番号を入力してください', ui.ButtonSet.OK);
+      return;
+    }
+    
+    const result = manualReanalysisSpecificTab(tabIndex);
+    
+    if (result.success) {
+      ui.alert('成功', `タブ${tabIndex}「${result.tabTitle}」の手動再分析が完了しました`, ui.ButtonSet.OK);
+    } else {
+      ui.alert('エラー', `手動再分析に失敗しました: ${result.error}`, ui.ButtonSet.OK);
+    }
   }
 }
 

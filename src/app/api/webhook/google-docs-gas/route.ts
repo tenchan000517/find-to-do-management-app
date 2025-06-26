@@ -193,31 +193,43 @@ async function processGASWebhook(payload: any) {
       }
     });
 
-    // 2. AI分析結果の重複チェック（自動処理時のみスキップ）
+    // 2. AI分析結果の重複チェック（改善版：手動実行は常に再分析、自動実行は24時間以内なら分析スキップ）
     const existingAnalysis = await prisma.ai_content_analysis.findFirst({
       where: {
         source_document_id: documentId
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
     
+    // 手動実行以外で、24時間以内にAI分析が実行されている場合はスキップ
     if (existingAnalysis && triggerType !== 'manual') {
-      console.log(`📋 既存AI分析データ保持: ${documentId}`);
-      // メタデータのみ更新して終了
-      await prisma.google_docs_sources.update({
-        where: { document_id: documentId },
-        data: {
-          sync_status: 'COMPLETED',
-          last_synced: new Date()
-        }
-      });
+      const analysisAge = Date.now() - new Date(existingAnalysis.createdAt).getTime();
+      const hoursSinceAnalysis = analysisAge / (1000 * 60 * 60);
       
-      return {
-        documentId,
-        title,
-        skipped: true,
-        reason: 'analysis_exists',
-        message: 'AI分析済み、メタデータ保持'
-      };
+      if (hoursSinceAnalysis < 24) {
+        console.log(`📋 既存AI分析データ保持（${hoursSinceAnalysis.toFixed(1)}時間前に実行済み): ${documentId}`);
+        // メタデータのみ更新して終了
+        await prisma.google_docs_sources.update({
+          where: { document_id: documentId },
+          data: {
+            sync_status: 'COMPLETED',
+            last_synced: new Date()
+          }
+        });
+        
+        return {
+          documentId,
+          title,
+          skipped: true,
+          reason: 'analysis_recent',
+          message: `AI分析済み（${hoursSinceAnalysis.toFixed(1)}時間前）、メタデータ保持`,
+          lastAnalysisTime: existingAnalysis.createdAt
+        };
+      } else {
+        console.log(`🔄 AI分析データが古い（${hoursSinceAnalysis.toFixed(1)}時間前）ため再実行: ${documentId}`);
+      }
     }
     
     // マニュアル実行時または新規データの場合、既存分析を削除して再処理
