@@ -111,7 +111,8 @@ export function MarkdownContent({ content, className = "" }: MarkdownContentProp
             </li>
           ),
           // コードブロック
-          code: ({ inline, children, ...props }) => {
+          code: ({ children, ...props }: any) => {
+            const inline = props.inline;
             if (inline) {
               return (
                 <code {...props} className="bg-gray-100 text-red-600 px-1 py-0.5 rounded text-sm font-mono">
