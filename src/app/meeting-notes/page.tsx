@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import FullPageLoading from '@/components/FullPageLoading';
 import { MarkdownContent } from '@/components/MarkdownContent';
 import { AIJsonParser } from '@/lib/utils/ai-json-parser';
 
@@ -661,12 +662,7 @@ export default function MeetingNotesPage() {
           </div>
 
         {/* ローディング・エラー状態 */}
-        {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600">読み込み中...</span>
-          </div>
-        )}
+        {loading && <FullPageLoading />}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">

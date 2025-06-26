@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { LoadingCenter } from '@/components/ui/Loading';
 
 interface AnalyticsData {
   overview: {
@@ -184,8 +186,15 @@ export default function GoogleDocsDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">📊 ダッシュボード読み込み中...</div>
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+          <SkeletonCard className="h-64" />
+        </div>
       </div>
     );
   }
