@@ -290,9 +290,9 @@ model discord_metrics {
   channelMessageStats Json     @default("{}") @map("channel_message_stats")
   staffChannelStats   Json     @default("{}") @map("staff_channel_stats")
   roleCounts          Json     @default("{}") @map("role_counts")
-  reactionStats       Json?    @default("{}") @map("reaction_stats")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
+  reactionStats       Json?    @default("{}") @map("reaction_stats")
 
   @@map("discord_metrics")
 }

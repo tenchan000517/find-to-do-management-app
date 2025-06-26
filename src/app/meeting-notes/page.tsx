@@ -127,9 +127,8 @@ export default function MeetingNotesPage() {
     try {
       setLoading(true);
       
-      // 議事録データ、AI分析データ、Google Docsソースを並行取得
-      const [notesResponse, analysisResponse, sourcesResponse] = await Promise.all([
-        fetch('/api/meeting-notes'),
+      // AI分析データ、Google Docsソースを並行取得
+      const [analysisResponse, sourcesResponse] = await Promise.all([
         fetch('/api/ai-content-analysis'),
         fetch('/api/google-docs/sources')
       ]);
@@ -137,8 +136,6 @@ export default function MeetingNotesPage() {
       if (!analysisResponse.ok || !sourcesResponse.ok) {
         throw new Error('Failed to fetch meeting notes');
       }
-      
-      const notesData = notesResponse.ok ? await notesResponse.json() : [];
       const analysisData = await analysisResponse.json();
       const sourcesData = await sourcesResponse.json();
       
@@ -183,8 +180,8 @@ export default function MeetingNotesPage() {
         };
       });
       
-      // 議事録データとAI分析データを結合
-      const allNotes = [...notesData, ...formattedNotes];
+      // AI分析データのみを使用
+      const allNotes = formattedNotes;
       
       // 重複除去（同じタイトルと日付の議事録をマージ）
       const uniqueNotes = allNotes.reduce((acc, note) => {
