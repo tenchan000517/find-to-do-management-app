@@ -136,6 +136,7 @@ export interface OverallInsights {
   confidence: number;
   title: string;
   summary: string;
+  agenda?: string; // 議題フィールドを追加
 }
 
 export interface EntityMention {
@@ -209,7 +210,7 @@ export class AdvancedContentAnalyzer {
 
       // Step 6: 全体洞察
       console.log(`💡 Step 6: 全体洞察生成開始`);
-      const insights = await this.generateOverallInsights(content, documentTitle, entities, projectCandidates);
+      const insights = await this.generateOverallInsights(content, documentTitle, entities, projectCandidates, agenda);
       console.log(`💡 全体洞察生成完了 (${Date.now() - startTime}ms)`);
 
       const totalTime = Date.now() - startTime;
@@ -615,7 +616,8 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
     content: string,
     documentTitle: string,
     entities: HighConfidenceEntities,
-    projectCandidates: ProjectCandidate[]
+    projectCandidates: ProjectCandidate[],
+    agenda: string = ''
   ): Promise<OverallInsights> {
     const totalActionItems = entities.tasks.length + entities.appointments.length + entities.events.length;
 
@@ -631,7 +633,8 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
       projectPotentialCount: projectCandidates.length,
       confidence: totalActionItems > 0 ? 0.8 : 0.3,
       title: documentTitle, // Google Docsのタイトルをそのまま使用
-      summary
+      summary,
+      agenda // 議題を追加
     };
   }
 
@@ -933,7 +936,8 @@ ${content.substring(0, 2000)}...
         projectPotentialCount: 0,
         confidence: 0,
         title: 'ドキュメントタイトル未設定',
-        summary: '要約を生成できませんでした'
+        summary: '要約を生成できませんでした',
+        agenda: ''
       },
       agenda: '' // 議題フィールドを追加
     };
@@ -961,7 +965,8 @@ ${content.substring(0, 2000)}...
         projectPotentialCount: 0,
         confidence: 0.3, // 短いコンテンツでも最低限の信頼度
         title: title || 'ドキュメントタイトル未設定',
-        summary: originalContent // 原文をそのまま保存
+        summary: originalContent, // 原文をそのまま保存
+        agenda: ''
       },
       agenda: '' // 議題フィールドを追加
     };
