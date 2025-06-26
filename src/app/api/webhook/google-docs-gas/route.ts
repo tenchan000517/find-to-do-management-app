@@ -327,6 +327,7 @@ async function performAdvancedAIAnalysis(
         source_document_id: documentId,
         title: title, // Google Docsのタイトルをそのまま使用
         summary: analysisResult.overallInsights.summary || '要約未生成',
+        agenda: analysisResult.overallInsights.agenda || '',
         analysis_type: 'COMPREHENSIVE',
         extracted_tasks: JSON.stringify(analysisResult.highConfidenceEntities.tasks),
         extracted_events: JSON.stringify(analysisResult.highConfidenceEntities.events),

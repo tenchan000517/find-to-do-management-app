@@ -109,7 +109,7 @@ export default function MeetingNotesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'finalized'>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'meeting' | 'information'>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'title' | 'createdAt'>('date');
+  const [sortBy] = useState<'date' | 'title' | 'createdAt'>('date');
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [sidebarTab, setSidebarTab] = useState<'category' | 'date' | 'status'>('category');
   const [dateFilter, setDateFilter] = useState<string>('');
@@ -168,7 +168,7 @@ export default function MeetingNotesPage() {
           extractedDate: extractedDate,
           category: category,
           participants: [], // AI分析からは取得困難
-          agenda: analysis.content_section?.substring(0, 200) + (analysis.content_section?.length > 200 ? '...' : '') || '概要なし',
+          agenda: analysis.agenda || '議題なし',
           notes: analysis.summary || analysis.content_section || 'サマリー未生成',
           actionItems: actionItems,
           status: 'finalized' as const,
@@ -251,6 +251,7 @@ export default function MeetingNotesPage() {
             source_document_id: `manual_${Date.now()}`,
             title: newNote.title,
             summary: newNote.notes,
+            agenda: newNote.agenda,
             extracted_tasks: JSON.stringify(newNote.actionItems?.map(item => ({ title: item })) || []),
             analysis_type: 'COMPREHENSIVE',
             confidence_score: 1.0
@@ -271,6 +272,7 @@ export default function MeetingNotesPage() {
           body: JSON.stringify({
             title: newNote.title,
             summary: newNote.notes,
+            agenda: newNote.agenda,
             extracted_tasks: JSON.stringify(newNote.actionItems?.map(item => ({ title: item })) || [])
           })
         });

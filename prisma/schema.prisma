@@ -487,6 +487,7 @@ model ai_content_analysis {
   updatedAt          DateTime         @updatedAt
   summary            String           @default("")
   title              String           @default("")
+  agenda             String           @default("")
   assignedTo         String?
   createdBy          String?
   assignee           users?           @relation("AIAnalysisAssignee", fields: [assignedTo], references: [id])

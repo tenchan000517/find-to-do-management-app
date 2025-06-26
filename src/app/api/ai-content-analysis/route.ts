@@ -32,6 +32,7 @@ export async function POST(request: Request) {
         source_document_id: body.source_document_id,
         title: body.title || '',
         summary: body.summary || '',
+        agenda: body.agenda || '',
         extracted_tasks: body.extracted_tasks || '[]',
         analysis_type: body.analysis_type || 'COMPREHENSIVE',
         confidence_score: body.confidence_score || 1.0,

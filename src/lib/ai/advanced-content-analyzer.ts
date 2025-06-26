@@ -16,6 +16,7 @@ export interface AdvancedAnalysisResult {
   highConfidenceEntities: HighConfidenceEntities;
   projectCandidates: ProjectCandidate[];
   overallInsights: OverallInsights;
+  agenda?: string; // 議題フィールドを追加
 }
 
 export interface ContentSection {
@@ -172,6 +173,7 @@ export class AdvancedContentAnalyzer {
   // メイン分析エントリーポイント
   async analyzeContent(content: string, documentTitle: string = ''): Promise<AdvancedAnalysisResult> {
     console.log(`🧠 高精度分析開始: ${documentTitle} (${content.length}文字)`);
+    const startTime = Date.now();
 
     // 最小長チェック
     if (content.length < AdvancedContentAnalyzer.THRESHOLDS.MIN_CONTENT_LENGTH) {
@@ -181,34 +183,56 @@ export class AdvancedContentAnalyzer {
 
     try {
       // Step 1: セクション分割
+      console.log(`📄 Step 1: セクション分割開始`);
       const sections = await this.extractSections(content);
-      console.log(`📄 セクション分割完了: ${sections.length}セクション`);
+      console.log(`📄 セクション分割完了: ${sections.length}セクション (${Date.now() - startTime}ms)`);
 
       // Step 2: セクションクラスタリング
+      console.log(`🔗 Step 2: クラスタリング開始`);
       const clusters = await this.clusterSections(sections);
-      console.log(`🔗 クラスタリング完了: ${clusters.length}クラスター`);
+      console.log(`🔗 クラスタリング完了: ${clusters.length}クラスター (${Date.now() - startTime}ms)`);
 
       // Step 3: 高精度エンティティ抽出
+      console.log(`🎯 Step 3: エンティティ抽出開始`);
       const entities = await this.extractHighConfidenceEntities(sections);
-      console.log(`🎯 高精度エンティティ抽出完了`);
+      console.log(`🎯 高精度エンティティ抽出完了: タスク${entities.tasks.length}件、アポ${entities.appointments.length}件 (${Date.now() - startTime}ms)`);
 
       // Step 4: プロジェクト候補分析
+      console.log(`🚀 Step 4: プロジェクト候補分析開始`);
       const projectCandidates = await this.analyzeProjectCandidates(clusters, entities);
-      console.log(`🚀 プロジェクト候補分析完了: ${projectCandidates.length}件`);
+      console.log(`🚀 プロジェクト候補分析完了: ${projectCandidates.length}件 (${Date.now() - startTime}ms)`);
 
-      // Step 5: 全体洞察
+      // Step 5: 議題抽出
+      console.log(`🎯 Step 5: 議題抽出開始`);
+      const agenda = await this.extractAgenda(content);
+      console.log(`🎯 議題抽出結果: "${agenda}" (${Date.now() - startTime}ms)`);
+
+      // Step 6: 全体洞察
+      console.log(`💡 Step 6: 全体洞察生成開始`);
       const insights = await this.generateOverallInsights(content, documentTitle, entities, projectCandidates);
+      console.log(`💡 全体洞察生成完了 (${Date.now() - startTime}ms)`);
+
+      const totalTime = Date.now() - startTime;
+      console.log(`✅ 高精度分析完了: 総時間${totalTime}ms`);
 
       return {
         sections,
         clusters,
         highConfidenceEntities: entities,
         projectCandidates,
-        overallInsights: insights
+        overallInsights: insights,
+        agenda // 議題を結果に追加
       };
 
     } catch (error) {
-      console.error('❌ 高精度分析エラー:', error);
+      const totalTime = Date.now() - startTime;
+      console.error(`❌ 高精度分析エラー (${totalTime}ms):`, error);
+      console.error(`❌ エラー詳細:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        contentLength: content.length,
+        documentTitle
+      });
       return this.createEmptyResult();
     }
   }
@@ -611,6 +635,83 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
     };
   }
 
+  // 議題抽出ロジック（新規追加）
+  async extractAgenda(content: string): Promise<string> {
+    console.log(`🎯 議題抽出開始: ${content.length}文字`);
+    const startTime = Date.now();
+
+    // 短いコンテンツの場合はスキップ
+    if (content.length < 200) {
+      console.log(`📄 コンテンツが短すぎるため議題抽出をスキップ (${content.length}文字 < 200文字)`);
+      return '';
+    }
+
+    const contentPreview = content.substring(0, 100).replace(/\n/g, ' ');
+    console.log(`📄 議題抽出対象コンテンツ: "${contentPreview}..."`);
+
+    const prompt = `
+以下のドキュメントから「議題・アジェンダ」に該当する部分のみを抽出してください。
+会議の目的、討議項目、検討事項、話し合いの項目など、事前に決められた議論のテーマを特定してください。
+
+**ドキュメント内容:**
+${content.substring(0, 2000)}${content.length > 2000 ? '...' : ''}
+
+**回答形式 (JSON):**
+{
+  "agenda": "抽出された議題（200文字以内）",
+  "hasAgenda": true/false
+}
+
+**抽出基準:**
+- 明確な議題・アジェンダが記載されている場合のみ抽出
+- 会議の目的、討議項目、検討事項、話し合いの主題
+- 「議題」「アジェンダ」「目的」「検討事項」などの明示がある内容
+- 単なる日程や参加者情報は除外
+- 要約や結論は除外（議題のみ）
+
+**重要:** 
+- 明確な議題がない場合は hasAgenda: false を返してください
+- 議題とサマリーが混同されないよう、事前に決められた話し合いの項目のみを抽出してください
+`;
+
+    try {
+      console.log(`⏳ Gemini API呼び出し前の遅延開始 (Rate Limit対策)`);
+      // API呼び出し前に遅延（Rate Limit対策）
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log(`🚀 Gemini API呼び出し実行 (${Date.now() - startTime}ms)`);
+
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      
+      console.log(`📨 Gemini API レスポンス受信 (${Date.now() - startTime}ms)`);
+      console.log(`🔍 議題抽出レスポンス長: ${responseText.length}文字`);
+      console.log(`🔍 議題抽出レスポンス内容: ${responseText.substring(0, 200)}...`);
+      
+      const parsed = this.parseJSONResponse(responseText);
+      console.log(`🔍 パース結果:`, parsed);
+      
+      if (!parsed.hasAgenda || !parsed.agenda) {
+        console.log(`📄 明確な議題が見つからませんでした (hasAgenda: ${parsed.hasAgenda}, agenda: "${parsed.agenda}")`);
+        return '';
+      }
+
+      const agenda = parsed.agenda.substring(0, 200); // 200文字制限
+      console.log(`✅ 議題抽出完了 (${Date.now() - startTime}ms): "${agenda}"`);
+      return agenda;
+
+    } catch (error) {
+      const totalTime = Date.now() - startTime;
+      console.error(`❌ 議題抽出エラー (${totalTime}ms):`, error);
+      console.error(`❌ 議題抽出エラー詳細:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        contentLength: content.length,
+        contentPreview
+      });
+      return '';
+    }
+  }
+
   // ユーティリティ関数群
   private parseJSONResponse(responseText: string): any {
     const defaultValue = {
@@ -833,7 +934,8 @@ ${content.substring(0, 2000)}...
         confidence: 0,
         title: 'ドキュメントタイトル未設定',
         summary: '要約を生成できませんでした'
-      }
+      },
+      agenda: '' // 議題フィールドを追加
     };
   }
 
@@ -860,7 +962,8 @@ ${content.substring(0, 2000)}...
         confidence: 0.3, // 短いコンテンツでも最低限の信頼度
         title: title || 'ドキュメントタイトル未設定',
         summary: originalContent // 原文をそのまま保存
-      }
+      },
+      agenda: '' // 議題フィールドを追加
     };
   }
 }
