@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { prismaDataService } from '@/lib/database/prisma-service';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -72,6 +71,7 @@ export async function POST(
       if (appointment) {
         await prisma.calendar_events.create({
           data: {
+            id: `cal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             title: `🤝 ${appointment.companyName} - ${appointment.contactName}`,
             date: newScheduledDate,
             time: newScheduledTime,
@@ -81,7 +81,7 @@ export async function POST(
             category: 'APPOINTMENT',
             appointmentId,
             userId: appointment.assignedTo || appointment.assignee?.id,
-            participants: newParticipants ? newParticipants.split(',').map(p => p.trim()) : [],
+            participants: newParticipants ? newParticipants.split(',').map((p: string) => p.trim()) : [],
             isAllDay: false
           }
         });
@@ -101,6 +101,7 @@ export async function POST(
       if (appointment) {
         await prisma.calendar_events.create({
           data: {
+            id: `cal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             title: `🤝 ${appointment.companyName} - ${appointment.contactName} (次回アポ)`,
             date: newScheduledDate,
             time: newScheduledTime || '10:00',
@@ -110,7 +111,7 @@ export async function POST(
             category: 'APPOINTMENT',
             appointmentId,
             userId: appointment.assignedTo || appointment.assignee?.id,
-            participants: newParticipants ? newParticipants.split(',').map(p => p.trim()) : [],
+            participants: newParticipants ? newParticipants.split(',').map((p: string) => p.trim()) : [],
             isAllDay: false
           }
         });

@@ -21,6 +21,7 @@ import {
   Twitter
 } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
+import AuthButton from './auth/AuthButton';
 import { Button } from './ui/Button';
 
 export default function Header() {
@@ -148,9 +149,7 @@ export default function Header() {
               {/* 未読通知バッジ（実装後に動的に制御） */}
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </Button>
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
-              U
-            </div>
+            <AuthButton />
           </div>
 
           {/* Mobile menu button */}
