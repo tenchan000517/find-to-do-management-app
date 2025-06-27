@@ -255,6 +255,13 @@ model users {
   skills                Json                    @default("{}")
   preferences           Json                    @default("{}")
   workStyle             Json                    @default("{}")
+  
+  // 新規追加: ロールベースアクセス制御
+  role                  UserRole                @default(MEMBER)
+  permissions           Json                    @default("{}")
+  lastLoginAt           DateTime?
+  loginCount            Int                     @default(0)
+  securitySettings      Json                    @default("{}")
   assigned_ai_analysis  ai_content_analysis[]   @relation("AIAnalysisAssignee")
   created_ai_analysis   ai_content_analysis[]   @relation("AIAnalysisCreator")
   assigned_appointments appointments[]          @relation("AppointmentAssignee")
@@ -777,4 +784,13 @@ enum relationship_type {
   TRANSFERABLE
   SIMULTANEOUS
   DEPENDENT
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  MEMBER
+  GUEST
+  STUDENT
+  ENTERPRISE
 }

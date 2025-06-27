@@ -2,8 +2,9 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { Suspense } from 'react'
 
-export default function AuthError() {
+function AuthErrorContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
@@ -45,5 +46,13 @@ export default function AuthError() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthError() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthErrorContent />
+    </Suspense>
   )
 }
