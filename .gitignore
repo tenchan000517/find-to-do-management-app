@@ -42,4 +42,9 @@ next-env.d.ts
 
 .vercel
 
-/scripts/
+/scripts/credentials/
+*.json
+test-*.sh
+test-*.py
+
+*.env
