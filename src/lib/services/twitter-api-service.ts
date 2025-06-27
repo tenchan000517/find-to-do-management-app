@@ -61,15 +61,48 @@ class TwitterApiService {
   }
 
   private async makeRequest<T>(endpoint: string): Promise<TwitterApiResponse<T>> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const fullUrl = `${this.baseUrl}${endpoint}`;
+    
+    console.log(`🔍 Twitter API Request:`, {
+      url: fullUrl,
+      endpoint,
+      timestamp: new Date().toISOString(),
+      bearerTokenPrefix: this.bearerToken.substring(0, 20) + '...'
+    });
+
+    const response = await fetch(fullUrl, {
       headers: {
         'Authorization': `Bearer ${this.bearerToken}`,
         'Content-Type': 'application/json',
       },
     });
 
+    // Rate Limit情報を詳細ログ
+    const rateLimitInfo = {
+      remaining: response.headers.get('x-rate-limit-remaining'),
+      limit: response.headers.get('x-rate-limit-limit'),
+      reset: response.headers.get('x-rate-limit-reset'),
+      resource: response.headers.get('x-rate-limit-resource'),
+      status: response.status,
+      statusText: response.statusText
+    };
+
+    console.log(`📊 Twitter API Rate Limit Info:`, {
+      endpoint,
+      ...rateLimitInfo,
+      resetTime: rateLimitInfo.reset ? new Date(parseInt(rateLimitInfo.reset) * 1000).toLocaleString('ja-JP') : 'N/A'
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
+      
+      console.error(`❌ Twitter API Error Details:`, {
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText,
+        rateLimitInfo
+      });
       
       // Rate Limit の詳細情報を含めて返す
       if (response.status === 429) {
@@ -83,7 +116,21 @@ class TwitterApiService {
       throw new Error(`Twitter API Error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    
+    console.log(`✅ Twitter API Success:`, {
+      endpoint,
+      dataReceived: !!data,
+      userInfo: data.data ? {
+        id: data.data.id,
+        username: data.data.username,
+        name: data.data.name,
+        followers: data.data.public_metrics?.followers_count
+      } : null,
+      tweetsCount: Array.isArray(data.data) ? data.data.length : 'N/A'
+    });
+
+    return data;
   }
 
   async getUserByUsername(username: string): Promise<TwitterUser> {

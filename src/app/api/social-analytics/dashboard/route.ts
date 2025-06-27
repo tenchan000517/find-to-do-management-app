@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
     const platform = searchParams.get('platform') || 'all'; // 'twitter', 'instagram', 'all'
     const days = parseInt(searchParams.get('days') || '30');
     
-    // デフォルトアカウント（後で設定可能にする）
-    const twitterUserId = searchParams.get('twitterUserId') || '783214'; // @X
+    // デフォルトアカウント（ユーザー名ベース）
+    const twitterUsername = searchParams.get('twitterUsername') || process.env.TWITTER_TEST_USERNAME || 'TENCHAN_0517';
     
     const results: any = {
       success: true,
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       try {
         const twitterService = new TwitterApiService();
         // Rate Limit節約のため、ユーザー情報のみ取得
-        const user = await twitterService.getUserById(twitterUserId);
+        const user = await twitterService.getUserByUsername(twitterUsername);
         
         results.data.twitter = {
           user,

@@ -18,11 +18,12 @@ export async function GET() {
     }
 
     // Twitter API v2 - ユーザー情報取得テスト
-    // 注意: 実際の使用時はユーザーIDまたはユーザー名を指定
-    const testUserId = process.env.TWITTER_TEST_USER_ID || '783214'; // Twitterの公式アカウント
+    // ユーザー名から直接取得（IDより制限が緩い）
+    const testUsername = process.env.TWITTER_TEST_USERNAME || 'TENCHAN_0517';
+    console.log(`🎯 Twitter Test - Using Username: @${testUsername}`);
     
     const response = await fetch(
-      `https://api.twitter.com/2/users/${testUserId}?user.fields=public_metrics,created_at,description,verified`,
+      `https://api.twitter.com/2/users/by/username/${testUsername}?user.fields=id,public_metrics,created_at,description,verified`,
       {
         headers: {
           'Authorization': `Bearer ${bearerToken}`,
@@ -31,15 +32,21 @@ export async function GET() {
       }
     );
 
+    // Rate Limit情報を常に取得
+    const rateLimitInfo = {
+      remaining: response.headers.get('x-rate-limit-remaining'),
+      limit: response.headers.get('x-rate-limit-limit'),
+      reset: response.headers.get('x-rate-limit-reset'),
+    };
+    
+    console.log(`📊 Twitter Test - User API Response:`, {
+      status: response.status,
+      statusText: response.statusText,
+      rateLimitInfo
+    });
+
     if (!response.ok) {
       const errorData = await response.text();
-      
-      // Rate Limit情報を取得
-      const rateLimitInfo = {
-        remaining: response.headers.get('x-rate-limit-remaining'),
-        limit: response.headers.get('x-rate-limit-limit'),
-        reset: response.headers.get('x-rate-limit-reset'),
-      };
       
       return NextResponse.json({
         success: false,
@@ -50,7 +57,7 @@ export async function GET() {
           'Bearer Tokenが正しいか確認',
           'Twitter Developer Portalでアプリの権限を確認',
           'API利用制限に達していないか確認',
-          'ユーザーID (783214) が正しいか確認'
+          `ユーザー名 (@${testUsername}) が正しいか確認`
         ]
       });
     }
@@ -62,9 +69,10 @@ export async function GET() {
     let tweetsError = null;
     
     if (userData.data && userData.data.id) {
+      const userId = userData.data.id; // 取得したIDを使用
       try {
         const tweetsResponse = await fetch(
-          `https://api.twitter.com/2/users/${testUserId}/tweets?max_results=5&tweet.fields=public_metrics,created_at,context_annotations`,
+          `https://api.twitter.com/2/users/${userId}/tweets?max_results=5&tweet.fields=public_metrics,created_at,context_annotations`,
           {
             headers: {
               'Authorization': `Bearer ${bearerToken}`,
@@ -95,6 +103,7 @@ export async function GET() {
         meta: tweetsData?.meta || {},
         tweetsError: tweetsError || null
       },
+      rateLimitInfo,
       apiCallsSummary: {
         userInfoCall: '✅ 成功',
         tweetsCall: tweetsError ? `❌ ${tweetsError}` : '✅ 成功',

@@ -17,7 +17,8 @@ import {
   ChevronDown,
   TrendingUp,
   FileBarChart,
-  PieChart
+  PieChart,
+  Twitter
 } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 import { Button } from './ui/Button';
@@ -111,6 +112,14 @@ export default function Header() {
                     >
                       <PieChart className="mr-3 h-4 w-4" />
                       GA4アナリティクス
+                    </Link>
+                    <Link
+                      href="/social-analytics"
+                      onClick={() => setDashboardDropdownOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Twitter className="mr-3 h-4 w-4" />
+                      SNSアナリティクス
                     </Link>
                   </div>
                 </div>
@@ -210,6 +219,14 @@ export default function Header() {
               >
                 <PieChart className="h-5 w-5" />
                 <span>GA4アナリティクス</span>
+              </Link>
+              <Link
+                href="/social-analytics"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                <Twitter className="h-5 w-5" />
+                <span>SNSアナリティクス</span>
               </Link>
             </div>
             

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Twitter, 
   Instagram, 
@@ -41,6 +41,15 @@ export default function SocialAnalyticsDashboard() {
   ];
 
   const [realData, setRealData] = useState<any>(null);
+  const [autoLoadCompleted, setAutoLoadCompleted] = useState(false);
+  
+  // コンポーネントマウント時に自動でデータを取得
+  useEffect(() => {
+    if (!autoLoadCompleted) {
+      handleLoadRealData();
+      setAutoLoadCompleted(true);
+    }
+  }, []);
 
   const handleTestConnection = async (platform: 'twitter' | 'instagram') => {
     setIsLoading(true);
@@ -73,7 +82,8 @@ export default function SocialAnalyticsDashboard() {
       
       if (result.success) {
         setRealData(result.data);
-        alert('軽量データの取得成功！（ユーザー情報のみ）');
+        console.log('取得したリアルデータ:', result.data);
+        // アラートを削除してUIに自然に反映
       } else {
         alert(`データ取得失敗: ${result.error}`);
       }
@@ -221,6 +231,36 @@ export default function SocialAnalyticsDashboard() {
     }
   };
 
+  const handleGetUserId = async () => {
+    const username = prompt('TwitterユーザーName を入力してください（@マークなし）:', 'twitterapi');
+    if (!username) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/social-analytics/get-user-id?username=${encodeURIComponent(username)}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        let userInfo = `✅ ユーザーID取得成功！\n\n`;
+        userInfo += `👤 名前: ${result.data.name}\n`;
+        userInfo += `📧 ユーザー名: @${result.data.username}\n`;
+        userInfo += `🆔 ユーザーID: ${result.data.userId}\n`;
+        userInfo += `👥 フォロワー数: ${result.data.followers?.toLocaleString() || 'N/A'}\n`;
+        userInfo += `✅ 認証済み: ${result.data.verified ? 'はい' : 'いいえ'}\n\n`;
+        userInfo += `📝 ${result.envUpdate.message}\n${result.envUpdate.line}\n\n`;
+        userInfo += `Rate Limit残り: ${result.rateLimitInfo.remaining}/${result.rateLimitInfo.limit}`;
+        
+        alert(userInfo);
+      } else {
+        alert(`❌ ユーザーID取得失敗\n\n${result.error}\n\n${result.suggestion || ''}`);
+      }
+    } catch (error) {
+      alert('ユーザーID取得でエラーが発生しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ヘッダー: プラットフォーム選択と期間選択 */}
@@ -320,7 +360,7 @@ export default function SocialAnalyticsDashboard() {
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             <TrendingUp className="w-4 h-4" />
-            <span>軽量データ取得</span>
+            <span>データ更新</span>
           </button>
           <button
             onClick={handleLoadFullData}
@@ -346,6 +386,14 @@ export default function SocialAnalyticsDashboard() {
             <Eye className="w-4 h-4" />
             <span>🔍 詳細デバッグ</span>
           </button>
+          <button
+            onClick={handleGetUserId}
+            disabled={isLoading}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <Users className="w-4 h-4" />
+            <span>👤 ユーザーID取得</span>
+          </button>
         </div>
       </div>
 
@@ -362,7 +410,7 @@ export default function SocialAnalyticsDashboard() {
                      mockData.twitter.followers.toLocaleString()}
                   </p>
                   {realData?.twitter?.user && (
-                    <p className="text-xs text-green-600">@{realData.twitter.user.username} (リアルデータ)</p>
+                    <p className="text-xs text-green-600">@{realData.twitter.user.username}</p>
                   )}
                 </div>
                 <Users className="w-8 h-8 text-blue-500" />
@@ -371,16 +419,16 @@ export default function SocialAnalyticsDashboard() {
             <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Twitter インプレッション</p>
+                  <p className="text-sm font-medium text-gray-600">ツイート数</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {realData?.twitter?.metrics?.totalImpressions?.toLocaleString() || 
-                     mockData.twitter.impressions.toLocaleString()}
+                    {realData?.twitter?.user?.public_metrics?.tweet_count?.toLocaleString() || 
+                     mockData.twitter.tweets.toLocaleString()}
                   </p>
-                  {realData?.twitter?.metrics && (
-                    <p className="text-xs text-green-600">過去{timeRange.replace('d', '')}日間 (リアルデータ)</p>
+                  {realData?.twitter?.user && (
+                    <p className="text-xs text-gray-500">総ツイート数</p>
                   )}
                 </div>
-                <Eye className="w-8 h-8 text-blue-500" />
+                <TrendingUp className="w-8 h-8 text-blue-500" />
               </div>
             </div>
           </>
@@ -417,27 +465,33 @@ export default function SocialAnalyticsDashboard() {
       </div>
 
       {/* リアルデータ表示エリア */}
-      {realData && (
+      {realData?.twitter && !realData.twitter.error && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-800 mb-3">
-            🔍 取得したリアルデータ
+            📊 Twitterアカウント詳細
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            {realData.twitter && !realData.twitter.error && (
-              <>
-                <div>
-                  <strong>Twitter:</strong> @{realData.twitter.user.username}
-                </div>
-                <div>
-                  <strong>ツイート数:</strong> {realData.twitter.user.public_metrics.tweet_count.toLocaleString()}
-                </div>
-                <div>
-                  <strong>エンゲージメント率:</strong> {realData.twitter.metrics?.avgEngagementRate || 0}%
-                </div>
-                <div>
-                  <strong>期間:</strong> 過去{timeRange.replace('d', '')}日間
-                </div>
-              </>
+            <div>
+              <span className="text-gray-600">アカウント名:</span>
+              <p className="font-medium">@{realData.twitter.user.username}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">表示名:</span>
+              <p className="font-medium">{realData.twitter.user.name}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">フォロー数:</span>
+              <p className="font-medium">{realData.twitter.user.public_metrics?.following_count?.toLocaleString() || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">いいね数:</span>
+              <p className="font-medium">{realData.twitter.user.public_metrics?.like_count?.toLocaleString() || 'N/A'}</p>
+            </div>
+            {realData.twitter.user.description && (
+              <div className="col-span-full">
+                <span className="text-gray-600">プロフィール:</span>
+                <p className="text-gray-800 mt-1">{realData.twitter.user.description}</p>
+              </div>
             )}
           </div>
         </div>

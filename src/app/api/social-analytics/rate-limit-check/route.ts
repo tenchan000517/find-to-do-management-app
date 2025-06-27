@@ -4,6 +4,12 @@ export async function GET() {
   try {
     const bearerToken = process.env.TWITTER_BEARER_TOKEN;
     
+    console.log(`🔍 Rate Limit Check Started:`, {
+      timestamp: new Date().toISOString(),
+      bearerTokenPresent: !!bearerToken,
+      bearerTokenPrefix: bearerToken ? bearerToken.substring(0, 20) + '...' : 'N/A'
+    });
+    
     if (!bearerToken) {
       return NextResponse.json({
         success: false,
@@ -12,24 +18,31 @@ export async function GET() {
     }
 
     // 軽量なエンドポイントでRate Limit情報を確認
-    // /users/meは存在しないので、/users/byを使用（最小限のリクエスト）
-    const response = await fetch(
-      'https://api.twitter.com/2/users/by/username/twitter', // 軽量なテスト用
-      {
-        headers: {
-          'Authorization': `Bearer ${bearerToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const testUrl = 'https://api.twitter.com/2/users/by/username/twitter';
+    console.log(`🔍 Rate Limit Check URL: ${testUrl}`);
+    
+    const response = await fetch(testUrl, {
+      headers: {
+        'Authorization': `Bearer ${bearerToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     // Rate Limit情報を取得
     const rateLimitInfo = {
       remaining: response.headers.get('x-rate-limit-remaining'),
       limit: response.headers.get('x-rate-limit-limit'),
       reset: response.headers.get('x-rate-limit-reset'),
+      resource: response.headers.get('x-rate-limit-resource'),
       status: response.status,
     };
+
+    console.log(`📊 Rate Limit Check Headers:`, {
+      status: response.status,
+      statusText: response.statusText,
+      rateLimitInfo,
+      allHeaders: Object.fromEntries([...response.headers.entries()])
+    });
 
     // リセット時刻を日本時間に変換
     const resetTime = rateLimitInfo.reset 

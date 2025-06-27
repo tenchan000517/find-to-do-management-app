@@ -12,16 +12,25 @@ export async function GET() {
     }
 
     // 複数のエンドポイントのRate Limit情報を取得
+    const testUserId = process.env.TWITTER_TEST_USER_ID || '783214';
+    const testUsername = process.env.TWITTER_TEST_USERNAME || 'X';
+    
+    console.log(`🎯 Debug Headers - Test Targets:`, {
+      userId: testUserId,
+      username: testUsername,
+      note: 'ユーザーID 783214 = @X (旧Twitter公式アカウント)'
+    });
+    
     const endpoints = [
       {
         name: 'users_lookup',
-        url: 'https://api.twitter.com/2/users/783214?user.fields=public_metrics',
-        description: '/users/{id} エンドポイント'
+        url: `https://api.twitter.com/2/users/${testUserId}?user.fields=public_metrics,created_at,description,verified`,
+        description: `/users/{id} エンドポイント (ID: ${testUserId})`
       },
       {
         name: 'users_by_username',
-        url: 'https://api.twitter.com/2/users/by/username/X?user.fields=public_metrics',
-        description: '/users/by/username/{username} エンドポイント'
+        url: `https://api.twitter.com/2/users/by/username/${testUsername}?user.fields=public_metrics,created_at,description,verified`,
+        description: `/users/by/username/{username} エンドポイント (Username: ${testUsername})`
       }
     ];
 
@@ -34,6 +43,8 @@ export async function GET() {
 
     for (const endpoint of endpoints) {
       try {
+        console.log(`🔍 Debug Headers - Testing: ${endpoint.name} - ${endpoint.url}`);
+        
         const response = await fetch(endpoint.url, {
           headers: {
             'Authorization': `Bearer ${bearerToken}`,
@@ -41,8 +52,14 @@ export async function GET() {
           },
         });
 
+        console.log(`📊 Debug Headers - Response for ${endpoint.name}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          url: endpoint.url
+        });
+
         // Rate Limit情報を詳細に取得
-        const rateLimitInfo = {
+        const rateLimitInfo: any = {
           status: response.status,
           statusText: response.statusText,
           headers: {

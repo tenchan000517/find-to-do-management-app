@@ -162,6 +162,11 @@ export class AdvancedContentAnalyzer {
     PROJECT_EXECUTABILITY: 0.8,
     MIN_CLUSTER_ENTITIES: 4,
     MIN_CONTENT_LENGTH: 200, // 短すぎるコンテンツは分析しない（原文保存を促進）
+    // Rate Limit対策用遅延設定（ms）
+    DELAY_ENTITY_EXTRACTION: 2500, // エンティティ抽出前遅延
+    DELAY_AGENDA_EXTRACTION: 2000, // 議題抽出前遅延
+    DELAY_SUMMARY_RAW: 4500, // Rawコンテンツ要約前遅延
+    DELAY_SUMMARY_ENTITY: 4500, // エンティティベース要約前遅延
   };
 
   static getInstance(): AdvancedContentAnalyzer {
@@ -269,8 +274,16 @@ ${content}
 
     try {
       const result = await model.generateContent(prompt);
+      console.log(`📨 セクション分割 APIレスポンス取得成功`);
+      
       const responseText = result.response.text();
+      console.log(`📨 セクション分割レスポンス長: ${responseText?.length || 0}文字`);
+      
       const parsed = this.parseJSONResponse(responseText);
+      console.log(`📨 セクション分割パース結果:`, {
+        sectionsCount: parsed.sections?.length || 0,
+        hasSections: !!parsed.sections
+      });
 
       return parsed.sections.map((section: any, index: number) => ({
         id: `section_${index}`,
@@ -284,7 +297,12 @@ ${content}
       }));
 
     } catch (error) {
-      console.warn('セクション分割失敗、フォールバック使用:', error);
+      console.warn('❌ セクション分割失敗、フォールバック使用:', error);
+      console.error('❌ セクション分割エラー詳細:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        contentLength: content.length
+      });
       return this.fallbackSectionSplit(content);
     }
   }
@@ -326,8 +344,16 @@ ${sections.map((s, i) => `
 
     try {
       const result = await model.generateContent(prompt);
+      console.log(`📨 クラスタリング APIレスポンス取得成功`);
+      
       const responseText = result.response.text();
+      console.log(`📨 クラスタリングレスポンス長: ${responseText?.length || 0}文字`);
+      
       const parsed = this.parseJSONResponse(responseText);
+      console.log(`📨 クラスタリングパース結果:`, {
+        clustersCount: parsed.clusters?.length || 0,
+        hasClusters: !!parsed.clusters
+      });
 
       return parsed.clusters.map((cluster: any, index: number) => ({
         id: `cluster_${index}`,
@@ -340,7 +366,12 @@ ${sections.map((s, i) => `
       }));
 
     } catch (error) {
-      console.warn('クラスタリング失敗:', error);
+      console.warn('❌ クラスタリング失敗:', error);
+      console.error('❌ クラスタリングエラー詳細:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        sectionsCount: sections.length
+      });
       return [];
     }
   }
@@ -364,8 +395,11 @@ ${sections.map((s, i) => `
       return `=== セクション${index + 1}: ${section.title || '無題'} ===\n${section.content}`;
     }).join('\n\n');
 
-    // API呼び出し前に遅延（Rate Limit対策）
-    await new Promise(resolve => setTimeout(resolve, 2000));
+      // API呼び出し前に遅延（Rate Limit対策）
+    const delay = AdvancedContentAnalyzer.THRESHOLDS.DELAY_ENTITY_EXTRACTION;
+    console.log(`⏳ API呼び出し前遅延開始 (${delay}ms) - Rate Limit対策`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    console.log(`✅ API呼び出し前遅延完了`);
 
     const entities = await this.extractEntitiesFromAllSections(allSectionsContent, sections);
 
@@ -480,8 +514,15 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
 `;
 
     try {
-      const result = await model.generateContent(prompt);
+      // Retry機構付きAPI呼び出し
+      const result = await this.callGeminiAPIWithRetry(async () => {
+        return await model.generateContent(prompt);
+      }, 'エンティティ抽出');
+      
+      console.log(`📨 エンティティ抽出 APIレスポンス取得成功`);
+      
       const responseText = result.response.text();
+      console.log(`📨 エンティティ抽出レスポンス長: ${responseText?.length || 0}文字`);
       const parsed = this.parseJSONResponse(responseText);
 
       // 高精度フィルタリング適用
@@ -528,6 +569,13 @@ ${allContent.substring(0, 5000)}${allContent.length > 5000 ? '\n...(内容が長
 
     } catch (error) {
       console.error(`❌ 統合エンティティ抽出失敗:`, error);
+      console.error(`❌ エンティティ抽出エラー詳細:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        contentLength: allContent.length,
+        sectionsCount: sections.length,
+        apiKey: process.env.GEMINI_API_KEY ? 'Present' : 'Missing'
+      });
       return {
         tasks: [],
         appointments: [],
@@ -678,13 +726,21 @@ ${content.substring(0, 2000)}${content.length > 2000 ? '...' : ''}
 `;
 
     try {
-      console.log(`⏳ Gemini API呼び出し前の遅延開始 (Rate Limit対策)`);
+      const delay = AdvancedContentAnalyzer.THRESHOLDS.DELAY_AGENDA_EXTRACTION;
+      console.log(`⏳ Gemini API呼び出し前の遅延開始 (${delay}ms) - Rate Limit対策`);
       // API呼び出し前に遅延（Rate Limit対策）
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, delay));
       console.log(`🚀 Gemini API呼び出し実行 (${Date.now() - startTime}ms)`);
 
-      const result = await model.generateContent(prompt);
+      // Retry機構付きAPI呼び出し
+      const result = await this.callGeminiAPIWithRetry(async () => {
+        return await model.generateContent(prompt);
+      }, '議題抽出');
+      
+      console.log(`📨 Gemini API Raw Response Status: ${result?.response ? 'Success' : 'Failed'}`);
+      
       const responseText = result.response.text();
+      console.log(`📨 Gemini API Response Text Length: ${responseText?.length || 0}`);
       
       console.log(`📨 Gemini API レスポンス受信 (${Date.now() - startTime}ms)`);
       console.log(`🔍 議題抽出レスポンス長: ${responseText.length}文字`);
@@ -830,10 +886,17 @@ ${content.substring(0, 3000)}${content.length > 3000 ? '...' : ''}
     try {
       console.log('🔍 Raw Content Summary - Prompt:', prompt.substring(0, 200) + '...');
 
-      // API呼び出し前に遅延（Rate Limit対策）
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // API呼び出し前に遅延（Rate Limit対策 - 中規模コンテンツ用延長）
+      const delay = AdvancedContentAnalyzer.THRESHOLDS.DELAY_SUMMARY_RAW;
+      console.log(`⏳ Raw Content Summary - API呼び出し前遅延開始 (${delay}ms)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      console.log(`✅ Raw Content Summary - API呼び出し前遅延完了`);
 
-      const result = await model.generateContent(prompt);
+      // Retry機構付きAPI呼び出し
+      const result = await this.callGeminiAPIWithRetry(async () => {
+        return await model.generateContent(prompt);
+      }, 'Rawコンテンツ要約');
+      
       const responseText = result.response.text();
 
       console.log('🔍 Gemini Raw Response:', responseText);
@@ -888,10 +951,17 @@ ${content.substring(0, 2000)}...
         appointments: entities.appointments.length
       });
 
-      // API呼び出し前に遅延（Rate Limit対策）
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // API呼び出し前に遅延（Rate Limit対策 - エンティティベース要約用延長）
+      const delay = AdvancedContentAnalyzer.THRESHOLDS.DELAY_SUMMARY_ENTITY;
+      console.log(`⏳ Entity Summary - API呼び出し前遅延開始 (${delay}ms)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      console.log(`✅ Entity Summary - API呼び出し前遅延完了`);
 
-      const result = await model.generateContent(prompt);
+      // Retry機構付きAPI呼び出し
+      const result = await this.callGeminiAPIWithRetry(async () => {
+        return await model.generateContent(prompt);
+      }, 'エンティティベース要約');
+      
       const responseText = result.response.text();
 
       console.log('🔍 Gemini Entity Response:', responseText);
@@ -944,6 +1014,37 @@ ${content.substring(0, 2000)}...
   }
 
   // 短いコンテンツ用：原文を保存する空の結果
+  // Retry機構付きGemini API呼び出し
+  private async callGeminiAPIWithRetry<T>(
+    apiCall: () => Promise<T>,
+    operation: string,
+    maxRetries: number = 3,
+    baseDelay: number = 2000
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 ${operation} - 試行 ${attempt}/${maxRetries}`);
+        const result = await apiCall();
+        console.log(`✅ ${operation} - 試行 ${attempt} 成功`);
+        return result;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.warn(`❌ ${operation} - 試行 ${attempt} 失敗:`, lastError.message);
+        
+        if (attempt < maxRetries) {
+          const retryDelay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.log(`⏳ ${retryDelay}ms 待機して再試行...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+    }
+    
+    console.error(`❌ ${operation} - 全ての試行が失敗`);
+    throw lastError || new Error(`${operation} failed after ${maxRetries} attempts`);
+  }
+
   private createEmptyResultWithOriginalContent(originalContent: string, title: string): AdvancedAnalysisResult {
     return {
       sections: [],
