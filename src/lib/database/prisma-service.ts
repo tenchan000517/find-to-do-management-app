@@ -743,10 +743,15 @@ class PrismaDataService {
   async getAppointments(): Promise<Appointment[]> {
     try {
       const appointments = await prisma.appointments.findMany({
+        include: {
+          details: true,
+          creator: { select: { id: true, name: true } },
+          assignee: { select: { id: true, name: true } }
+        },
         orderBy: { updatedAt: 'desc' }
       });
       
-      return appointments.map((a: Awaited<ReturnType<typeof prisma.appointments.findMany>>[0]) => ({
+      return appointments.map((a: any) => ({
         ...a,
         assignedToId: a.assignedTo || '', // Use actual assignedTo value
         status: reverseAppointmentStatusMap[a.status] || 'pending',
@@ -754,6 +759,9 @@ class PrismaDataService {
         lastContact: a.lastContact || undefined,
         meetingUrl: a.meetingUrl || undefined,
         informationUrl: a.informationUrl || undefined,
+        details: a.details || undefined,
+        creator: a.creator || undefined,
+        assignee: a.assignee || undefined,
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString()
       }));

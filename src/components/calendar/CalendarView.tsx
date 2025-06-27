@@ -286,8 +286,8 @@ export function CalendarView({ className = '' }: CalendarViewProps) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // イベントリストから削除
-      setEvents(prevEvents => prevEvents.filter(e => e.id !== eventId));
+      // データを再取得して最新状態に更新
+      await fetchEvents();
       
     } catch (error) {
       console.error('Failed to delete event:', error);

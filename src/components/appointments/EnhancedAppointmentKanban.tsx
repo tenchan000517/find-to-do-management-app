@@ -538,6 +538,7 @@ export default function EnhancedAppointmentKanban({
   const sensors = useSensors(useSensor(PointerSensor));
 
   useEffect(() => {
+    console.log('🔄 useEffect triggered:', { kanbanType, userFilter, componentId: Math.random().toString(36).substr(2, 9) });
     loadKanbanData();
   }, [kanbanType, userFilter]);
 
@@ -584,6 +585,14 @@ export default function EnhancedAppointmentKanban({
     // ドロップゾーンの場合、カラムIDを取得
     if (targetColumnId.endsWith('-dropzone')) {
       targetColumnId = targetColumnId.replace('-dropzone', '');
+    } else {
+      // アポイントメントの上にドロップした場合、そのアポイントメントの属するカラムを探す
+      for (const [columnId, appointmentsList] of Object.entries(appointments)) {
+        if (appointmentsList.some((apt: any) => apt.id === targetColumnId)) {
+          targetColumnId = columnId;
+          break;
+        }
+      }
     }
     
     // 営業フェーズの契約段階では特別処理
@@ -596,6 +605,17 @@ export default function EnhancedAppointmentKanban({
     try {
       // ローディング開始
       setLoadingItems(prev => new Set(prev).add(appointmentId));
+      
+      console.log('🎯 Kanban drag end:', {
+        appointmentId,
+        originalTargetId: over.id,
+        resolvedTargetColumnId: targetColumnId,
+        kanbanType,
+        activeId: active.id,
+        overId: over.id,
+        isDropzone: (over.id as string).endsWith('-dropzone'),
+        availableColumns: Object.keys(appointments)
+      });
       
       await onAppointmentMove(appointmentId, targetColumnId, kanbanType);
       

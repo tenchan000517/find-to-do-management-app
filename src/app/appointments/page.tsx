@@ -80,7 +80,7 @@ export default function AppointmentsPage() {
   // New modal states for Phase 4
   const [appointmentModal, setAppointmentModal] = useState<{
     isOpen: boolean;
-    type: 'schedule' | 'complete' | 'contract';
+    type: 'schedule' | 'complete' | 'contract' | 'reschedule';
     appointment: Appointment | null;
   }>({
     isOpen: false,
@@ -307,21 +307,32 @@ export default function AppointmentsPage() {
   };
 
   const handleAppointmentMove = async (appointmentId: string, newStatus: string, kanbanType: string) => {
+    console.log('🚀 handleAppointmentMove called:', { appointmentId, newStatus, kanbanType });
     try {
       setIsKanbanUpdating(true);
       const appointment = appointments.find(a => a.id === appointmentId);
       if (!appointment) {
-        console.error('Appointment not found:', appointmentId);
+        console.error('❌ Appointment not found:', appointmentId);
         setIsKanbanUpdating(false);
         return;
       }
+      console.log('✅ Appointment found:', appointment);
 
       // Processing status flow automation
       if (kanbanType === 'processing') {
         const currentStatus = appointment.details?.processingStatus || 'PENDING';
         
+        console.log('🔍 Processing status move:', {
+          appointmentId,
+          currentStatus,
+          newStatus,
+          kanbanType,
+          appointmentDetails: appointment.details
+        });
+        
         // PENDING → IN_PROGRESS: Show schedule modal
         if (currentStatus === 'PENDING' && newStatus === 'IN_PROGRESS') {
+          console.log('✅ PENDING → IN_PROGRESS: Showing schedule modal');
           setAppointmentModal({
             isOpen: true,
             type: 'schedule',
@@ -331,8 +342,21 @@ export default function AppointmentsPage() {
           return;
         }
         
+        // IN_PROGRESS → PENDING: Show reschedule modal
+        if (currentStatus === 'IN_PROGRESS' && newStatus === 'PENDING') {
+          console.log('✅ IN_PROGRESS → PENDING: Showing reschedule modal');
+          setAppointmentModal({
+            isOpen: true,
+            type: 'reschedule',
+            appointment
+          });
+          setIsKanbanUpdating(false);
+          return;
+        }
+        
         // IN_PROGRESS → COMPLETED: Show completion modal
         if (currentStatus === 'IN_PROGRESS' && newStatus === 'COMPLETED') {
+          console.log('✅ IN_PROGRESS → COMPLETED: Showing completion modal');
           setCompletionForm({
             isOpen: true,
             appointment
@@ -498,6 +522,9 @@ export default function AppointmentsPage() {
           break;
         case 'contract':
           endpoint = `/api/appointments/${appointment.id}/contract`;
+          break;
+        case 'reschedule':
+          endpoint = `/api/appointments/${appointment.id}/reschedule`;
           break;
       }
 

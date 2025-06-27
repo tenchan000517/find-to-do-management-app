@@ -7,7 +7,7 @@ import { Plus, Edit, Calendar, Clock, MapPin, Users, Link, Star } from 'lucide-r
 
 interface AppointmentFlowModalProps {
   isOpen: boolean;
-  type: 'schedule' | 'complete' | 'contract';
+  type: 'schedule' | 'complete' | 'contract' | 'reschedule';
   appointment: Appointment | null;
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
@@ -52,6 +52,18 @@ export default function AppointmentFlowModal({
       estimatedDuration: '',
       teamMembers: [] as string[]
     },
+    
+    // Reschedule fields
+    rescheduleReason: '',
+    markPreviousAsCompleted: true,
+    phaseChange: false,
+    newPhase: '',
+    newScheduledDate: '',
+    newScheduledTime: '',
+    newMeetingLocation: '',
+    newAgenda: '',
+    newParticipants: '',
+    notes: '',
     
     // New option fields
     salesPhase: '',
@@ -141,6 +153,7 @@ export default function AppointmentFlowModal({
       case 'schedule': return 'アポイントメント日程設定';
       case 'complete': return 'アポイントメント完了処理';
       case 'contract': return '契約処理・プロジェクト作成';
+      case 'reschedule': return 'アポイントメント再スケジュール';
       default: return 'アポイントメント処理';
     }
   };
@@ -424,6 +437,231 @@ export default function AppointmentFlowModal({
     </div>
   );
 
+  const renderRescheduleForm = () => {
+    const rescheduleReasons = [
+      { value: 'リスケ', label: 'リスケ（日程変更）', description: '新しい日程が決まっている場合' },
+      { value: '延期', label: '延期（後日調整）', description: '日程は未定、後で調整する場合' },
+      { value: '次のアポ', label: '次のアポ（フェーズ進行）', description: 'フェーズが進んで次段階のアポが必要な場合' }
+    ];
+
+    const salesPhases = [
+      { value: 'LEAD', label: 'リード獲得' },
+      { value: 'PROSPECT', label: '見込み客' },
+      { value: 'PROPOSAL', label: '提案' },
+      { value: 'NEGOTIATION', label: '交渉' },
+      { value: 'CLOSING', label: 'クロージング' },
+      { value: 'POST_SALE', label: 'アフターセールス' }
+    ];
+
+    const isDateRequired = formData.rescheduleReason === 'リスケ';
+    
+    return (
+      <div className="space-y-4">
+        {/* 現在のアポイントメント情報表示 */}
+        {appointment?.calendar_events && appointment.calendar_events.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-medium text-blue-800 mb-2">現在のアポイントメント</h4>
+            <div className="text-sm text-blue-600">
+              <p>📅 {appointment.calendar_events[0].date} {appointment.calendar_events[0].time}</p>
+              <p>📍 {appointment.calendar_events[0].location || '場所未設定'}</p>
+              <p>📝 {appointment.calendar_events[0].description || '詳細未設定'}</p>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            再スケジュール理由 *
+          </label>
+          <select
+            value={formData.rescheduleReason}
+            onChange={(e) => handleInputChange('rescheduleReason', e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">選択してください</option>
+            {rescheduleReasons.map((reason) => (
+              <option key={reason.value} value={reason.value}>
+                {reason.label}
+              </option>
+            ))}
+          </select>
+          {formData.rescheduleReason && (
+            <p className="text-xs text-gray-500 mt-1">
+              {rescheduleReasons.find(r => r.value === formData.rescheduleReason)?.description}
+            </p>
+          )}
+        </div>
+
+        {/* フェーズ変更オプション */}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="phaseChange"
+            checked={formData.phaseChange}
+            onChange={(e) => handleInputChange('phaseChange', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="phaseChange" className="ml-2 block text-sm text-gray-900">
+            営業フェーズを変更する（任意）
+          </label>
+        </div>
+        {formData.rescheduleReason && (
+          <p className="text-xs text-gray-500">
+            💡 調整中への移動でフェーズ変更は必須ではありません。必要に応じて選択してください。
+          </p>
+        )}
+
+        {formData.phaseChange && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              新しい営業フェーズ
+            </label>
+            <select
+              value={formData.newPhase}
+              onChange={(e) => handleInputChange('newPhase', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">選択してください</option>
+              {salesPhases.map((phase) => (
+                <option key={phase.value} value={phase.value}>
+                  {phase.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="markPreviousAsCompleted"
+            checked={formData.markPreviousAsCompleted}
+            onChange={(e) => handleInputChange('markPreviousAsCompleted', e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="markPreviousAsCompleted" className="ml-2 block text-sm text-gray-900">
+            既存のカレンダーイベントを履歴として保持（推奨）
+          </label>
+        </div>
+
+        {/* 日程設定（リスケの場合のみ必須） */}
+        {(formData.rescheduleReason === 'リスケ' || formData.rescheduleReason === '次のアポ') && (
+          <div className="border-t pt-4">
+            <h4 className="text-md font-medium text-gray-900 mb-3">
+              {formData.rescheduleReason === 'リスケ' ? '新しい日程設定' : '次回アポイントメント設定'}
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  予定日 {isDateRequired ? '*' : ''}
+                </label>
+                <input
+                  type="date"
+                  value={formData.newScheduledDate}
+                  onChange={(e) => handleInputChange('newScheduledDate', e.target.value)}
+                  required={isDateRequired}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  時刻 {isDateRequired ? '*' : ''}
+                </label>
+                <input
+                  type="time"
+                  value={formData.newScheduledTime}
+                  onChange={(e) => handleInputChange('newScheduledTime', e.target.value)}
+                  required={isDateRequired}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                場所
+              </label>
+              <input
+                type="text"
+                value={formData.newMeetingLocation}
+                onChange={(e) => handleInputChange('newMeetingLocation', e.target.value)}
+                placeholder="会議室、オンライン、先方オフィスなど"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                議題・目的
+              </label>
+              <textarea
+                value={formData.newAgenda}
+                onChange={(e) => handleInputChange('newAgenda', e.target.value)}
+                rows={3}
+                placeholder={
+                  formData.rescheduleReason === 'リスケ' 
+                    ? '再スケジュール後の打ち合わせ内容' 
+                    : '次回アポイントメントの目的'
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                参加者
+              </label>
+              <input
+                type="text"
+                value={formData.newParticipants}
+                onChange={(e) => handleInputChange('newParticipants', e.target.value)}
+                placeholder="参加者名（カンマ区切り）"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 備考・理由詳細 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            備考・詳細理由
+          </label>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => handleInputChange('notes', e.target.value)}
+            rows={3}
+            placeholder="再スケジュールの詳細理由や補足事項"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* 処理内容の説明 */}
+        <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg">
+          <p className="font-medium text-yellow-800 mb-1">💡 処理内容</p>
+          <ul className="text-yellow-700 space-y-1">
+            <li>• 既存のカレンダーイベントは履歴として保持されます</li>
+            <li>• アポイントメントステータスが「調整中」に変更されます</li>
+            {formData.rescheduleReason === 'リスケ' && (
+              <li>• 新しい日程でカレンダーイベントが作成されます</li>
+            )}
+            {formData.rescheduleReason === '延期' && (
+              <li>• 新しい日程は後日設定します</li>
+            )}
+            {formData.rescheduleReason === '次のアポ' && (
+              <li>• フェーズ進行に応じた次回アポイントメントが設定されます</li>
+            )}
+            {formData.phaseChange && (
+              <li>• 営業フェーズが更新されます</li>
+            )}
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
   const renderContractForm = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -585,6 +823,7 @@ export default function AppointmentFlowModal({
       case 'schedule': return renderScheduleForm();
       case 'complete': return renderCompleteForm();
       case 'contract': return renderContractForm();
+      case 'reschedule': return renderRescheduleForm();
       default: return null;
     }
   };
@@ -792,7 +1031,8 @@ export default function AppointmentFlowModal({
               {isSubmitting ? '処理中...' : 
                type === 'schedule' ? '日程設定' :
                type === 'complete' ? '完了処理' :
-               type === 'contract' ? '契約処理' : '実行'}
+               type === 'contract' ? '契約処理' :
+               type === 'reschedule' ? '再スケジュール実行' : '実行'}
             </button>
             <button
               type="button"
