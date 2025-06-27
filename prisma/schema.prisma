@@ -179,6 +179,11 @@ model projects {
   creator               users?                  @relation("ProjectCreator", fields: [createdBy], references: [id])
   task_relationships    task_relationships[]
   tasks                 tasks[]
+  
+  // Phase 1: Student Resource Management Relations
+  resource_allocations  project_resource_allocation[]
+  team_analyses         mbti_team_analysis[]
+  optimization_history  resource_optimization_history[]
 
   @@index([status], map: "idx_projects_status")
   @@index([createdBy], map: "idx_projects_created_by")
@@ -256,6 +261,12 @@ model users {
   preferences           Json                    @default("{}")
   workStyle             Json                    @default("{}")
   
+  // Phase 1: Student Resource Management
+  weeklyCommitHours     Int?                    @default(20)
+  currentLoadPercentage Float?                  @default(0.0)
+  mbtiType              String?                 @map("mbti_type")
+  studentResourceData   Json                    @default("{}") @map("student_resource_data")
+  
   // 新規追加: ロールベースアクセス制御
   role                  UserRole                @default(MEMBER)
   permissions           Json                    @default("{}")
@@ -282,6 +293,10 @@ model users {
   created_tasks         tasks[]                 @relation("TaskCreator")
   tasks                 tasks[]                 @relation("TaskUser")
   user_alerts           user_alerts[]
+  
+  // Phase 1: Student Resource Management Relations
+  student_resource      student_resources?
+  created_optimizations resource_optimization_history[] @relation("OptimizationCreator")
 }
 
 model discord_metrics {
@@ -602,6 +617,154 @@ model task_relationships {
   @@index([projectId], map: "idx_task_relationships_project")
   @@index([relationshipType], map: "idx_task_relationships_type")
   @@map("task_relationships")
+}
+
+// Phase 1: Student Resource Management Models
+
+model student_resources {
+  id                     String                        @id @default(cuid())
+  userId                 String                        @unique @map("user_id")
+  
+  // Time Management
+  weeklyCommitHours      Int                          @default(20) @map("weekly_commit_hours")
+  currentLoadPercentage  Float                        @default(0.0) @map("current_load_percentage")
+  semesterAvailability   Json                         @default("{}") @map("semester_availability")
+  emergencyAvailableHours Json                        @default("{}") @map("emergency_available_hours")
+  
+  // Skills and Aptitude
+  technicalSkills        Json                         @default("[]") @map("technical_skills")
+  softSkills             Json                         @default("[]") @map("soft_skills")
+  learningPreferences    Json                         @default("{}") @map("learning_preferences")
+  projectExperience      Json                         @default("[]") @map("project_experience")
+  
+  // Performance Metrics
+  taskCompletionRate     Float                        @default(1.0) @map("task_completion_rate")
+  qualityScore           Float                        @default(1.0) @map("quality_score")
+  collaborationScore     Float                        @default(1.0) @map("collaboration_score")
+  
+  // MBTI Integration
+  mbtiAnalysis           Json                         @default("{}") @map("mbti_analysis")
+  personalityStrengths   Json                         @default("[]") @map("personality_strengths")
+  optimalRoles           Json                         @default("[]") @map("optimal_roles")
+  stressFactors          Json                         @default("[]") @map("stress_factors")
+  motivationFactors      Json                         @default("[]") @map("motivation_factors")
+  
+  // Metadata
+  createdAt              DateTime                     @default(now()) @map("created_at")
+  updatedAt              DateTime                     @updatedAt @map("updated_at")
+  
+  // Relations
+  user                   users                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project_allocations    project_resource_allocation[]
+  
+  @@index([userId], map: "idx_student_resources_user_id")
+  @@index([currentLoadPercentage], map: "idx_student_resources_load")
+  @@map("student_resources")
+}
+
+model project_resource_allocation {
+  id                      String               @id @default(cuid())
+  projectId               String               @map("project_id")
+  studentResourceId       String               @map("student_resource_id")
+  
+  // Allocation Information
+  allocatedHours          Int                  @map("allocated_hours")
+  roleInProject           String               @map("role_in_project")
+  responsibilityLevel     String               @default("MEMBER") @map("responsibility_level")
+  
+  // Performance Tracking
+  effectivenessScore      Float                @default(1.0) @map("effectiveness_score")
+  contributionScore       Float                @default(1.0) @map("contribution_score")
+  satisfactionScore       Float                @default(1.0) @map("satisfaction_score")
+  
+  // MBTI Team Dynamics
+  teamCompatibilityScore  Float                @default(0.0) @map("team_compatibility_score")
+  roleAptitudeScore       Float                @default(0.0) @map("role_aptitude_score")
+  predictedPerformance    Float                @default(0.0) @map("predicted_performance")
+  
+  // Timeline
+  startDate               DateTime             @default(now()) @map("start_date")
+  endDate                 DateTime?            @map("end_date")
+  
+  // Metadata
+  createdAt               DateTime             @default(now()) @map("created_at")
+  updatedAt               DateTime             @updatedAt @map("updated_at")
+  
+  // Relations
+  project                 projects             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  studentResource         student_resources    @relation(fields: [studentResourceId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId], map: "idx_project_allocation_project")
+  @@index([studentResourceId], map: "idx_project_allocation_student")
+  @@index([endDate], map: "idx_project_allocation_active")
+  @@index([teamCompatibilityScore], map: "idx_project_allocation_compatibility")
+  @@map("project_resource_allocation")
+}
+
+model mbti_team_analysis {
+  id                        String    @id @default(cuid())
+  projectId                 String    @map("project_id")
+  
+  // Team Composition
+  teamMembers               Json      @default("[]") @map("team_members")
+  teamCompatibilityScore    Float     @default(0.0) @map("team_compatibility_score")
+  
+  // Analysis Results
+  predictedDynamics         String    @default("") @map("predicted_dynamics")
+  potentialChallenges       Json      @default("[]") @map("potential_challenges")
+  managementTips            Json      @default("[]") @map("management_tips")
+  
+  // Success Predictions
+  successProbability        Float     @default(0.0) @map("success_probability")
+  riskFactors               Json      @default("[]") @map("risk_factors")
+  optimizationRecommendations Json    @default("[]") @map("optimization_recommendations")
+  
+  // Metadata
+  analysisDate              DateTime  @default(now()) @map("analysis_date")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                   projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId], map: "idx_mbti_team_analysis_project")
+  @@index([teamCompatibilityScore], map: "idx_mbti_team_analysis_score")
+  @@index([analysisDate], map: "idx_mbti_team_analysis_date")
+  @@map("mbti_team_analysis")
+}
+
+model resource_optimization_history {
+  id                      String    @id @default(cuid())
+  projectId               String    @map("project_id")
+  
+  // Optimization Request
+  optimizationRequest     Json      @default("{}") @map("optimization_request")
+  
+  // AI Recommendations
+  aiRecommendations       Json      @default("{}") @map("ai_recommendations")
+  recommendedAllocations  Json      @default("[]") @map("recommended_allocations")
+  
+  // Decision Tracking
+  selectedAllocation      Json      @default("{}") @map("selected_allocation")
+  decisionRationale       String    @default("") @map("decision_rationale")
+  
+  // Outcome Tracking
+  actualPerformance       Json      @default("{}") @map("actual_performance")
+  lessonsLearned          Json      @default("[]") @map("lessons_learned")
+  
+  // Metadata
+  createdBy               String?   @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                 projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator                 users?    @relation("OptimizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  
+  @@index([projectId], map: "idx_optimization_history_project")
+  @@index([createdBy], map: "idx_optimization_history_created_by")
+  @@index([createdAt], map: "idx_optimization_history_date")
+  @@map("resource_optimization_history")
 }
 
 enum appointment_status {
