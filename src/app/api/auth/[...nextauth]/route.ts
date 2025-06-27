@@ -22,9 +22,10 @@ const handler = NextAuth({
 
           if (!existingUser) {
             // 新規ユーザーの場合、データベースに作成
+            const newUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
             await prisma.users.create({
               data: {
-                id: user.id,
+                id: newUserId,
                 name: user.name!,
                 email: user.email!,
                 color: '#3B82F6', // デフォルトカラー

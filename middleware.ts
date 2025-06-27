@@ -1,39 +1,13 @@
-import { withAuth } from 'next-auth/middleware'
+// 認証機能はオプション化 - ログインしなくても全機能利用可能
+// 必要に応じて特定のページのみ認証を要求する場合は、
+// 個別のページコンポーネントで useSession() を使用してください
 
-export default withAuth(
-  function middleware(req) {
-    // 認証が必要な場合のミドルウェアロジック
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        // 認証が不要なパス
-        const publicPaths = ['/auth/signin', '/auth/error', '/api/auth']
-        const isPublicPath = publicPaths.some(path => 
-          req.nextUrl.pathname.startsWith(path)
-        )
-        
-        if (isPublicPath) {
-          return true
-        }
-        
-        // 認証が必要なパスではtokenが必要
-        return !!token
-      },
-    },
-  }
-)
+export function middleware() {
+  // 認証チェックなし - 全てのリクエストを通す
+  return null
+}
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - /api/auth/* (NextAuth routes)
-     * - /_next/static (static files)
-     * - /_next/image (image optimization)
-     * - /favicon.ico (favicon)
-     * - /public/* (public files)
-     */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|public).*)',
-  ]
+  // middlewareを実質的に無効化
+  matcher: []
 }

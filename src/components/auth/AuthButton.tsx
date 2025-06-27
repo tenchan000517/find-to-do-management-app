@@ -39,9 +39,10 @@ export default function AuthButton() {
     <button
       onClick={() => signIn('google')}
       className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+      title="ログインすることで、個人設定やデータの同期が可能になります（任意）"
     >
       <LogIn className="h-4 w-4" />
-      <span>Googleでログイン</span>
+      <span>ログイン（任意）</span>
     </button>
   )
 }
