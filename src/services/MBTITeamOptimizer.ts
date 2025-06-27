@@ -271,7 +271,7 @@ export class MBTITeamOptimizer {
     mustExclude?: string[]
   ): any[][] {
     // Filter out excluded members
-    let candidateMembers = availableMembers.filter(member => 
+    const candidateMembers = availableMembers.filter(member => 
       !mustExclude?.includes(member.id)
     );
 
