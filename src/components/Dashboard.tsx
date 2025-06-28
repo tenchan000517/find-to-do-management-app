@@ -13,7 +13,8 @@ import RoleLineChart from '@/components/charts/RoleLineChart';
 import RolePieChart from '@/components/charts/RolePieChart';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, Target, Calendar, Handshake, Clock } from 'lucide-react';
+import { CheckCircle, Target, Calendar, Handshake, Clock, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
+import SmartDashboard from '@/components/SmartDashboard';
 // Removed unused imports
 
 // 型定義
@@ -101,6 +102,17 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   const [integratedSystemStatus, setIntegratedSystemStatus] = useState<any>(null);
   const [systemStatusLoading, setSystemStatusLoading] = useState(true);
   
+  // Smart Dashboard state
+  const [isSimpleMode, setIsSimpleMode] = useState(() => {
+    // Default to simple mode for new users
+    if (typeof window !== 'undefined') {
+      const savedMode = localStorage.getItem('dashboard-mode');
+      return savedMode !== null ? savedMode === 'simple' : true;
+    }
+    return true;
+  });
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  
   const [stats, setStats] = useState<DashboardStats>({
     projects: { total: 0, active: 0, completed: 0, onHold: 0 },
     tasks: { total: 0, completed: 0, inProgress: 0, overdue: 0 },
@@ -109,7 +121,6 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   });
 
   // 全データの再読み込み関数
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const refreshAllData = async () => {
     try {
       if (onDataRefresh) {
@@ -184,6 +195,17 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     fetchRecommendations();
     fetchIntegratedSystemStatus();
   }, []);
+
+  // Save dashboard mode preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dashboard-mode', isSimpleMode ? 'simple' : 'complex');
+    }
+  }, [isSimpleMode]);
+
+  const toggleDashboardMode = () => {
+    setIsSimpleMode(!isSimpleMode);
+  };
 
   // データから統計を計算
   useEffect(() => {
@@ -410,6 +432,57 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     <div className="min-h-screen bg-gray-50 py-4 md:py-8">
       <div className="mx-auto px-4 lg:px-8">
         {/* ヘッダー */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
+            <p className="text-gray-600 mt-1">
+              {isSimpleMode ? '今日すべきことを一目で確認' : '詳細な分析とインサイト'}
+            </p>
+          </div>
+          
+          {/* Dashboard Mode Toggle */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border">
+              <span className={`text-sm font-medium ${isSimpleMode ? 'text-blue-600' : 'text-gray-500'}`}>
+                シンプル
+              </span>
+              <button
+                onClick={toggleDashboardMode}
+                className="relative inline-flex items-center"
+              >
+                {isSimpleMode ? (
+                  <ToggleLeft className="w-8 h-8 text-blue-600" />
+                ) : (
+                  <ToggleRight className="w-8 h-8 text-blue-600" />
+                )}
+              </button>
+              <span className={`text-sm font-medium ${!isSimpleMode ? 'text-blue-600' : 'text-gray-500'}`}>
+                詳細
+              </span>
+            </div>
+            
+            {isSimpleMode && (
+              <div className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-sm font-medium">スマートモード</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Conditional Dashboard Rendering */}
+        {isSimpleMode ? (
+          // Smart Dashboard - Simple Mode
+          <div className="space-y-6">
+            <SmartDashboard 
+              showAdvancedFeatures={showAdvancedFeatures}
+              onAdvancedToggle={setShowAdvancedFeatures}
+            />
+          </div>
+        ) : (
+          // Traditional Complex Dashboard
+          <div>
+            {/* ヘッダー */}
 
 
 
@@ -1041,6 +1114,8 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
             </div>
           </div>
         </div>
+          </div>
+        )}
       </div>
     </div>
   );
