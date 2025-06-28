@@ -111,7 +111,6 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     }
     return true;
   });
-  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
   
   const [stats, setStats] = useState<DashboardStats>({
     projects: { total: 0, active: 0, completed: 0, onHold: 0 },
@@ -120,27 +119,6 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     appointments: { total: 0, scheduled: 0, completed: 0, thisWeek: 0 }
   });
 
-  // 全データの再読み込み関数
-  const refreshAllData = async () => {
-    try {
-      if (onDataRefresh) {
-        onDataRefresh();
-      } else {
-        await Promise.all([
-          refreshTasks(),
-          refreshProjects(),
-          refreshConnections(),
-          reloadAppointments(),
-          refreshEvents(),
-          fetchDiscordMetrics(),
-          fetchRecommendations(),
-          fetchIntegratedSystemStatus()
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to refresh dashboard data:', error);
-    }
-  };
 
   // Discord metricsを取得
   const fetchDiscordMetrics = async () => {
@@ -474,19 +452,12 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
         {isSimpleMode ? (
           // Smart Dashboard - Simple Mode
           <div className="space-y-6">
-            <SmartDashboard 
-              showAdvancedFeatures={showAdvancedFeatures}
-              onAdvancedToggle={setShowAdvancedFeatures}
-            />
+            <SmartDashboard />
           </div>
         ) : (
           // Traditional Complex Dashboard
           <div>
-            {/* ヘッダー */}
-
-
-
-        {/* 統計カード */}
+            {/* 統計カード */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <StatCard
             title="アクティブプロジェクト"
@@ -965,7 +936,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
               </div>
             ) : (
               <div className="space-y-3">
-                {recommendations.slice(0, 3).map((rec, index) => (
+                {recommendations.slice(0, 3).map((rec) => (
                   <div key={rec.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 mr-2">

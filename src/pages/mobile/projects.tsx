@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -7,7 +7,7 @@ import MobileLayout from '@/components/mobile/layout/MobileLayout';
 import SwipeableCard from '@/components/mobile/ui/SwipeableCard';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { 
   Plus, 
   Search, 
@@ -23,7 +23,7 @@ import {
 
 export default function MobileProjects() {
   const router = useRouter();
-  const { projects, loading: projectsLoading, createProject, updateProject } = useProjects();
+  const { projects, loading: projectsLoading, addProject, updateProject } = useProjects();
   const { tasks } = useTasks();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'on_hold'>('all');
@@ -35,9 +35,9 @@ export default function MobileProjects() {
     const projectTasks = tasks?.filter(task => task.projectId === projectId) || [];
     return {
       total: projectTasks.length,
-      completed: projectTasks.filter(task => task.status === 'COMPLETED').length,
-      inProgress: projectTasks.filter(task => task.status === 'IN_PROGRESS').length,
-      pending: projectTasks.filter(task => task.status === 'PENDING').length
+      completed: projectTasks.filter(task => task.status === 'COMPLETE').length,
+      inProgress: projectTasks.filter(task => task.status === 'DO').length,
+      pending: projectTasks.filter(task => task.status === 'IDEA').length
     };
   };
 
@@ -52,11 +52,14 @@ export default function MobileProjects() {
     if (!newProjectTitle.trim()) return;
     
     try {
-      await createProject({
+      await addProject({
         name: newProjectTitle,
         description: '',
-        status: 'ACTIVE',
-        priority: 'MEDIUM'
+        status: 'active',
+        priority: 'B',
+        progress: 0,
+        startDate: new Date().toISOString(),
+        teamMembers: []
       });
       setNewProjectTitle('');
       setShowCreateForm(false);
@@ -68,8 +71,7 @@ export default function MobileProjects() {
   const handleProjectComplete = async (projectId: string) => {
     try {
       await updateProject(projectId, { 
-        status: 'COMPLETED',
-        completedAt: new Date()
+        status: 'completed'
       });
     } catch (error) {
       console.error('プロジェクト完了エラー:', error);
@@ -79,7 +81,7 @@ export default function MobileProjects() {
   const handleProjectArchive = async (projectId: string) => {
     try {
       await updateProject(projectId, { 
-        status: 'ON_HOLD'
+        status: 'on_hold'
       });
     } catch (error) {
       console.error('プロジェクトアーカイブエラー:', error);
@@ -157,19 +159,19 @@ export default function MobileProjects() {
         <div className="grid grid-cols-3 gap-2">
           <Card className="p-3 text-center">
             <p className="text-lg font-bold text-blue-900">
-              {filteredProjects.filter(p => p.status === 'ACTIVE').length}
+              {filteredProjects.filter(p => p.status === 'active').length}
             </p>
             <p className="text-xs text-blue-700">進行中</p>
           </Card>
           <Card className="p-3 text-center">
             <p className="text-lg font-bold text-green-900">
-              {filteredProjects.filter(p => p.status === 'COMPLETED').length}
+              {filteredProjects.filter(p => p.status === 'completed').length}
             </p>
             <p className="text-xs text-green-700">完了</p>
           </Card>
           <Card className="p-3 text-center">
             <p className="text-lg font-bold text-gray-900">
-              {filteredProjects.filter(p => p.status === 'ON_HOLD').length}
+              {filteredProjects.filter(p => p.status === 'on_hold').length}
             </p>
             <p className="text-xs text-gray-700">保留</p>
           </Card>
@@ -275,7 +277,7 @@ export default function MobileProjects() {
                         <div className="flex items-center space-x-2 mb-1">
                           {getStatusIcon(project.status)}
                           <h3 className={`font-medium ${
-                            project.status === 'COMPLETED' ? 'line-through text-gray-500' : ''
+                            project.status === 'completed' ? 'line-through text-gray-500' : ''
                           }`}>
                             {project.name}
                           </h3>
@@ -325,11 +327,11 @@ export default function MobileProjects() {
                         )}
                       </div>
                       
-                      {project.dueDate && (
+                      {project.endDate && (
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-3 h-3" />
                           <span>
-                            {new Date(project.dueDate).toLocaleDateString('ja-JP')}
+                            {new Date(project.endDate).toLocaleDateString('ja-JP')}
                           </span>
                         </div>
                       )}

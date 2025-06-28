@@ -109,8 +109,8 @@ export default function MobileDashboard() {
               <div key={task.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                 <span className="text-sm truncate">{task.title}</span>
                 <span className={`text-xs px-2 py-1 rounded ${
-                  task.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                  task.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
+                  task.status === 'COMPLETE' ? 'bg-green-100 text-green-800' :
+                  task.status === 'DO' ? 'bg-blue-100 text-blue-800' :
                   'bg-gray-100 text-gray-800'
                 }`}>
                   {task.status}
