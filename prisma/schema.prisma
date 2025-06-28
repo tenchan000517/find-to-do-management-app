@@ -98,6 +98,9 @@ model connections {
   phone        String?
   assignee     users?          @relation("ConnectionAssignee", fields: [assignedTo], references: [id])
   creator      users?          @relation("ConnectionCreator", fields: [createdBy], references: [id])
+  
+  // Phase 2: LTV Analysis Relations
+  ltv_analysis customer_ltv_analysis[]
 
   @@index([type], map: "idx_connections_type")
   @@index([createdBy], map: "idx_connections_created_by")
@@ -124,6 +127,9 @@ model knowledge_items {
   createdBy          String?
   assignee           users?             @relation("KnowledgeAssignee", fields: [assignedTo], references: [id])
   creator            users?             @relation("KnowledgeCreator", fields: [createdBy], references: [id])
+  
+  // Phase 2: Knowledge Automation Relations
+  automation_history knowledge_automation_history[]
 
   @@index([category], map: "idx_knowledge_category")
   @@index([createdAt], map: "idx_knowledge_created")
@@ -184,6 +190,11 @@ model projects {
   resource_allocations  project_resource_allocation[]
   team_analyses         mbti_team_analysis[]
   optimization_history  resource_optimization_history[]
+  
+  // Phase 2: Financial Management & LTV Analysis Relations
+  financial_details     project_financial_details[]
+  template_source       project_templates[]
+  revenue_tracking      project_revenue_tracking[]
 
   @@index([status], map: "idx_projects_status")
   @@index([createdBy], map: "idx_projects_created_by")
@@ -237,6 +248,9 @@ model tasks {
   creator             users?               @relation("TaskCreator", fields: [createdBy], references: [id])
   projects            projects?            @relation(fields: [projectId], references: [id])
   users               users                @relation("TaskUser", fields: [userId], references: [id])
+  
+  // Phase 2: Knowledge Automation Relations
+  knowledge_automation knowledge_automation_history[]
 
   @@index([dueDate], map: "idx_tasks_due")
   @@index([userId, isArchived, status], map: "idx_tasks_filter")
@@ -297,6 +311,12 @@ model users {
   // Phase 1: Student Resource Management Relations
   student_resource      student_resources?
   created_optimizations resource_optimization_history[] @relation("OptimizationCreator")
+  
+  // Phase 2: Financial Management & LTV Analysis Relations
+  created_financial_details    project_financial_details[]    @relation("FinancialCreator")
+  created_ltv_analysis         customer_ltv_analysis[]        @relation("LTVAnalysisCreator")
+  created_templates            project_templates[]            @relation("TemplateCreator")
+  created_knowledge_automation knowledge_automation_history[] @relation("KnowledgeAutomationCreator")
 }
 
 model discord_metrics {
@@ -956,4 +976,230 @@ enum UserRole {
   GUEST
   STUDENT
   ENTERPRISE
+}
+
+// Phase 2: Financial Management & LTV Analysis Models
+
+model project_financial_details {
+  id                              String    @id @default(cuid())
+  projectId                       String    @map("project_id")
+  
+  // Basic Contract Information
+  baseContractValue               Decimal   @default(0) @map("base_contract_value") @db.Decimal(12,2)
+  contractType                    String    @default("FIXED") @map("contract_type")
+  paymentSchedule                 Json      @default("{}") @map("payment_schedule")
+  
+  // Revenue Prediction
+  additionalWorkProbability       Float     @default(0.3) @map("additional_work_probability")
+  additionalWorkExpectedValue     Decimal   @default(0) @map("additional_work_expected_value") @db.Decimal(12,2)
+  maintenanceContractProbability  Float     @default(0.5) @map("maintenance_contract_probability")
+  maintenanceAnnualValue          Decimal   @default(0) @map("maintenance_annual_value") @db.Decimal(12,2)
+  referralProbability             Float     @default(0.2) @map("referral_probability")
+  referralExpectedValue           Decimal   @default(0) @map("referral_expected_value") @db.Decimal(12,2)
+  
+  // Cost Details
+  directLaborCost                 Decimal   @default(0) @map("direct_labor_cost") @db.Decimal(12,2)
+  indirectLaborCost               Decimal   @default(0) @map("indirect_labor_cost") @db.Decimal(12,2)
+  externalContractorCost          Decimal   @default(0) @map("external_contractor_cost") @db.Decimal(12,2)
+  toolLicenseCost                 Decimal   @default(0) @map("tool_license_cost") @db.Decimal(12,2)
+  infrastructureCost              Decimal   @default(0) @map("infrastructure_cost") @db.Decimal(12,2)
+  
+  // Risk & Quality Management
+  riskBufferPercentage            Float     @default(0.15) @map("risk_buffer_percentage")
+  qualityAssuranceCost            Decimal   @default(0) @map("quality_assurance_cost") @db.Decimal(12,2)
+  contingencyReserve              Decimal   @default(0) @map("contingency_reserve") @db.Decimal(12,2)
+  
+  // Prediction Accuracy & Metadata
+  confidenceLevel                 Float     @default(0.8) @map("confidence_level")
+  predictionModelVersion          String    @default("v1.0") @map("prediction_model_version")
+  lastUpdatedAt                   DateTime  @default(now()) @map("last_updated_at")
+  createdBy                       String?   @map("created_by")
+  
+  createdAt                       DateTime  @default(now()) @map("created_at")
+  updatedAt                       DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                         projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator                         users?    @relation("FinancialCreator", fields: [createdBy], references: [id])
+  
+  @@index([projectId], map: "idx_project_financial_project_id")
+  @@index([baseContractValue], map: "idx_project_financial_contract_value")
+  @@map("project_financial_details")
+}
+
+model customer_ltv_analysis {
+  id                        String    @id @default(cuid())
+  connectionId              String    @map("connection_id")
+  
+  // LTV Components
+  initialProjectValue       Decimal   @default(0) @map("initial_project_value") @db.Decimal(12,2)
+  continuationProbability   Float     @default(0.7) @map("continuation_probability")
+  averageProjectsPerYear    Float     @default(1.5) @map("average_projects_per_year")
+  priceGrowthRate           Float     @default(0.1) @map("price_growth_rate")
+  relationshipDurationYears Int       @default(5) @map("relationship_duration_years")
+  
+  // Referral Value
+  referralProbability       Float     @default(0.3) @map("referral_probability")
+  referralAverageValue      Decimal   @default(0) @map("referral_average_value") @db.Decimal(12,2)
+  referralMultiplier        Float     @default(1.0) @map("referral_multiplier")
+  
+  // Calculation Results
+  totalLtv                  Decimal   @default(0) @map("total_ltv") @db.Decimal(12,2)
+  discountedLtv             Decimal   @default(0) @map("discounted_ltv") @db.Decimal(12,2)
+  discountRate              Float     @default(0.1) @map("discount_rate")
+  
+  // Analysis Results
+  riskFactors               Json      @default("[]") @map("risk_factors")
+  opportunities             Json      @default("[]") @map("opportunities")
+  recommendedActions        Json      @default("[]") @map("recommended_actions")
+  confidenceScore           Float     @default(0.8) @map("confidence_score")
+  
+  // Metadata
+  analysisDate              DateTime  @default(now()) @map("analysis_date")
+  predictionModelVersion    String    @default("v1.0") @map("prediction_model_version")
+  createdBy                 String?   @map("created_by")
+  
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  connection                connections @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  creator                   users?      @relation("LTVAnalysisCreator", fields: [createdBy], references: [id])
+  
+  @@index([connectionId], map: "idx_customer_ltv_connection_id")
+  @@index([totalLtv], map: "idx_customer_ltv_total")
+  @@map("customer_ltv_analysis")
+}
+
+model project_templates {
+  id                      String    @id @default(cuid())
+  
+  // Template Basic Information
+  name                    String    @map("name")
+  description             String?   @map("description")
+  templateType            String    @map("template_type") // 'EVENT', 'DEVELOPMENT', 'CUSTOM'
+  complexityLevel         Int       @default(1) @map("complexity_level") // 1-10
+  
+  // Template Structure
+  phases                  Json      @default("[]") @map("phases") // Phase details
+  budgetBreakdown         Json      @default("{}") @map("budget_breakdown")
+  riskFactors             Json      @default("[]") @map("risk_factors")
+  successMetrics          Json      @default("[]") @map("success_metrics")
+  resources               Json      @default("{}") @map("resources")
+  
+  // Application Conditions
+  targetScaleMin          Int       @default(0) @map("target_scale_min")
+  targetScaleMax          Int       @default(999999) @map("target_scale_max")
+  durationWeeksMin        Int       @default(1) @map("duration_weeks_min")
+  durationWeeksMax        Int       @default(52) @map("duration_weeks_max")
+  requiredTechnologies    Json      @default("[]") @map("required_technologies")
+  
+  // Usage & Evaluation
+  usageCount              Int       @default(0) @map("usage_count")
+  successRate             Float     @default(0.8) @map("success_rate")
+  averageSatisfaction     Float     @default(4.0) @map("average_satisfaction")
+  lastUsedAt              DateTime? @map("last_used_at")
+  
+  // Auto Generation Information
+  autoGenerated           Boolean   @default(false) @map("auto_generated")
+  sourceProjectId         String?   @map("source_project_id")
+  aiConfidence            Float     @default(0.8) @map("ai_confidence")
+  generationPrompt        String?   @map("generation_prompt")
+  
+  // Metadata
+  createdBy               String?   @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  sourceProject           projects? @relation(fields: [sourceProjectId], references: [id], onDelete: SetNull)
+  creator                 users?    @relation("TemplateCreator", fields: [createdBy], references: [id])
+  
+  @@index([templateType], map: "idx_project_templates_type")
+  @@index([complexityLevel], map: "idx_project_templates_complexity")
+  @@map("project_templates")
+}
+
+model knowledge_automation_history {
+  id                        String    @id @default(cuid())
+  
+  // Source Task Information
+  taskId                    String    @map("task_id")
+  taskTitle                 String?   @map("task_title")
+  completionData            Json      @default("{}") @map("completion_data")
+  
+  // Automation Decision Result
+  shouldGenerateKnowledge   Boolean   @default(false) @map("should_generate_knowledge")
+  knowledgeTypes            Json      @default("[]") @map("knowledge_types")
+  priorityLevel             String    @default("LOW") @map("priority_level")
+  estimatedValue            Int       @default(1) @map("estimated_value") // 1-10
+  
+  // Generated Knowledge
+  generatedKnowledgeId      String?   @map("generated_knowledge_id")
+  knowledgeTitle            String?   @map("knowledge_title")
+  knowledgeCategory         String?   @map("knowledge_category")
+  knowledgeContent          String?   @map("knowledge_content")
+  knowledgeTags             Json      @default("[]") @map("knowledge_tags")
+  
+  // Quality Evaluation
+  initialQualityScore       Float     @default(5.0) @map("initial_quality_score")
+  aiConfidence              Float     @default(0.8) @map("ai_confidence")
+  processingTimeMs          Int       @default(0) @map("processing_time_ms")
+  
+  // Usage & Improvement History
+  viewCount                 Int       @default(0) @map("view_count")
+  applicationCount          Int       @default(0) @map("application_count")
+  feedbackCount             Int       @default(0) @map("feedback_count")
+  improvementSuggestions    Json      @default("[]") @map("improvement_suggestions")
+  
+  // Metadata
+  automationDate            DateTime  @default(now()) @map("automation_date")
+  createdBy                 String?   @map("created_by")
+  
+  // Relations
+  task                      tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  generatedKnowledge        knowledge_items? @relation(fields: [generatedKnowledgeId], references: [id], onDelete: SetNull)
+  creator                   users?    @relation("KnowledgeAutomationCreator", fields: [createdBy], references: [id])
+  
+  @@index([taskId], map: "idx_knowledge_automation_task_id")
+  @@index([generatedKnowledgeId], map: "idx_knowledge_automation_generated_id")
+  @@map("knowledge_automation_history")
+}
+
+model project_revenue_tracking {
+  id                        String    @id @default(cuid())
+  projectId                 String    @map("project_id")
+  
+  // Predicted vs Actual Values
+  predictedRevenue          Decimal   @default(0) @map("predicted_revenue") @db.Decimal(12,2)
+  actualRevenue             Decimal   @default(0) @map("actual_revenue") @db.Decimal(12,2)
+  revenueVariance           Decimal   @default(0) @map("revenue_variance") @db.Decimal(12,2)
+  variancePercentage        Float     @default(0) @map("variance_percentage")
+  
+  // Detailed Revenue Breakdown
+  baseContractActual        Decimal   @default(0) @map("base_contract_actual") @db.Decimal(12,2)
+  additionalWorkActual      Decimal   @default(0) @map("additional_work_actual") @db.Decimal(12,2)
+  maintenanceRevenueActual  Decimal   @default(0) @map("maintenance_revenue_actual") @db.Decimal(12,2)
+  referralRevenueActual     Decimal   @default(0) @map("referral_revenue_actual") @db.Decimal(12,2)
+  
+  // Prediction Accuracy Evaluation
+  predictionAccuracy        Float     @default(0) @map("prediction_accuracy")
+  predictionDate            DateTime? @map("prediction_date")
+  actualCompletionDate      DateTime? @map("actual_completion_date")
+  
+  // Learning Data
+  keySuccessFactors         Json      @default("[]") @map("key_success_factors")
+  unexpectedEvents          Json      @default("[]") @map("unexpected_events")
+  lessonsLearned            String?   @map("lessons_learned")
+  
+  // Metadata
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                   projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId], map: "idx_revenue_tracking_project_id")
+  @@index([predictionAccuracy], map: "idx_revenue_tracking_accuracy")
+  @@map("project_revenue_tracking")
 }
