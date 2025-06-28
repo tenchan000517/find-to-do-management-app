@@ -5,8 +5,8 @@ import { useSession } from 'next-auth/react';
 import MobileLayout from '@/components/mobile/layout/MobileLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
-// import { Switch } from '@/components/ui/switch'; // コンポーネントが存在しないためコメントアウト
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/Switch';
+import { Select, SelectOption } from '@/components/ui/Select';
 import { 
   ArrowLeft,
   User,
@@ -96,7 +96,13 @@ export default function MobileSettings() {
     const savedSettings = localStorage.getItem('mobileSettings');
     if (savedSettings) {
       try {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        setSettings(parsed);
+        
+        // Apply dark mode immediately
+        if (parsed.display.darkMode) {
+          document.documentElement.classList.add('dark');
+        }
       } catch (error) {
         console.error('設定の読み込みエラー:', error);
       }
@@ -147,10 +153,37 @@ export default function MobileSettings() {
       large: '18px'
     }[settings.display.fontSize];
 
+    // Update CSS variables for theming
+    const root = document.documentElement;
+    if (settings.display.darkMode) {
+      root.style.setProperty('--mobile-bg-primary', '#1a1a1a');
+      root.style.setProperty('--mobile-bg-secondary', '#2d2d2d');
+      root.style.setProperty('--mobile-text-primary', '#ffffff');
+      root.style.setProperty('--mobile-text-secondary', '#cccccc');
+      root.style.setProperty('--mobile-border-color', '#404040');
+    } else {
+      root.style.setProperty('--mobile-bg-primary', '#ffffff');
+      root.style.setProperty('--mobile-bg-secondary', '#f8f9fa');
+      root.style.setProperty('--mobile-text-primary', '#1a1a1a');
+      root.style.setProperty('--mobile-text-secondary', '#6b7280');
+      root.style.setProperty('--mobile-border-color', '#e5e7eb');
+    }
+
     // Notify other components of settings changes
     window.dispatchEvent(new CustomEvent('mobileSettingsChanged', { 
       detail: settings 
     }));
+  };
+
+  const testVibration = () => {
+    if (!settings.notifications.vibration) return;
+    
+    if (navigator.vibrate) {
+      // テスト用のバイブレーションパターン
+      navigator.vibrate([100, 50, 100, 50, 200]);
+    } else {
+      console.log('このデバイスではバイブレーションはサポートされていません');
+    }
   };
 
   const handleInstallPWA = () => {
@@ -192,7 +225,7 @@ export default function MobileSettings() {
       items: [
         {
           label: '通知を有効にする',
-          type: 'switch',
+          type: 'switch' as const,
           value: settings.notifications.enabled,
           onChange: (enabled: boolean) => updateSettings({
             notifications: { ...settings.notifications, enabled }
@@ -232,7 +265,11 @@ export default function MobileSettings() {
           onChange: (vibration: boolean) => updateSettings({
             notifications: { ...settings.notifications, vibration }
           }),
-          disabled: !settings.notifications.enabled
+          disabled: !settings.notifications.enabled,
+          action: settings.notifications.vibration ? {
+            label: 'テスト',
+            onClick: testVibration
+          } : undefined
         }
       ]
     },
@@ -419,34 +456,31 @@ export default function MobileSettings() {
             <div className="space-y-4">
               {section.items.map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
-                  <label className={`text-sm ${item.disabled ? 'text-gray-400' : ''}`}>
+                  <label className={`text-sm ${'disabled' in item && item.disabled ? 'text-gray-400' : ''}`}>
                     {item.label}
                   </label>
                   
                   {item.type === 'switch' && (
                     <Switch
                       checked={item.value as boolean}
-                      onCheckedChange={item.onChange}
-                      disabled={item.disabled}
+                      onCheckedChange={item.onChange as (checked: boolean) => void}
+                      disabled={'disabled' in item ? item.disabled : false}
                     />
                   )}
                   
                   {item.type === 'select' && (
                     <Select
                       value={item.value as string}
-                      onValueChange={item.onChange}
-                      disabled={item.disabled}
+                      onChange={(e) => (item.onChange as (value: string) => void)(e.target.value)}
+                      disabled={'disabled' in item ? item.disabled : false}
+                      className="w-32"
+                      fullWidth={false}
                     >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {item.options?.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                      {item.options?.map((option) => (
+                        <SelectOption key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectOption>
+                      ))}
                     </Select>
                   )}
                 </div>

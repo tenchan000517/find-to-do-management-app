@@ -20,6 +20,17 @@ export class MobileGestureHandler {
   private hammer: HammerManager;
   private actions: Map<string, GestureAction> = new Map();
   private config: GestureConfig;
+  private dragState: {
+    isDragging: boolean;
+    element: HTMLElement | null;
+    startPosition: { x: number; y: number };
+    clone: HTMLElement | null;
+  } = {
+    isDragging: false,
+    element: null,
+    startPosition: { x: 0, y: 0 },
+    clone: null
+  };
 
   constructor(element: HTMLElement, config?: Partial<GestureConfig>) {
     this.config = {
@@ -58,6 +69,11 @@ export class MobileGestureHandler {
       threshold: this.config.pinchThreshold
     });
 
+    // パン設定（ドラッグ&ドロップ用）
+    this.hammer.get('pan').set({
+      direction: Hammer.DIRECTION_ALL
+    });
+
     // イベントリスナー登録
     this.hammer.on('swiperight', this.handleSwipeRight.bind(this));
     this.hammer.on('swipeleft', this.handleSwipeLeft.bind(this));
@@ -67,6 +83,9 @@ export class MobileGestureHandler {
     this.hammer.on('tap', this.handleTap.bind(this));
     this.hammer.on('doubletap', this.handleDoubleTap.bind(this));
     this.hammer.on('pinch', this.handlePinch.bind(this));
+    this.hammer.on('panstart', this.handlePanStart.bind(this));
+    this.hammer.on('panmove', this.handlePanMove.bind(this));
+    this.hammer.on('panend', this.handlePanEnd.bind(this));
   }
 
   private setupDefaultActions(): void {
@@ -193,6 +212,173 @@ export class MobileGestureHandler {
       await this.executeGesture('pinch-in', event);
     } else {
       await this.executeGesture('pinch-out', event);
+    }
+    
+    // ピンチズーム機能：タスク詳細のフォントサイズ調整
+    this.handlePinchZoom(event);
+  }
+
+  private handlePinchZoom(event: HammerInput): void {
+    const target = event.target as HTMLElement;
+    const taskCard = target.closest('[data-task-id]') as HTMLElement;
+    
+    if (!taskCard) return;
+
+    // 現在のフォントサイズを取得
+    const currentFontSize = window.getComputedStyle(taskCard).fontSize;
+    const currentSize = parseFloat(currentFontSize);
+    
+    // スケールに基づいてフォントサイズを調整
+    const newSize = Math.max(10, Math.min(24, currentSize * event.scale));
+    
+    // すべてのテキスト要素に適用
+    const textElements = taskCard.querySelectorAll('h3, p, span');
+    textElements.forEach(element => {
+      (element as HTMLElement).style.fontSize = `${newSize}px`;
+    });
+
+    // ズーム状態をローカルストレージに保存
+    const taskId = taskCard.getAttribute('data-task-id');
+    if (taskId) {
+      localStorage.setItem(`task-zoom-${taskId}`, newSize.toString());
+    }
+  }
+
+  private handlePanStart(event: HammerInput): void {
+    const target = event.target as HTMLElement;
+    const taskCard = target.closest('[data-task-id]') as HTMLElement;
+    
+    if (!taskCard) return;
+
+    this.dragState.isDragging = true;
+    this.dragState.element = taskCard;
+    this.dragState.startPosition = {
+      x: event.center.x,
+      y: event.center.y
+    };
+
+    // ドラッグ開始の視覚フィードバック
+    taskCard.style.transform = 'scale(1.05)';
+    taskCard.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+    taskCard.style.zIndex = '1000';
+    
+    // バイブレーション
+    if (navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+
+    // ドラッグ開始イベントをディスパッチ
+    const customEvent = new CustomEvent('taskDragStart', {
+      detail: { taskId: taskCard.getAttribute('data-task-id') }
+    });
+    window.dispatchEvent(customEvent);
+  }
+
+  private handlePanMove(event: HammerInput): void {
+    if (!this.dragState.isDragging || !this.dragState.element) return;
+
+    const deltaX = event.center.x - this.dragState.startPosition.x;
+    const deltaY = event.center.y - this.dragState.startPosition.y;
+
+    // 要素を移動
+    this.dragState.element.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.05)`;
+
+    // ドロップゾーンの検出
+    const dropZone = this.getDropZoneAt(event.center.x, event.center.y);
+    if (dropZone) {
+      dropZone.classList.add('drop-zone-active');
+    }
+
+    // 他のドロップゾーンから active クラスを削除
+    document.querySelectorAll('.drop-zone-active').forEach(zone => {
+      if (zone !== dropZone) {
+        zone.classList.remove('drop-zone-active');
+      }
+    });
+  }
+
+  private handlePanEnd(event: HammerInput): void {
+    if (!this.dragState.isDragging || !this.dragState.element) return;
+
+    const dropZone = this.getDropZoneAt(event.center.x, event.center.y);
+    const taskId = this.dragState.element.getAttribute('data-task-id');
+
+    if (dropZone && taskId) {
+      // ドロップゾーンが見つかった場合
+      const newStatus = dropZone.getAttribute('data-status');
+      if (newStatus) {
+        this.updateTaskStatus(taskId, newStatus);
+      }
+    }
+
+    // ドラッグ状態をリセット
+    this.resetDragState();
+
+    // すべてのドロップゾーンから active クラスを削除
+    document.querySelectorAll('.drop-zone-active').forEach(zone => {
+      zone.classList.remove('drop-zone-active');
+    });
+
+    // ドラッグ終了イベントをディスパッチ
+    const customEvent = new CustomEvent('taskDragEnd', {
+      detail: { taskId, dropZone: dropZone?.getAttribute('data-status') }
+    });
+    window.dispatchEvent(customEvent);
+  }
+
+  private getDropZoneAt(x: number, y: number): HTMLElement | null {
+    // 一時的に現在のドラッグ要素を隠す
+    const currentElement = this.dragState.element;
+    if (currentElement) {
+      currentElement.style.pointerEvents = 'none';
+    }
+
+    const elementBelow = document.elementFromPoint(x, y);
+    const dropZone = elementBelow?.closest('[data-drop-zone]') as HTMLElement;
+
+    // ドラッグ要素の pointerEvents を復元
+    if (currentElement) {
+      currentElement.style.pointerEvents = '';
+    }
+
+    return dropZone;
+  }
+
+  private resetDragState(): void {
+    if (this.dragState.element) {
+      this.dragState.element.style.transform = '';
+      this.dragState.element.style.boxShadow = '';
+      this.dragState.element.style.zIndex = '';
+    }
+
+    this.dragState.isDragging = false;
+    this.dragState.element = null;
+    this.dragState.startPosition = { x: 0, y: 0 };
+  }
+
+  private async updateTaskStatus(taskId: string, newStatus: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update task status');
+      }
+
+      // 成功のバイブレーション
+      if (navigator.vibrate) {
+        navigator.vibrate([50, 50, 50]);
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      
+      // エラーのバイブレーション
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
+      }
     }
   }
 

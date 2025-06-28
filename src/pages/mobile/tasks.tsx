@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useTasks } from '@/hooks/useTasks';
 import MobileLayout from '@/components/mobile/layout/MobileLayout';
 import SwipeableCard from '@/components/mobile/ui/SwipeableCard';
+import VirtualizedList from '@/components/mobile/ui/VirtualizedList';
+import { useMemoryOptimization } from '@/hooks/useMemoryOptimization';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { 
   Plus, 
   Filter, 
@@ -20,28 +22,52 @@ import {
 
 export default function MobileTasks() {
   const router = useRouter();
-  const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
+  const { tasks, loading, addTask, updateTask, deleteTask } = useTasks();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
+  const [filter, setFilter] = useState<'all' | 'IDEA' | 'PLAN' | 'DO' | 'CHECK' | 'COMPLETE'>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [useVirtualization, setUseVirtualization] = useState(false);
+  
+  // メモリ最適化
+  const { getMemoryUsage, performMemoryCleanup } = useMemoryOptimization();
 
   // フィルタリングされたタスク
   const filteredTasks = tasks?.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === 'all' || task.status.toLowerCase() === filter.toLowerCase();
+    const matchesFilter = filter === 'all' || task.status === filter;
     return matchesSearch && matchesFilter;
   }) || [];
+
+  // 仮想化の必要性を判定（100個以上のタスクで有効化）
+  useEffect(() => {
+    setUseVirtualization(filteredTasks.length > 100);
+  }, [filteredTasks.length]);
+
+  // メモリ使用量監視
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const memory = getMemoryUsage();
+      if (memory && memory.usedJSHeapSize > 100 * 1024 * 1024) { // 100MB超
+        console.log('メモリ使用量が高いため最適化を実行');
+        performMemoryCleanup();
+      }
+    }, 30000); // 30秒ごと
+
+    return () => clearInterval(interval);
+  }, [getMemoryUsage, performMemoryCleanup]);
 
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim()) return;
     
     try {
-      await createTask({
+      await addTask({
         title: newTaskTitle,
         description: '',
-        priority: 'MEDIUM',
-        status: 'PENDING'
+        priority: 'B',
+        status: 'IDEA',
+        userId: 'default-user',
+        isArchived: false
       });
       setNewTaskTitle('');
       setShowCreateForm(false);
@@ -53,8 +79,7 @@ export default function MobileTasks() {
   const handleTaskComplete = async (taskId: string) => {
     try {
       await updateTask(taskId, { 
-        status: 'COMPLETED',
-        completedAt: new Date()
+        status: 'COMPLETE'
       });
     } catch (error) {
       console.error('タスク完了エラー:', error);
@@ -66,8 +91,8 @@ export default function MobileTasks() {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       await updateTask(taskId, { 
-        dueDate: tomorrow,
-        status: 'PENDING'
+        dueDate: tomorrow.toISOString(),
+        status: 'IDEA'
       });
     } catch (error) {
       console.error('タスク延期エラー:', error);
@@ -139,19 +164,19 @@ export default function MobileTasks() {
         <div className="grid grid-cols-3 gap-2">
           <Card className="p-3 text-center">
             <p className="text-lg font-bold text-blue-900">
-              {filteredTasks.filter(t => t.status === 'PENDING').length}
+              {filteredTasks.filter(t => t.status === 'IDEA').length}
             </p>
-            <p className="text-xs text-blue-700">未着手</p>
+            <p className="text-xs text-blue-700">アイデア</p>
           </Card>
           <Card className="p-3 text-center">
             <p className="text-lg font-bold text-orange-900">
-              {filteredTasks.filter(t => t.status === 'IN_PROGRESS').length}
+              {filteredTasks.filter(t => t.status === 'DO').length}
             </p>
-            <p className="text-xs text-orange-700">進行中</p>
+            <p className="text-xs text-orange-700">実行中</p>
           </Card>
           <Card className="p-3 text-center">
             <p className="text-lg font-bold text-green-900">
-              {filteredTasks.filter(t => t.status === 'COMPLETED').length}
+              {filteredTasks.filter(t => t.status === 'COMPLETE').length}
             </p>
             <p className="text-xs text-green-700">完了</p>
           </Card>
@@ -172,14 +197,14 @@ export default function MobileTasks() {
           <div className="flex space-x-2 overflow-x-auto pb-2">
             {[
               { value: 'all', label: '全て' },
-              { value: 'pending', label: '未着手' },
-              { value: 'in_progress', label: '進行中' },
-              { value: 'completed', label: '完了' }
+              { value: 'IDEA', label: 'アイデア' },
+              { value: 'DO', label: '実行中' },
+              { value: 'COMPLETE', label: '完了' }
             ].map(({ value, label }) => (
               <Button
                 key={value}
                 onClick={() => setFilter(value as any)}
-                variant={filter === value ? "default" : "outline"}
+                variant={filter === value ? "primary" : "secondary"}
                 size="sm"
                 className="whitespace-nowrap"
               >
@@ -223,6 +248,30 @@ export default function MobileTasks() {
           </Card>
         )}
 
+        {/* Drag & Drop Zones */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {[
+            { status: 'IDEA', label: 'アイデア', color: 'bg-gray-100 border-gray-300' },
+            { status: 'PLAN', label: '計画', color: 'bg-blue-100 border-blue-300' },
+            { status: 'DO', label: '実行', color: 'bg-orange-100 border-orange-300' },
+            { status: 'COMPLETE', label: '完了', color: 'bg-green-100 border-green-300' }
+          ].map(({ status, label, color }) => (
+            <div
+              key={status}
+              data-drop-zone="true"
+              data-status={status}
+              className={`
+                p-3 rounded-lg border-2 border-dashed text-center text-xs
+                transition-all duration-200
+                ${color}
+                drop-zone-active:scale-105 drop-zone-active:shadow-lg
+              `}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+
         {/* Task List */}
         <div className="space-y-3">
           {filteredTasks.length === 0 ? (
@@ -237,10 +286,69 @@ export default function MobileTasks() {
                 }
               </p>
             </Card>
+          ) : useVirtualization ? (
+            // 仮想化リスト（大量データ対応）
+            <VirtualizedList
+              items={filteredTasks}
+              itemHeight={120} // タスクカードの高さ
+              containerHeight={400} // コンテナの高さ
+              renderItem={(task, index) => (
+                <SwipeableCard
+                  key={task.id}
+                  taskId={task.id}
+                  onSwipeRight={() => handleTaskComplete(task.id)}
+                  onSwipeLeft={() => handleTaskPostpone(task.id)}
+                  onSwipeUp={() => router.push(`/mobile/tasks/${task.id}`)}
+                  onSwipeDown={() => handleTaskDelete(task.id)}
+                  className={`p-4 m-2 ${getPriorityColor(task.priority)}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        {getStatusIcon(task.status)}
+                        <h3 className={`font-medium ${
+                          task.status === 'COMPLETE' ? 'line-through text-gray-500' : ''
+                        }`}>
+                          {task.title}
+                        </h3>
+                      </div>
+                      
+                      {task.description && (
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {task.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                        <span className={`px-2 py-1 rounded ${
+                          task.priority === 'A' ? 'bg-red-100 text-red-800' :
+                          task.priority === 'B' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {task.priority}
+                        </span>
+                        
+                        {task.dueDate && (
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                              {new Date(task.dueDate).toLocaleDateString('ja-JP')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </SwipeableCard>
+              )}
+              className="border rounded-lg"
+            />
           ) : (
+            // 通常リスト（少量データ）
             filteredTasks.map(task => (
               <SwipeableCard
                 key={task.id}
+                taskId={task.id}
                 onSwipeRight={() => handleTaskComplete(task.id)}
                 onSwipeLeft={() => handleTaskPostpone(task.id)}
                 onSwipeUp={() => router.push(`/mobile/tasks/${task.id}`)}
@@ -252,7 +360,7 @@ export default function MobileTasks() {
                     <div className="flex items-center space-x-2 mb-2">
                       {getStatusIcon(task.status)}
                       <h3 className={`font-medium ${
-                        task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''
+                        task.status === 'COMPLETE' ? 'line-through text-gray-500' : ''
                       }`}>
                         {task.title}
                       </h3>
@@ -266,8 +374,8 @@ export default function MobileTasks() {
                     
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       <span className={`px-2 py-1 rounded ${
-                        task.priority === 'HIGH' ? 'bg-red-100 text-red-800' :
-                        task.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                        task.priority === 'A' ? 'bg-red-100 text-red-800' :
+                        task.priority === 'B' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800'
                       }`}>
                         {task.priority}
@@ -297,6 +405,10 @@ export default function MobileTasks() {
             <p>• 左スワイプ → 明日に延期</p>
             <p>• 上スワイプ → 詳細表示</p>
             <p>• 下スワイプ → 削除</p>
+            <p>• ドラッグ&ドロップ → ステータス変更</p>
+            <p>• ピンチ → フォントサイズ調整</p>
+            <p>• 長押し → 音声入力（準備中）</p>
+            <p>• ダブルタップ → お気に入り切替</p>
           </div>
         </Card>
       </div>
