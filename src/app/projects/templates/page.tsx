@@ -6,9 +6,9 @@
 import { useState } from 'react';
 import { useProjectTemplates } from '@/hooks/useProjectTemplates';
 import TemplateSelector from './components/TemplateSelector';
-// import TemplatePreview from './components/TemplatePreview';
-// import TemplateCustomization from './components/TemplateCustomization';
-// import ProjectGeneration from './components/ProjectGeneration';
+import TemplatePreview from './components/TemplatePreview';
+import TemplateCustomization from './components/TemplateCustomization';
+import ProjectGeneration from './components/ProjectGeneration';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 type Step = 'select' | 'preview' | 'customize' | 'generate';
@@ -203,33 +203,32 @@ export default function ProjectTemplatesPage() {
         )}
 
         {currentStep === 'preview' && selectedTemplate && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">テンプレートプレビュー</h2>
-            <p className="text-gray-600 mb-4">実装中...</p>
-            <button onClick={handlePreviewNext} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-              次へ
-            </button>
-          </div>
+          <TemplatePreview
+            template={selectedTemplate}
+            onNext={handlePreviewNext}
+            onBack={handleBack}
+          />
         )}
 
         {currentStep === 'customize' && selectedTemplate && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">テンプレートカスタマイズ</h2>
-            <p className="text-gray-600 mb-4">実装中...</p>
-            <button onClick={() => handleCustomizationNext({})} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-              次へ
-            </button>
-          </div>
+          <TemplateCustomization
+            template={selectedTemplate}
+            onNext={handleCustomizationNext}
+            onBack={handleBack}
+          />
         )}
 
         {currentStep === 'generate' && selectedTemplate && customization && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">プロジェクト生成</h2>
-            <p className="text-gray-600 mb-4">実装中...</p>
-            <button onClick={handleReset} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-              完了
-            </button>
-          </div>
+          <ProjectGeneration
+            template={selectedTemplate}
+            customization={customization}
+            onComplete={(projectId) => {
+              // プロジェクト作成完了後の処理
+              console.log('Project created:', projectId);
+              handleReset();
+            }}
+            onBack={handleBack}
+          />
         )}
       </div>
     </div>
