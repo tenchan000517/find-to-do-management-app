@@ -100,6 +100,13 @@ interface ProposalSection {
   customerSpecific: boolean;
 }
 
+interface Customization {
+  type: 'branding' | 'content' | 'pricing' | 'timeline';
+  description: string;
+  value: string;
+  priority: number;
+}
+
 interface ProposalContent {
   executiveSummary: string;
   problemStatement: string;
@@ -513,9 +520,9 @@ export class AISalesAssistant {
       const allUsers = await prismaDataService.getUsers();
       const customer = allUsers.find(u => u.id === customerId);
       const allAppointments = await prismaDataService.getAppointments();
-      const appointments = allAppointments.filter(apt => apt.userId === customerId);
+      const appointments = allAppointments.filter(apt => apt.assignedTo === customerId || apt.createdBy === customerId);
       const allProjects = await prismaDataService.getProjects();
-      const projects = allProjects.filter(proj => proj.userId === customerId);
+      const projects = allProjects.filter(proj => proj.assignedTo === customerId || proj.createdBy === customerId);
       const communications: any[] = []; // 通信履歴は後で実装
       
       return {
@@ -553,12 +560,11 @@ export class AISalesAssistant {
 JSON形式で構造化されたインサイトを提供してください。
       `;
 
-      const response = await this.aiCallManager.generateText(prompt, {
-        temperature: 0.3,
-        maxOutputTokens: 2000
-      });
+      const response = await this.aiCallManager.callGemini(prompt, 'customer-insights');
 
-      return JSON.parse(response.text || '{}');
+      return response.success && response.content 
+        ? JSON.parse(response.content) 
+        : {};
     } catch (error) {
       console.error('AI analysis failed:', error);
       return {};

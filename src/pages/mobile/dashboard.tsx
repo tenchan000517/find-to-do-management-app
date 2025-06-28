@@ -20,12 +20,12 @@ export default function MobileDashboard() {
       return new Date(task.createdAt).toDateString() === today;
     }).length || 0,
     completedToday: tasks?.filter(task => 
-      task.status === 'COMPLETED' && 
+      task.status === 'COMPLETE' && 
       new Date(task.updatedAt).toDateString() === new Date().toDateString()
     ).length || 0,
-    activeProjects: projects?.filter(project => project.status === 'ACTIVE').length || 0,
+    activeProjects: projects?.filter(project => project.status === 'active').length || 0,
     urgentTasks: tasks?.filter(task => 
-      task.priority === 'HIGH' && task.status !== 'COMPLETED'
+      task.priority === 'A' && task.status !== 'COMPLETE'
     ).length || 0
   };
 

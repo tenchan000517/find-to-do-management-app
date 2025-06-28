@@ -1,7 +1,10 @@
-// Service Worker for FIND Mobile Dashboard
-const CACHE_NAME = 'find-mobile-v1.0.0';
+// Service Worker for FIND Mobile Dashboard - Phase A
+const CACHE_NAME = 'find-mobile-v1.1.0';
 const STATIC_ASSETS = [
   '/mobile/dashboard',
+  '/mobile/tasks',
+  '/mobile/projects',
+  '/mobile/settings',
   '/manifest.json',
   '/_next/static/css/app/globals.css',
   '/offline.html'

@@ -84,10 +84,7 @@ export function createSalesStatusFlex(data: SalesStatusData): FlexMessage {
               weight: 'bold',
               size: 'sm',
               color: '#FFFFFF',
-              align: 'end',
-              backgroundColor: stageColors[data.stage],
-              paddingAll: 'sm',
-              cornerRadius: 'sm'
+              align: 'end'
             }
           ]
         }
@@ -686,9 +683,9 @@ export function createContractCelebrationFlex(data: ContractCelebrationData): Fl
               color: '#28B463'
             },
             ...data.teamContribution.map(contribution => ({
-              type: 'text',
+              type: 'text' as const,
               text: `• ${contribution}`,
-              size: 'sm',
+              size: 'sm' as const,
               wrap: true,
               color: '#666666'
             }))
@@ -711,9 +708,9 @@ export function createContractCelebrationFlex(data: ContractCelebrationData): Fl
               color: '#8E44AD'
             },
             ...data.nextSteps.map(step => ({
-              type: 'text',
+              type: 'text' as const,
               text: `• ${step}`,
-              size: 'sm',
+              size: 'sm' as const,
               wrap: true,
               color: '#666666'
             }))

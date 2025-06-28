@@ -3,7 +3,7 @@ import { SalesNLPEnhancer } from './sales-nlp-enhancer';
 import { SalesAutomationEngine } from '../services/sales-automation-engine';
 import { SuccessProbabilityEngine } from '../services/success-probability-engine';
 import { AISalesAssistant } from '../services/ai-sales-assistant';
-import { sendReplyMessage, sendPushMessage } from './notification';
+import { sendReplyMessage } from './notification';
 import sessionManager from './session-manager';
 
 interface SalesProcessingResult {

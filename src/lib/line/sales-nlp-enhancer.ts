@@ -376,6 +376,11 @@ export class SalesNLPEnhancer {
         keywords: ['契約', '成約', '決定', 'サイン', '署名'],
         confidence: 0.9,
         next_stage: 'follow_up'
+      },
+      follow_up: {
+        keywords: ['フォロー', 'アフター', '継続', '更新', 'サポート'],
+        confidence: 0.7,
+        next_stage: 'prospecting'
       }
     };
 
@@ -532,13 +537,13 @@ export class SalesNLPEnhancer {
 
       // 最近のアポイント・営業活動を取得
       const allAppointments = await prismaDataService.getAppointments();
-      const recentAppointments = allAppointments.filter(apt => apt.userId === user.id);
+      const recentAppointments = allAppointments.filter(apt => apt.assignedTo === user.id || apt.createdBy === user.id);
       const allConnections = await prismaDataService.getConnections();
-      const activeConnections = allConnections.filter(conn => conn.userId === user.id);
+      const activeConnections = allConnections.filter(conn => conn.assignedTo === user.id || conn.createdBy === user.id);
       
       // 進行中のプロジェクト・商談を特定
       const activeProjects = recentAppointments
-        .filter(apt => apt.status === 'PENDING' || apt.status === 'IN_PROGRESS')
+        .filter(apt => apt.status === 'pending' || apt.status === 'interested' || apt.status === 'scheduled')
         .slice(0, 5);
 
       // 営業段階推定

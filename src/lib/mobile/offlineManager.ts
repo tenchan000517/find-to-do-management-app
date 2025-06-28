@@ -135,7 +135,7 @@ export class OfflineManager {
     
     let url = baseUrl;
     let method = 'POST';
-    let body = JSON.stringify(data);
+    let body: string | undefined = JSON.stringify(data);
     
     switch (type) {
       case 'create':
