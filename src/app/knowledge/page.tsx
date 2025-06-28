@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { KnowledgeItem } from '@/lib/types';
 import { useUsers } from '@/hooks/useUsers';
+import { useKnowledgeAutomation } from '@/hooks/useKnowledgeAutomation';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { MarkdownContent } from '@/components/MarkdownContent';
+import KnowledgeAutomationNotification from '@/components/knowledge/KnowledgeAutomationNotification';
+import KnowledgeAutomationDashboard from '@/components/knowledge/KnowledgeAutomationDashboard';
 
 
 const getCategoryStyle = (category: string) => {
@@ -52,6 +55,17 @@ export default function KnowledgePage() {
   const [dateFilter, setDateFilter] = useState<string>('');
   const [aiCategory, setAiCategory] = useState<string>('all');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAutomationDashboard, setShowAutomationDashboard] = useState(false);
+  
+  // ナレッジ自動化フック
+  const {
+    notifications,
+    history,
+    stats,
+    loading: automationLoading,
+    clearNotification,
+    processTaskCompletion
+  } = useKnowledgeAutomation();
 
   useEffect(() => {
     fetchKnowledge();
@@ -268,6 +282,24 @@ export default function KnowledgePage() {
               }`}
             >
               🤖 AI分類
+            </button>
+          </div>
+          
+          {/* 自動化ダッシュボードボタン */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowAutomationDashboard(!showAutomationDashboard)}
+              className="w-full px-3 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              🤖 AI自動化ダッシュボード
+              {notifications.length > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              )}
             </button>
           </div>
           
@@ -689,6 +721,53 @@ export default function KnowledgePage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ナレッジ自動化通知 */}
+        {notifications.length > 0 && (
+          <div className="mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                🤖 ナレッジ自動化通知
+                <span className="bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              </h3>
+              <p className="text-sm text-blue-700 mb-4">
+                タスク完了時にAIが自動でナレッジ生成を提案しています
+              </p>
+            </div>
+            <div className="space-y-3">
+              {notifications.map((notification) => (
+                <KnowledgeAutomationNotification
+                  key={notification.id}
+                  notification={notification}
+                  onAccept={async (notificationId) => {
+                    // ナレッジ生成を実行
+                    clearNotification(notificationId);
+                    await fetchKnowledge(); // ナレッジリストを更新
+                  }}
+                  onDecline={(notificationId) => {
+                    clearNotification(notificationId);
+                  }}
+                  onClose={(notificationId) => {
+                    clearNotification(notificationId);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 自動化ダッシュボード */}
+        {showAutomationDashboard && (
+          <div className="mb-6">
+            <KnowledgeAutomationDashboard
+              history={history}
+              stats={stats}
+              loading={automationLoading}
+            />
           </div>
         )}
 
