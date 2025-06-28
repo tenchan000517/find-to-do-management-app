@@ -160,14 +160,14 @@ export const KnowledgeAutomationNotification: React.FC<KnowledgeAutomationNotifi
                       <div
                         key={i}
                         className={`w-2 h-2 rounded-full ${
-                          i < notification.estimatedValue 
+                          i < (notification.estimatedValue || 0)
                             ? 'bg-yellow-400' 
                             : 'bg-gray-200'
                         }`}
                       />
                     ))}
                     <span className="text-xs text-blue-600 ml-1">
-                      {notification.estimatedValue}/10
+                      {notification.estimatedValue || 0}/10
                     </span>
                   </div>
                 </div>
