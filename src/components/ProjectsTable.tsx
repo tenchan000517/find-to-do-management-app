@@ -38,7 +38,7 @@ const priorityText = {
 };
 
 export default function ProjectsTable({ projects, onEdit, onDelete, onViewDetails }: ProjectsTableProps) {
-  if (projects.length === 0) {
+  if (!projects || projects.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-gray-400 text-lg">プロジェクトがありません</div>
@@ -138,7 +138,7 @@ export default function ProjectsTable({ projects, onEdit, onDelete, onViewDetail
                     {/* チームメンバー */}
                     <div>
                       <span className="text-xs text-gray-500">チーム: </span>
-                      {project.teamMembers.length > 0 ? (
+                      {project.teamMembers && project.teamMembers.length > 0 ? (
                         <div className="inline-flex -space-x-1">
                           {project.teamMembers.slice(0, 3).map((memberId, index) => (
                             <div
