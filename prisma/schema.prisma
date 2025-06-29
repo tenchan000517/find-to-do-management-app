@@ -317,6 +317,15 @@ model users {
   created_ltv_analysis         customer_ltv_analysis[]        @relation("LTVAnalysisCreator")
   created_templates            project_templates[]            @relation("TemplateCreator")
   created_knowledge_automation knowledge_automation_history[] @relation("KnowledgeAutomationCreator")
+  
+  // Phase 4: Sales Automation Relations
+  managed_customers            customers[]                    @relation("CustomerAccountManager")
+  assigned_opportunities       sales_opportunities[]          @relation("OpportunityAssignee")
+  created_sales_activities     sales_activities[]             @relation("SalesActivityUser")
+  created_contracts            contracts[]                    @relation("ContractCreator")
+  executed_ai_analysis         ai_analysis_history[]          @relation("AIAnalysisExecutor")
+  executed_predictions         conversion_predictions[]       @relation("ConversionPredictionExecutor")
+  calculated_metrics           sales_metrics_history[]        @relation("SalesMetricsCalculator")
 }
 
 model discord_metrics {
@@ -1202,4 +1211,281 @@ model project_revenue_tracking {
   @@index([projectId], map: "idx_revenue_tracking_project_id")
   @@index([predictionAccuracy], map: "idx_revenue_tracking_accuracy")
   @@map("project_revenue_tracking")
+}
+
+// Phase 4: Sales Automation Tables
+
+model customers {
+  id                    String    @id @default(cuid())
+  companyName           String    @map("company_name")
+  industry              String
+  revenue               Decimal?  @db.Decimal(15,2)
+  employees             Int?
+  businessModel         String?   @map("business_model")
+  website               String?
+  contactEmail          String?   @map("contact_email")
+  contactPhone          String?   @map("contact_phone")
+  address               String?
+  city                  String?
+  country               String?
+  
+  // Relationship tracking
+  relationshipStage     customer_stage @default(PROSPECT) @map("relationship_stage")
+  accountManager        String?   @map("account_manager")
+  
+  // Metadata
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  sales_opportunities   sales_opportunities[]
+  contracts             contracts[]
+  ai_analysis_history   ai_analysis_history[]
+  account_manager_user  users?    @relation("CustomerAccountManager", fields: [accountManager], references: [id])
+  
+  @@index([industry], map: "idx_customers_industry")
+  @@index([relationshipStage], map: "idx_customers_relationship_stage")
+  @@index([accountManager], map: "idx_customers_account_manager")
+  @@map("customers")
+}
+
+model sales_opportunities {
+  id                    String         @id @default(cuid())
+  customerId            String         @map("customer_id")
+  companyName           String         @map("company_name")
+  contactName           String         @map("contact_name")
+  contactPosition       String?        @map("contact_position")
+  contactEmail          String?        @map("contact_email")
+  contactPhone          String?        @map("contact_phone")
+  
+  // Opportunity details
+  dealValue             Decimal?       @map("deal_value") @db.Decimal(12,2)
+  priority              priority       @default(C)
+  stage                 sales_stage    @default(PROSPECT)
+  source                String?        // Where this opportunity came from
+  
+  // Timeline
+  expectedCloseDate     DateTime?      @map("expected_close_date")
+  actualCloseDate       DateTime?      @map("actual_close_date")
+  
+  // Additional info
+  notes                 String?
+  tags                  String[]       @default([])
+  
+  // Metadata
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+  assignedTo            String?        @map("assigned_to")
+  
+  // Relations
+  customer              customers      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignee              users?         @relation("OpportunityAssignee", fields: [assignedTo], references: [id])
+  sales_activities      sales_activities[]
+  contracts             contracts[]
+  conversion_predictions conversion_predictions[]
+  
+  @@index([customerId], map: "idx_opportunities_customer_id")
+  @@index([stage], map: "idx_opportunities_stage")
+  @@index([priority], map: "idx_opportunities_priority")
+  @@index([assignedTo], map: "idx_opportunities_assigned_to")
+  @@index([expectedCloseDate], map: "idx_opportunities_expected_close")
+  @@map("sales_opportunities")
+}
+
+model sales_activities {
+  id                    String              @id @default(cuid())
+  opportunityId         String              @map("opportunity_id")
+  type                  sales_activity_type
+  title                 String
+  description           String?
+  outcome               activity_outcome    @default(NEUTRAL)
+  
+  // Scheduling
+  scheduledAt           DateTime?           @map("scheduled_at")
+  completedAt           DateTime?           @map("completed_at")
+  duration              Int?                // minutes
+  
+  // Metadata
+  metadata              Json                @default("{}")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  userId                String              @map("user_id")
+  
+  // Relations
+  opportunity           sales_opportunities @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  user                  users               @relation("SalesActivityUser", fields: [userId], references: [id])
+  
+  @@index([opportunityId], map: "idx_activities_opportunity_id")
+  @@index([type], map: "idx_activities_type")
+  @@index([userId], map: "idx_activities_user_id")
+  @@index([scheduledAt], map: "idx_activities_scheduled_at")
+  @@map("sales_activities")
+}
+
+model contracts {
+  id                    String              @id @default(cuid())
+  customerId            String              @map("customer_id")
+  opportunityId         String?             @map("opportunity_id")
+  
+  // Contract details
+  contractType          contract_type       @map("contract_type")
+  value                 Decimal             @db.Decimal(12,2)
+  terms                 String?
+  status                contract_status     @default(DRAFT)
+  
+  // Timeline
+  startDate             DateTime?           @map("start_date")
+  endDate               DateTime?           @map("end_date")
+  signedDate            DateTime?           @map("signed_date")
+  
+  // Additional info
+  notes                 String?
+  attachments           String[]            @default([])
+  
+  // Metadata
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  createdBy             String?             @map("created_by")
+  
+  // Relations
+  customer              customers           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sales_opportunity     sales_opportunities? @relation(fields: [opportunityId], references: [id])
+  creator               users?              @relation("ContractCreator", fields: [createdBy], references: [id])
+  
+  @@index([customerId], map: "idx_contracts_customer_id")
+  @@index([opportunityId], map: "idx_contracts_opportunity_id")
+  @@index([status], map: "idx_contracts_status")
+  @@index([contractType], map: "idx_contracts_type")
+  @@map("contracts")
+}
+
+model ai_analysis_history {
+  id                    String    @id @default(cuid())
+  customerId            String    @map("customer_id")
+  analysisType          String    @map("analysis_type")
+  result                Json
+  
+  // Metadata
+  executedAt            DateTime  @default(now()) @map("executed_at")
+  executedBy            String?   @map("executed_by")
+  
+  // Relations
+  customer              customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  executor              users?    @relation("AIAnalysisExecutor", fields: [executedBy], references: [id])
+  
+  @@index([customerId], map: "idx_ai_sales_analysis_customer_id")
+  @@index([analysisType], map: "idx_ai_sales_analysis_type")
+  @@index([executedAt], map: "idx_ai_sales_analysis_executed_at")
+  @@map("ai_analysis_history")
+}
+
+model conversion_predictions {
+  id                    String              @id @default(cuid())
+  opportunityId         String              @map("opportunity_id")
+  predictionType        String              @map("prediction_type")
+  probability           Float
+  confidence            Float               @default(0)
+  result                Json
+  
+  // Metadata
+  executedAt            DateTime            @default(now()) @map("executed_at")
+  executedBy            String?             @map("executed_by")
+  
+  // Relations
+  opportunity           sales_opportunities @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  executor              users?              @relation("ConversionPredictionExecutor", fields: [executedBy], references: [id])
+  
+  @@index([opportunityId], map: "idx_conversion_predictions_opportunity_id")
+  @@index([predictionType], map: "idx_conversion_predictions_type")
+  @@index([executedAt], map: "idx_conversion_predictions_executed_at")
+  @@map("conversion_predictions")
+}
+
+model sales_metrics_history {
+  id                    String    @id @default(cuid())
+  dateFrom              DateTime? @map("date_from")
+  dateTo                DateTime? @map("date_to")
+  metrics               Json
+  
+  // Metadata
+  calculatedAt          DateTime  @default(now()) @map("calculated_at")
+  calculatedBy          String?   @map("calculated_by")
+  
+  // Relations
+  calculator            users?    @relation("SalesMetricsCalculator", fields: [calculatedBy], references: [id])
+  
+  @@index([calculatedAt], map: "idx_sales_metrics_calculated_at")
+  @@index([dateFrom, dateTo], map: "idx_sales_metrics_date_range")
+  @@map("sales_metrics_history")
+}
+
+// Phase 4 Enums
+
+enum customer_stage {
+  PROSPECT
+  LEAD
+  OPPORTUNITY
+  CUSTOMER
+  ADVOCATE
+  INACTIVE
+  
+  @@map("customer_stage")
+}
+
+enum sales_stage {
+  PROSPECT
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+  
+  @@map("sales_stage")
+}
+
+enum sales_activity_type {
+  INITIAL_CONTACT
+  PHONE_CALL
+  EMAIL
+  MEETING
+  DEMO
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_REVIEW
+  STAGE_CHANGE
+  FOLLOW_UP
+  OTHER
+  
+  @@map("sales_activity_type")
+}
+
+enum activity_outcome {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  
+  @@map("activity_outcome")
+}
+
+enum contract_type {
+  SERVICE
+  PRODUCT
+  SUBSCRIPTION
+  MAINTENANCE
+  CONSULTING
+  LICENSE
+  
+  @@map("contract_type")
+}
+
+enum contract_status {
+  DRAFT
+  REVIEW
+  PENDING_SIGNATURE
+  SIGNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  
+  @@map("contract_status")
 }

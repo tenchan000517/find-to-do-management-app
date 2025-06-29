@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useProjectAnalytics } from '@/hooks/useProjectAnalytics';
 import SuccessPrediction from './components/SuccessPrediction';
@@ -11,12 +11,20 @@ import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface ProjectAnalyticsPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPageProps) {
+  const [projectId, setProjectId] = useState<string>('');
+
+  useEffect(() => {
+    params.then(resolvedParams => {
+      setProjectId(resolvedParams.id);
+    });
+  }, [params]);
+
   const {
     analytics,
     kgiData,
@@ -27,9 +35,13 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
     refreshData,
     recalculateAnalytics,
     applyRecommendation
-  } = useProjectAnalytics(params.id);
+  } = useProjectAnalytics(projectId);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  if (!projectId) {
+    return <LoadingSpinner />;
+  }
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

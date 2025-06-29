@@ -3,10 +3,10 @@ import prisma from '@/lib/database/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = params;
+    const { userId } = await params;
 
     const user = await prisma.users.findUnique({
       where: { id: userId },
@@ -107,7 +107,7 @@ function generatePersonalizedRecommendations(user: any) {
 function generatePerformancePredictions(user: any) {
   const taskHistory = user.tasks || [];
   
-  const predictions = [];
+  const predictions: any[] = [];
   
   // タスクタイプ別の成功率予測
   const taskTypes = ['development', 'planning', 'communication', 'analysis'];

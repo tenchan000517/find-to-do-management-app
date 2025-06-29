@@ -7,11 +7,17 @@ import StrengthWeakness from '../components/StrengthWeakness';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface MBTIUserPageProps {
-  params: { userId: string };
+  params: Promise<{ userId: string }>;
 }
 
 export default function MBTIUserPage({ params }: MBTIUserPageProps) {
-  const { userId } = params;
+  const [userId, setUserId] = React.useState<string>('');
+  
+  React.useEffect(() => {
+    params.then(resolvedParams => {
+      setUserId(resolvedParams.userId);
+    });
+  }, [params]);
   
   const {
     selectedUserProfile,
@@ -24,8 +30,14 @@ export default function MBTIUserPage({ params }: MBTIUserPageProps) {
   } = useMBTIAnalysis();
 
   React.useEffect(() => {
-    setSelectedUserId(userId);
+    if (userId) {
+      setSelectedUserId(userId);
+    }
   }, [userId, setSelectedUserId]);
+
+  if (!userId) {
+    return <LoadingSpinner />;
+  }
 
   if (loading) {
     return <LoadingSpinner message="MBTI分析データを読み込み中..." />;

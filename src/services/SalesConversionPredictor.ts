@@ -492,8 +492,10 @@ export class SalesConversionPredictor {
     // 顧客プロファイルに基づく調整
     if (customerProfile) {
       // 意思決定者との関係性
-      const decisionMakerEngagement = customerProfile.decisionMakers.reduce((avg, dm) => 
-        avg + dm.influence / 10, 0) / customerProfile.decisionMakers.length;
+      const decisionMakerEngagement = customerProfile.decisionMakers.length > 0 
+        ? customerProfile.decisionMakers.reduce((avg, dm) => 
+            avg + dm.influence / 10, 0) / customerProfile.decisionMakers.length
+        : 0;
       engagementScore += decisionMakerEngagement * 0.2;
 
       // ペインポイントの緊急度
@@ -914,16 +916,23 @@ export class SalesConversionPredictor {
       if (isNaN(baseDate.getTime())) {
         // 無効な日付の場合は現在日から30日後を設定
         baseDate = new Date();
-        baseDate.setDate(baseDate.getDate() + 30);
+        baseDate.setTime(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
       }
     } else {
       // expectedCloseDateが未設定の場合は現在日から30日後を設定
       baseDate = new Date();
-      baseDate.setDate(baseDate.getDate() + 30);
+      baseDate.setTime(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
     
     const probabilityAdjustment = Math.floor((1 - probability) * 30); // 確率が低いほど遅延
-    baseDate.setDate(baseDate.getDate() + probabilityAdjustment);
+    baseDate.setTime(baseDate.getTime() + probabilityAdjustment * 24 * 60 * 60 * 1000);
+    
+    // 最終的な日付の妥当性を確認
+    if (isNaN(baseDate.getTime())) {
+      // フォールバック: 現在日から60日後
+      baseDate = new Date();
+      baseDate.setTime(baseDate.getTime() + 60 * 24 * 60 * 60 * 1000);
+    }
     
     return baseDate.toISOString();
   }
