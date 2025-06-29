@@ -899,28 +899,156 @@ export class ContractAutomationEngine {
   }
 
   private async executeAutomationRule(rule: AutomationRule, task: BackOfficeTask): Promise<void> {
-    switch (rule.action) {
-      case 'create_task':
-        // 新しいタスクの作成
-        console.log(`Creating automated task based on rule ${rule.id}`);
-        break;
-      case 'send_notification':
-        // 通知の送信
-        console.log(`Sending notification for task ${task.id}`);
-        break;
-      case 'update_status':
-        // ステータスの更新
-        console.log(`Updating status for task ${task.id}`);
-        break;
-      case 'generate_document':
-        // ドキュメントの生成
-        console.log(`Generating document for task ${task.id}`);
-        break;
+    try {
+      switch (rule.action) {
+        case 'create_task':
+          await this.createAutomatedTask(rule, task);
+          break;
+        case 'send_notification':
+          await this.sendTaskNotification(task, rule);
+          break;
+        case 'update_status':
+          await this.updateTaskStatus(task, rule);
+          break;
+        case 'generate_document':
+          await this.generateAutomatedDocument(task, rule);
+          break;
+        default:
+          console.warn(`Unknown automation action: ${rule.action}`);
+      }
+    } catch (error) {
+      console.error(`Automation rule execution failed for rule ${rule.id}:`, error);
+      throw error;
     }
   }
 
   private async sendAutomationNotifications(contract: Contract, tasks: BackOfficeTask[]): Promise<void> {
-    console.log(`Sending automation notifications for contract ${contract.id} with ${tasks.length} tasks`);
-    // 実際の通知送信処理
+    try {
+      const notificationData = {
+        contractId: contract.id,
+        companyName: contract.companyName,
+        taskCount: tasks.length,
+        tasks: tasks.map(task => ({
+          id: task.id,
+          title: task.title,
+          department: task.assigneeDepartment,
+          priority: task.priority,
+          dueDate: task.dueDate
+        })),
+        timestamp: new Date().toISOString()
+      };
+
+      // メール通知送信
+      await fetch('/api/notifications/contract-automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'contract_automation_started',
+          recipients: ['legal@company.com', 'finance@company.com', 'pmo@company.com'],
+          data: notificationData
+        })
+      });
+
+      // Slack通知送信
+      await fetch('/api/notifications/slack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: '#contracts',
+          message: `📄 契約自動化開始: ${contract.companyName}\nタスク数: ${tasks.length}件\n契約ID: ${contract.id}`,
+          attachments: [
+            {
+              title: '生成されたタスク',
+              fields: tasks.slice(0, 5).map(task => ({
+                title: task.title,
+                value: `部署: ${task.assigneeDepartment} | 優先度: ${task.priority} | 期限: ${new Date(task.dueDate).toLocaleDateString('ja-JP')}`,
+                short: false
+              }))
+            }
+          ]
+        })
+      });
+
+      console.log(`Automation notifications sent for contract ${contract.id}`);
+    } catch (error) {
+      console.error('Failed to send automation notifications:', error);
+    }
+  }
+
+  // 自動化アクション実装メソッド
+  private async createAutomatedTask(rule: AutomationRule, parentTask: BackOfficeTask): Promise<void> {
+    const newTask: BackOfficeTask = {
+      id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      contractId: parentTask.contractId,
+      category: (rule.parameters?.category as BackOfficeCategory) || 'documentation',
+      title: `自動生成: ${rule.description}`,
+      description: `${rule.description}\\n\\n親タスク: ${parentTask.title}\\n自動生成ルール: ${rule.id}`,
+      assigneeDepartment: rule.parameters?.department || 'general',
+      priority: (rule.parameters?.priority as 'A' | 'B' | 'C' | 'D') || 'B',
+      status: 'pending',
+      dueDate: new Date(Date.now() + (rule.parameters?.daysOffset || 5) * 24 * 60 * 60 * 1000).toISOString(),
+      dependencies: [],
+      estimatedHours: rule.parameters?.estimatedHours || 4,
+      checklist: []
+    };
+
+    await fetch('/api/tasks/back-office', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTask)
+    });
+  }
+
+  private async sendTaskNotification(task: BackOfficeTask, rule: AutomationRule): Promise<void> {
+    const notificationData = {
+      taskId: task.id,
+      title: task.title,
+      department: task.assigneeDepartment,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      ruleId: rule.id
+    };
+
+    await fetch('/api/notifications/task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'task_automation_notification',
+        recipients: rule.parameters?.notificationRecipients || [],
+        data: notificationData
+      })
+    });
+  }
+
+  private async updateTaskStatus(task: BackOfficeTask, rule: AutomationRule): Promise<void> {
+    const newStatus = rule.parameters?.newStatus || 'in_progress';
+    
+    await fetch(`/api/tasks/back-office/${task.id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: newStatus,
+        updatedBy: 'automation_engine',
+        automationRuleId: rule.id,
+        timestamp: new Date().toISOString()
+      })
+    });
+  }
+
+  private async generateAutomatedDocument(task: BackOfficeTask, rule: AutomationRule): Promise<void> {
+    const documentRequest = {
+      taskId: task.id,
+      contractId: task.contractId,
+      documentType: rule.parameters?.documentType || 'standard',
+      templateId: rule.parameters?.templateId,
+      automationRuleId: rule.id,
+      generatedAt: new Date().toISOString()
+    };
+
+    await fetch('/api/documents/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(documentRequest)
+    });
   }
 }

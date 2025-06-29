@@ -890,7 +890,6 @@ export class SafeMenuProcessor {
   }
 
   private async createSalesOpportunity(params: Record<string, any>): Promise<{ success: boolean; message: string; data?: any }> {
-    // 実際のAPI呼び出しをここに実装
     const opportunityData = {
       companyName: params.companyName,
       contactName: params.contactName,
@@ -900,60 +899,272 @@ export class SafeMenuProcessor {
       expectedCloseDate: params.expectedCloseDate,
       notes: params.notes,
       stage: 'prospect',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      id: `opp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     };
 
-    // TODO: 実際のデータベース保存処理
-    console.log('Creating sales opportunity:', opportunityData);
+    try {
+      // API呼び出しで営業案件作成
+      const response = await fetch('/api/sales/opportunities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(opportunityData)
+      });
 
-    return {
-      success: true,
-      message: `営業案件「${params.companyName}」を作成しました！\n金額: ¥${params.dealValue.toLocaleString()}\n予想クロージング: ${params.expectedCloseDate}`,
-      data: opportunityData
-    };
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const savedOpportunity = await response.json();
+
+      return {
+        success: true,
+        message: `営業案件「${params.companyName}」を作成しました！\n金額: ¥${params.dealValue.toLocaleString()}\n予想クロージング: ${params.expectedCloseDate}\n案件ID: ${savedOpportunity.id}`,
+        data: savedOpportunity
+      };
+    } catch (error) {
+      console.error('Sales opportunity creation error:', error);
+      return {
+        success: false,
+        message: '営業案件の作成に失敗しました。システム管理者にお問い合わせください。',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   private async updateSalesStage(params: Record<string, any>): Promise<{ success: boolean; message: string; data?: any }> {
-    // TODO: 実際のAPI呼び出し
-    console.log('Updating sales stage:', params);
+    try {
+      const updateData = {
+        opportunityId: params.opportunityId,
+        newStage: params.newStage,
+        stageNotes: params.stageNotes,
+        updatedAt: new Date().toISOString()
+      };
 
-    return {
-      success: true,
-      message: `営業ステージを「${params.newStage}」に更新しました！\n更新理由: ${params.stageNotes}`,
-      data: params
-    };
+      const response = await fetch(`/api/sales/opportunities/${params.opportunityId}/stage`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const updatedOpportunity = await response.json();
+
+      // Phase 3の異常検知エンジンに通知
+      await this.notifyStageChange(updatedOpportunity);
+
+      return {
+        success: true,
+        message: `営業ステージを「${params.newStage}」に更新しました！\n更新理由: ${params.stageNotes}\n案件ID: ${params.opportunityId}`,
+        data: updatedOpportunity
+      };
+    } catch (error) {
+      console.error('Sales stage update error:', error);
+      return {
+        success: false,
+        message: '営業ステージの更新に失敗しました。',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   private async scheduleAppointment(params: Record<string, any>): Promise<{ success: boolean; message: string; data?: any }> {
-    // TODO: 実際のAPI呼び出し
-    console.log('Scheduling appointment:', params);
+    try {
+      const appointmentData = {
+        title: `営業面談: ${params.companyName}`,
+        companyName: params.companyName,
+        contactName: params.contactName,
+        contactEmail: params.contactEmail,
+        appointmentDate: params.appointmentDate,
+        location: params.location,
+        agenda: params.agenda,
+        duration: params.duration || 60,
+        createdAt: new Date().toISOString()
+      };
 
-    return {
-      success: true,
-      message: `アポイントメントを設定しました！\n相手: ${params.companyName} ${params.contactName}様\n日時: ${params.appointmentDate}\n場所: ${params.location}`,
-      data: params
-    };
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointmentData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const savedAppointment = await response.json();
+
+      // カレンダーイベント作成
+      await this.createCalendarEvent(savedAppointment);
+
+      return {
+        success: true,
+        message: `アポイントメントを設定しました！\n相手: ${params.companyName} ${params.contactName}様\n日時: ${params.appointmentDate}\n場所: ${params.location}\n予約ID: ${savedAppointment.id}`,
+        data: savedAppointment
+      };
+    } catch (error) {
+      console.error('Appointment scheduling error:', error);
+      return {
+        success: false,
+        message: 'アポイントメントの設定に失敗しました。',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   private async processContract(params: Record<string, any>): Promise<{ success: boolean; message: string; data?: any }> {
-    // TODO: 実際のAPI呼び出し
-    console.log('Processing contract:', params);
+    try {
+      const contractData = {
+        opportunityId: params.opportunityId,
+        contractValue: params.contractValue,
+        startDate: params.startDate,
+        endDate: params.endDate,
+        contractType: params.contractType,
+        paymentTerms: params.paymentTerms,
+        specialConditions: params.specialConditions,
+        status: 'draft',
+        createdAt: new Date().toISOString()
+      };
 
-    return {
-      success: true,
-      message: `契約処理を開始しました！\n契約金額: ¥${params.contractValue.toLocaleString()}\n開始日: ${params.startDate}`,
-      data: params
-    };
+      const response = await fetch('/api/contracts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contractData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const savedContract = await response.json();
+
+      // Phase 4の契約自動化エンジンをトリガー
+      await this.triggerContractAutomation(savedContract);
+
+      return {
+        success: true,
+        message: `契約処理を開始しました！\n契約金額: ¥${params.contractValue.toLocaleString()}\n開始日: ${params.startDate}\n契約ID: ${savedContract.id}\n\n自動化タスクが生成されました。`,
+        data: savedContract
+      };
+    } catch (error) {
+      console.error('Contract processing error:', error);
+      return {
+        success: false,
+        message: '契約処理の開始に失敗しました。',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   private async analyzeSalesMetrics(params: Record<string, any>): Promise<{ success: boolean; message: string; data?: any }> {
-    // TODO: 実際の分析処理（Phase 3の異常検知エンジンを活用）
-    console.log('Analyzing sales metrics:', params);
+    try {
+      const analysisRequest = {
+        analysisType: params.analysisType,
+        dateRange: params.dateRange,
+        metrics: params.metrics,
+        filters: params.filters,
+        requestedAt: new Date().toISOString()
+      };
 
-    return {
-      success: true,
-      message: `営業分析「${params.analysisType}」を実行しました！\n期間: ${params.dateRange}\n結果はダッシュボードで確認できます。`,
-      data: params
-    };
+      const response = await fetch('/api/analytics/sales-metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analysisRequest)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const analysisResult = await response.json();
+
+      // Phase 3の異常検知エンジンと連携
+      await this.runAnomalyDetection(analysisResult);
+
+      return {
+        success: true,
+        message: `営業分析「${params.analysisType}」を実行しました！\n期間: ${params.dateRange}\n分析結果: ${analysisResult.summary}\n\n詳細はダッシュボードで確認できます。`,
+        data: analysisResult
+      };
+    } catch (error) {
+      console.error('Sales metrics analysis error:', error);
+      return {
+        success: false,
+        message: '営業分析の実行に失敗しました。',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  // サポートメソッド
+  private async notifyStageChange(opportunity: any): Promise<void> {
+    try {
+      await fetch('/api/analytics/anomaly/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'stage_change',
+          opportunityId: opportunity.id,
+          previousStage: opportunity.previousStage,
+          newStage: opportunity.stage,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Stage change notification error:', error);
+    }
+  }
+
+  private async createCalendarEvent(appointment: any): Promise<void> {
+    try {
+      await fetch('/api/calendar/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: appointment.title,
+          start: appointment.appointmentDate,
+          description: `営業面談: ${appointment.companyName}`,
+          location: appointment.location,
+          type: 'sales_meeting'
+        })
+      });
+    } catch (error) {
+      console.error('Calendar event creation error:', error);
+    }
+  }
+
+  private async triggerContractAutomation(contract: any): Promise<void> {
+    try {
+      await fetch('/api/contracts/automation/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contractId: contract.id,
+          triggerType: 'creation',
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Contract automation trigger error:', error);
+    }
+  }
+
+  private async runAnomalyDetection(analysisResult: any): Promise<void> {
+    try {
+      await fetch('/api/analytics/anomaly/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysisData: analysisResult,
+          analysisType: 'sales_metrics',
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Anomaly detection error:', error);
+    }
   }
 }

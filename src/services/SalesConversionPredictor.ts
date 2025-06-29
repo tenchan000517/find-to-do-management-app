@@ -906,10 +906,25 @@ export class SalesConversionPredictor {
   }
 
   private async predictCloseDate(opportunity: SalesOpportunity, probability: number): Promise<string> {
-    const baseDate = new Date(opportunity.expectedCloseDate);
-    const probabilityAdjustment = (1 - probability) * 30; // 確率が低いほど遅延
+    let baseDate: Date;
     
+    // 日付の妥当性を確認
+    if (opportunity.expectedCloseDate) {
+      baseDate = new Date(opportunity.expectedCloseDate);
+      if (isNaN(baseDate.getTime())) {
+        // 無効な日付の場合は現在日から30日後を設定
+        baseDate = new Date();
+        baseDate.setDate(baseDate.getDate() + 30);
+      }
+    } else {
+      // expectedCloseDateが未設定の場合は現在日から30日後を設定
+      baseDate = new Date();
+      baseDate.setDate(baseDate.getDate() + 30);
+    }
+    
+    const probabilityAdjustment = Math.floor((1 - probability) * 30); // 確率が低いほど遅延
     baseDate.setDate(baseDate.getDate() + probabilityAdjustment);
+    
     return baseDate.toISOString();
   }
 

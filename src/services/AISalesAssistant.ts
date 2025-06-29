@@ -1081,4 +1081,27 @@ export class AISalesAssistant {
       }
     ];
   }
+
+  private async developCompetitiveStrategy(customer: CustomerProfile): Promise<CompetitiveStrategy> {
+    return {
+      approach: 'differentiation',
+      keyMessages: [
+        '業界特化の深い理解',
+        '実証済みのROI実績',
+        '包括的なサポート体制'
+      ],
+      competitiveAdvantages: [
+        '豊富な導入実績',
+        '柔軟なカスタマイゼーション',
+        '継続的な機能拡張'
+      ],
+      riskMitigation: [
+        'PoC提案による効果実証',
+        '段階的導入による リスク軽減',
+        '専任サポート体制'
+      ],
+      positioning: 'premium_solution',
+      valueProposition: '業界No.1のソリューション品質と顧客満足度'
+    };
+  }
 }
