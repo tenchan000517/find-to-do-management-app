@@ -635,6 +635,76 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 </div>
               </div>
             </Card>
+
+            {/* セキュリティ・運用状況 */}
+            <Card variant="elevated" padding="normal">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                🛡️ セキュリティ状況
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">脅威検知</span>
+                  <span className={`text-sm font-medium ${
+                    integratedSystemStatus?.systemIntegrator?.security?.systemSecurity === 'SECURE' ? 'text-green-600' : 
+                    integratedSystemStatus?.systemIntegrator?.security?.systemSecurity === 'WARNING' ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {integratedSystemStatus?.systemIntegrator?.security?.systemSecurity === 'SECURE' ? '✅ 正常' :
+                     integratedSystemStatus?.systemIntegrator?.security?.systemSecurity === 'WARNING' ? '⚠️ 注意' : '🚨 警告'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">監査ログ</span>
+                  <span className="text-sm font-medium text-blue-600">📋 記録中</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">セキュリティスコア</span>
+                  <span className={`text-sm font-medium ${
+                    (integratedSystemStatus?.systemIntegrator?.security?.health || 0) > 80 ? 'text-green-600' : 
+                    (integratedSystemStatus?.systemIntegrator?.security?.health || 0) > 60 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {integratedSystemStatus?.systemIntegrator?.security?.health ? 
+                      `${Math.round(integratedSystemStatus.systemIntegrator.security.health)}%` : '0%'}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* 運用状況 */}
+            <Card variant="elevated" padding="normal">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                ⚙️ 運用状況
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">システム健全性</span>
+                  <span className={`text-sm font-medium ${
+                    (integratedSystemStatus?.systemIntegrator?.operations?.systemHealth || 0) > 90 ? 'text-green-600' : 
+                    (integratedSystemStatus?.systemIntegrator?.operations?.systemHealth || 0) > 70 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {integratedSystemStatus?.systemIntegrator?.operations?.systemHealth ? 
+                      `${Math.round(integratedSystemStatus.systemIntegrator.operations.systemHealth)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">自動保守</span>
+                  <span className={`text-sm font-medium ${
+                    integratedSystemStatus?.systemIntegrator?.operations?.maintenanceStatus === 'UP_TO_DATE' ? 'text-green-600' : 'text-blue-600'
+                  }`}>
+                    {integratedSystemStatus?.systemIntegrator?.operations?.maintenanceStatus === 'UP_TO_DATE' ? '✅ 最新' : '🔄 実行中'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">稼働率</span>
+                  <span className={`text-sm font-medium ${
+                    (integratedSystemStatus?.systemIntegrator?.operations?.uptime || 0) > 99 ? 'text-green-600' : 
+                    (integratedSystemStatus?.systemIntegrator?.operations?.uptime || 0) > 95 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {integratedSystemStatus?.systemIntegrator?.operations?.uptime ? 
+                      `${integratedSystemStatus.systemIntegrator.operations.uptime.toFixed(1)}%` : '0%'}
+                  </span>
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
 
@@ -789,6 +859,51 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                     <span className="text-gray-700 font-medium">
                       {integratedSystemStatus?.systemIntegrator?.performance?.responseTime?.api || 0}ms
                     </span>
+                  </div>
+                </div>
+                
+                {/* セキュリティ・運用詳細 */}
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">セキュリティ</span>
+                      <span className={`font-medium ${
+                        (integratedSystemStatus?.systemIntegrator?.security?.health || 0) > 80 ? 'text-green-600' : 
+                        (integratedSystemStatus?.systemIntegrator?.security?.health || 0) > 50 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {integratedSystemStatus?.systemIntegrator?.security?.health ? 
+                          `${Math.round(integratedSystemStatus.systemIntegrator.security.health)}%` : '--'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">運用状態</span>
+                      <span className={`font-medium ${
+                        (integratedSystemStatus?.systemIntegrator?.operations?.systemHealth || 0) > 80 ? 'text-green-600' : 
+                        (integratedSystemStatus?.systemIntegrator?.operations?.systemHealth || 0) > 50 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {integratedSystemStatus?.systemIntegrator?.operations?.systemHealth ? 
+                          `${Math.round(integratedSystemStatus.systemIntegrator.operations.systemHealth)}%` : '--'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">脅威検知</span>
+                      <span className={`font-medium ${
+                        integratedSystemStatus?.systemIntegrator?.security?.activeThreats === 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {typeof integratedSystemStatus?.systemIntegrator?.security?.activeThreats === 'number' ? 
+                          `${integratedSystemStatus.systemIntegrator.security.activeThreats}件` : '--'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">自動化率</span>
+                      <span className={`font-medium ${
+                        (integratedSystemStatus?.systemIntegrator?.operations?.automationRate || 0) > 80 ? 'text-green-600' : 
+                        (integratedSystemStatus?.systemIntegrator?.operations?.automationRate || 0) > 50 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {integratedSystemStatus?.systemIntegrator?.operations?.automationRate ? 
+                          `${Math.round(integratedSystemStatus.systemIntegrator.operations.automationRate)}%` : '--'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

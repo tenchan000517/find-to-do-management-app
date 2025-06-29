@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/database/prisma';
+import { IntegratedSecurityManager } from './IntegratedSecurityManager';
+import { OperationalReadiness } from './OperationalReadiness';
 
 export interface SystemIntegrationStatus {
   phase1: {
@@ -79,12 +81,16 @@ export class SystemIntegrator {
   private static instance: SystemIntegrator;
   private performanceCache = new Map<string, any>();
   private lastHealthCheck: Date | null = null;
+  private securityManager: IntegratedSecurityManager;
+  private operationalReadiness: OperationalReadiness;
 
   constructor() {
     if (SystemIntegrator.instance) {
       return SystemIntegrator.instance;
     }
     SystemIntegrator.instance = this;
+    this.securityManager = IntegratedSecurityManager.getInstance();
+    this.operationalReadiness = OperationalReadiness.getInstance();
   }
 
   static getInstance(): SystemIntegrator {
@@ -813,28 +819,57 @@ export class SystemIntegrator {
   async getSystemStatus(): Promise<{
     integration: SystemIntegrationStatus;
     performance: PerformanceMetrics;
+    security: any;
+    operations: any;
     health: number;
     lastCheck: Date | null;
   }> {
     try {
-      const [integration, performance] = await Promise.all([
+      const [integration, performance, security, operations] = await Promise.all([
         this.validateSystemIntegration(),
-        this.measurePerformance()
+        this.measurePerformance(),
+        this.securityManager.getSecurityStatus(),
+        this.operationalReadiness.getOperationalStatus()
       ]);
       
       const healthCheck = await this.checkSystemHealth();
       this.lastHealthCheck = new Date();
       
+      // 全体健全性スコアの計算（セキュリティと運用状況を含む）
+      const overallHealth = this.calculateOverallHealth([
+        healthCheck.overall,
+        security.health,
+        operations.systemHealth
+      ]);
+      
       return {
         integration,
         performance,
-        health: healthCheck.overall,
+        security,
+        operations,
+        health: overallHealth,
         lastCheck: this.lastHealthCheck
       };
     } catch (error) {
       console.error('Failed to get system status:', error);
       throw error;
     }
+  }
+
+  private calculateOverallHealth(healthScores: number[]): number {
+    // 各コンポーネントの健全性スコアの加重平均を計算
+    const weights = [0.4, 0.3, 0.3]; // システム、セキュリティ、運用の重み
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    healthScores.forEach((score, index) => {
+      if (score !== undefined && score !== null) {
+        weightedSum += score * weights[index];
+        totalWeight += weights[index];
+      }
+    });
+
+    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
   }
 }
 
