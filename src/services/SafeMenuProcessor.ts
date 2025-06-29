@@ -54,6 +54,7 @@ export interface ProcessedMenuResult {
   completed?: boolean;
   data?: any;
   error?: string;
+  sessionId?: string;
 }
 
 export interface MenuStep {
@@ -465,7 +466,8 @@ export class SafeMenuProcessor {
         success: true,
         message: `${action.label}を開始します。`,
         nextStep: firstStep,
-        completed: false
+        completed: false,
+        sessionId: sessionId
       };
     } else {
       return {

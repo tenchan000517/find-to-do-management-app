@@ -46,7 +46,7 @@ describe('Phase 4: Sales Automation Integration Tests', () => {
       expect(startResult.success).toBe(true);
       
       // 最初のパラメータ入力（会社名）
-      const sessionId = startResult.nextStep?.parameter.name || 'mock-session-id';
+      const sessionId = startResult.sessionId!;
       const step1Result = await processor.processUserInput(sessionId, 'テスト株式会社');
       
       expect(step1Result.success).toBe(true);
