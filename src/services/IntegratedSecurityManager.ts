@@ -174,7 +174,7 @@ export class IntegratedSecurityManager {
   private securityEvents: SecurityEvent[] = [];
   private alerts: SecurityAlert[] = [];
   private threats: SecurityThreat[] = [];
-  private vulnerabilityManager: VulnerabilityManager;
+  private vulnerabilityManager: VulnerabilityManager | null = null;
   private suspiciousActivityCache = new Map<string, number>();
   private rateLimitCache = new Map<string, { count: number; resetTime: Date }>();
 
@@ -199,12 +199,16 @@ export class IntegratedSecurityManager {
   private startBackgroundSecurity(): void {
     // 10分間隔でセキュリティスキャン
     setInterval(async () => {
-      await this.vulnerabilityManager.scanForThreats();
+      if (this.vulnerabilityManager) {
+        await this.vulnerabilityManager.scanForThreats();
+      }
     }, 10 * 60 * 1000);
 
     // 1時間間隔でセキュリティルール更新
     setInterval(async () => {
-      await this.vulnerabilityManager.updateSecurityRules();
+      if (this.vulnerabilityManager) {
+        await this.vulnerabilityManager.updateSecurityRules();
+      }
     }, 60 * 60 * 1000);
   }
 
@@ -486,12 +490,15 @@ export class IntegratedSecurityManager {
       health,
       activeThreats,
       alertsCount: unresolvedAlerts,
-      lastScan: this.vulnerabilityManager['lastScanTime'],
+      lastScan: this.vulnerabilityManager ? this.vulnerabilityManager['lastScanTime'] : null,
       systemSecurity
     };
   }
 
   async getSecurityReport(days: number = 7): Promise<SecurityReport> {
+    if (!this.vulnerabilityManager) {
+      throw new Error('VulnerabilityManager not initialized');
+    }
     return await this.vulnerabilityManager.generateSecurityReport();
   }
 

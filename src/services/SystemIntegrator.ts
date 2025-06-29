@@ -81,8 +81,8 @@ export class SystemIntegrator {
   private static instance: SystemIntegrator;
   private performanceCache = new Map<string, any>();
   private lastHealthCheck: Date | null = null;
-  private securityManager: IntegratedSecurityManager;
-  private operationalReadiness: OperationalReadiness;
+  private securityManager: IntegratedSecurityManager | null = null;
+  private operationalReadiness: OperationalReadiness | null = null;
 
   constructor() {
     if (SystemIntegrator.instance) {
@@ -828,8 +828,21 @@ export class SystemIntegrator {
       const [integration, performance, security, operations] = await Promise.all([
         this.validateSystemIntegration(),
         this.measurePerformance(),
-        this.securityManager.getSecurityStatus(),
-        this.operationalReadiness.getOperationalStatus()
+        this.securityManager ? this.securityManager.getSecurityStatus() : { 
+          health: 0, 
+          activeThreats: 0, 
+          alertsCount: 0, 
+          lastScan: null, 
+          systemSecurity: 'WARNING' as const 
+        },
+        this.operationalReadiness ? this.operationalReadiness.getOperationalStatus() : { 
+          systemHealth: 0,
+          maintenanceStatus: 'UNKNOWN',
+          uptime: 0,
+          lastIncident: null,
+          automationRate: 0,
+          pendingTasks: 0
+        }
       ]);
       
       const healthCheck = await this.checkSystemHealth();

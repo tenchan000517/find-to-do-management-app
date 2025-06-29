@@ -325,7 +325,7 @@ export class OperationalReadiness {
   private healthChecks: Map<string, HealthStatus> = new Map();
   private maintenanceTasks: MaintenanceTask[] = [];
   private systemFailures: SystemFailure[] = [];
-  private troubleshootingAssistant: TroubleshootingAssistant;
+  private troubleshootingAssistant: TroubleshootingAssistant | null = null;
   private operationalProcedures: OperationalProcedure[] = [];
 
   constructor() {
@@ -819,14 +819,23 @@ export class OperationalReadiness {
 
   // トラブルシューティング支援機能の公開
   async diagnoseIssue(symptoms: string[]): Promise<Diagnosis> {
+    if (!this.troubleshootingAssistant) {
+      throw new Error('TroubleshootingAssistant not initialized');
+    }
     return await this.troubleshootingAssistant.diagnoseIssue(symptoms);
   }
 
   async suggestSolution(issue: Issue): Promise<Solution[]> {
+    if (!this.troubleshootingAssistant) {
+      throw new Error('TroubleshootingAssistant not initialized');
+    }
     return await this.troubleshootingAssistant.suggestSolution(issue);
   }
 
   async generateRunbook(issue: Issue): Promise<Runbook> {
+    if (!this.troubleshootingAssistant) {
+      throw new Error('TroubleshootingAssistant not initialized');
+    }
     return await this.troubleshootingAssistant.generateRunbook(issue);
   }
 }

@@ -726,9 +726,14 @@ export class SafeMenuProcessor {
       return { valid: false, message: `${parameter.validation.max}文字以下で入力してください。` };
     }
     if (parameter.validation?.pattern) {
-      const regex = new RegExp(parameter.validation.pattern);
-      if (!regex.test(input)) {
-        return { valid: false, message: '正しい形式で入力してください。' };
+      try {
+        const regex = new RegExp(parameter.validation.pattern);
+        if (!regex.test(input)) {
+          return { valid: false, message: '正しい形式で入力してください。' };
+        }
+      } catch (error) {
+        console.error('Invalid regex pattern:', parameter.validation.pattern, error);
+        return { valid: false, message: '無効な検証パターンです。' };
       }
     }
 
