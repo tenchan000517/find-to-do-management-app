@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, Target, Calendar, Handshake, Clock, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
 import SmartDashboard from '@/components/SmartDashboard';
+import { SystemIntegrator } from '@/services/SystemIntegrator';
 // Removed unused imports
 
 // 型定義
@@ -101,6 +102,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   // Phase 5: 統合システム状態
   const [integratedSystemStatus, setIntegratedSystemStatus] = useState<any>(null);
   const [systemStatusLoading, setSystemStatusLoading] = useState(true);
+  const [systemIntegrator] = useState(() => SystemIntegrator.getInstance());
   
   // Smart Dashboard state
   const [isSimpleMode, setIsSimpleMode] = useState(() => {
@@ -400,7 +402,31 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   };
 
   // ローディング状態の確認
-  const isLoading = tasksLoading || projectsLoading || connectionsLoading || appointmentsLoading || eventsLoading;
+  // SystemIntegratorからシステム状態を取得
+  useEffect(() => {
+    const fetchSystemStatus = async () => {
+      try {
+        setSystemStatusLoading(true);
+        const systemStatus = await systemIntegrator.getSystemStatus();
+        setIntegratedSystemStatus({
+          ...integratedSystemStatus,
+          systemIntegrator: systemStatus
+        });
+      } catch (error) {
+        console.error('Failed to fetch system status:', error);
+      } finally {
+        setSystemStatusLoading(false);
+      }
+    };
+
+    fetchSystemStatus();
+    
+    // 5分ごとにシステム状態を更新
+    const interval = setInterval(fetchSystemStatus, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [systemIntegrator]);
+
+  const isLoading = tasksLoading || projectsLoading || connectionsLoading || appointmentsLoading || eventsLoading || systemStatusLoading;
 
   if (isLoading) {
     return <LoadingPage title="ダッシュボードを読み込んでいます..." />;
@@ -514,25 +540,27 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
               ) : (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">メンバー負荷率</span>
+                    <span className="text-sm text-gray-600">Phase 1統合</span>
                     <span className={`text-sm font-medium ${
-                      integratedSystemStatus?.systemStatus?.phase1?.resourceOptimization?.status === 'active' ? 'text-green-600' : 'text-red-600'
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase1?.dataIntegrity ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {integratedSystemStatus?.systemStatus?.phase1?.resourceOptimization?.status === 'active' ? '最適化済み' : '未実行'}
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase1?.dataIntegrity ? '✅ 統合済み' : '❌ 未統合'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">MBTI分析</span>
+                    <span className="text-sm text-gray-600">リソース管理</span>
                     <span className={`text-sm font-medium ${
-                      integratedSystemStatus?.systemStatus?.phase1?.mbtiAnalysis?.status === 'active' ? 'text-blue-600' : 'text-red-600'
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase1?.studentResourceManager ? 'text-blue-600' : 'text-red-600'
                     }`}>
-                      {integratedSystemStatus?.systemStatus?.phase1?.mbtiAnalysis?.status === 'active' ? '活用中' : '未実行'}
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase1?.studentResourceManager ? '稼働中' : '停止中'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">チーム編成</span>
-                    <span className="text-sm font-medium text-purple-600">
-                      {integratedSystemStatus?.systemStatus?.phase1?.resourceOptimization?.optimizedTeams || 0}チーム
+                    <span className="text-sm text-gray-600">MBTI最適化</span>
+                    <span className={`text-sm font-medium ${
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase1?.mbtiTeamOptimizer ? 'text-purple-600' : 'text-red-600'
+                    }`}>
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase1?.mbtiTeamOptimizer ? '最適化中' : '停止中'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -689,6 +717,82 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 <p className="text-sm text-gray-500 text-center py-4">今日のタスクはありません</p>
               )}
             </div>
+          </Card>
+
+          {/* SystemIntegrator 統合状況 */}
+          <Card variant="elevated" padding="normal">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg md:text-xl font-semibold text-gray-900">🚀 システム統合状況</h2>
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  integratedSystemStatus?.systemIntegrator?.health > 0.8 ? 'bg-green-500' :
+                  integratedSystemStatus?.systemIntegrator?.health > 0.5 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className="text-sm text-gray-600">
+                  {integratedSystemStatus?.systemIntegrator?.health ? 
+                    `${Math.round(integratedSystemStatus.systemIntegrator.health * 100)}%` : '0%'}
+                </span>
+              </div>
+            </div>
+            
+            {systemStatusLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phase 1</span>
+                    <span className={`font-medium ${
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase1?.dataIntegrity ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase1?.dataIntegrity ? '✅' : '❌'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phase 2</span>
+                    <span className={`font-medium ${
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase2?.performanceOptimized ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase2?.performanceOptimized ? '✅' : '❌'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phase 3</span>
+                    <span className={`font-medium ${
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase3?.analyticsIntegrated ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase3?.analyticsIntegrated ? '✅' : '❌'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phase 4</span>
+                    <span className={`font-medium ${
+                      integratedSystemStatus?.systemIntegrator?.integration?.phase4?.aiAssistant ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {integratedSystemStatus?.systemIntegrator?.integration?.phase4?.aiAssistant ? '✅' : '❌'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">最終チェック</span>
+                    <span className="text-gray-500">
+                      {integratedSystemStatus?.systemIntegrator?.lastCheck ? 
+                        new Date(integratedSystemStatus.systemIntegrator.lastCheck).toLocaleTimeString('ja-JP') : '--:--'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span className="text-gray-600">API応答時間</span>
+                    <span className="text-gray-700 font-medium">
+                      {integratedSystemStatus?.systemIntegrator?.performance?.responseTime?.api || 0}ms
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* カレンダー */}
