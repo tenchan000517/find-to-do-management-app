@@ -88,10 +88,13 @@ export default function MobileSettings() {
     }
   });
 
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(true);
   const [storageUsage, setStorageUsage] = useState<{ used: number; total: number } | null>(null);
 
   useEffect(() => {
+    // Check if we're in browser environment
+    if (typeof window === 'undefined') return;
+
     // Load settings from localStorage
     const savedSettings = localStorage.getItem('mobileSettings');
     if (savedSettings) {
@@ -109,6 +112,7 @@ export default function MobileSettings() {
     }
 
     // Check online status
+    setIsOnline(navigator.onLine);
     const handleOnlineChange = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', handleOnlineChange);
     window.addEventListener('offline', handleOnlineChange);
@@ -132,13 +136,16 @@ export default function MobileSettings() {
   const updateSettings = (newSettings: Partial<MobileSettings>) => {
     const updatedSettings = { ...settings, ...newSettings };
     setSettings(updatedSettings);
-    localStorage.setItem('mobileSettings', JSON.stringify(updatedSettings));
     
-    // Apply settings immediately
-    applySettings(updatedSettings);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mobileSettings', JSON.stringify(updatedSettings));
+      applySettings(updatedSettings);
+    }
   };
 
   const applySettings = (settings: MobileSettings) => {
+    if (typeof window === 'undefined') return;
+
     // Dark mode
     if (settings.display.darkMode) {
       document.documentElement.classList.add('dark');
@@ -178,7 +185,7 @@ export default function MobileSettings() {
   const testVibration = () => {
     if (!settings.notifications.vibration) return;
     
-    if (navigator.vibrate) {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       // テスト用のバイブレーションパターン
       navigator.vibrate([100, 50, 100, 50, 200]);
     } else {
@@ -188,18 +195,20 @@ export default function MobileSettings() {
 
   const handleInstallPWA = () => {
     // PWA install logic would be handled by the parent app
-    window.dispatchEvent(new CustomEvent('installPWA'));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('installPWA'));
+    }
   };
 
   const handleClearCache = async () => {
     try {
-      if ('caches' in window) {
+      if (typeof window !== 'undefined' && 'caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
       
       // Clear IndexedDB data
-      if ('indexedDB' in window) {
+      if (typeof window !== 'undefined' && 'indexedDB' in window) {
         const deleteDB = indexedDB.deleteDatabase('mobileTasksDB');
         deleteDB.onsuccess = () => {
           console.log('キャッシュをクリアしました');
@@ -215,7 +224,9 @@ export default function MobileSettings() {
 
   const handleExportData = () => {
     // Export user data logic
-    window.dispatchEvent(new CustomEvent('exportUserData'));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('exportUserData'));
+    }
   };
 
   const settingSections = [
@@ -587,7 +598,9 @@ export default function MobileSettings() {
           <Card className="p-4">
             <Button 
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('signOut'));
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('signOut'));
+                }
               }}
               className="w-full bg-red-600 hover:bg-red-700 text-white"
             >
