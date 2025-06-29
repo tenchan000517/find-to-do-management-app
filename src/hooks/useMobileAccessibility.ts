@@ -18,13 +18,20 @@ export function useMobileAccessibility() {
     voiceControl: false
   });
 
-  const [reachableHeight, setReachableHeight] = useState<number>(window.innerHeight);
+  const [reachableHeight, setReachableHeight] = useState<number>(800); // Default height
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Set initial height
+    setReachableHeight(window.innerHeight);
+
     // ローカルストレージから設定を読み込み
-    const savedSettings = localStorage.getItem('mobile-accessibility');
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+    if (typeof localStorage !== 'undefined') {
+      const savedSettings = localStorage.getItem('mobile-accessibility');
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
     }
 
     // システムの設定をチェック
@@ -59,7 +66,9 @@ export function useMobileAccessibility() {
   const updateSettings = (newSettings: Partial<AccessibilitySettings>) => {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
-    localStorage.setItem('mobile-accessibility', JSON.stringify(updated));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('mobile-accessibility', JSON.stringify(updated));
+    }
 
     // フォントサイズをCSS変数に適用
     applyFontSize(updated.fontSize);
@@ -72,6 +81,8 @@ export function useMobileAccessibility() {
   };
 
   const applyFontSize = (fontSize: AccessibilitySettings['fontSize']) => {
+    if (typeof document === 'undefined') return;
+    
     const root = document.documentElement;
     const sizeMap = {
       'small': '14px',
@@ -98,6 +109,8 @@ export function useMobileAccessibility() {
   };
 
   const applyOneHandMode = (enabled: boolean) => {
+    if (typeof document === 'undefined') return;
+    
     const root = document.documentElement;
     if (enabled) {
       root.style.setProperty('--mobile-max-height', `${reachableHeight}px`);
@@ -111,6 +124,8 @@ export function useMobileAccessibility() {
   };
 
   const applyHighContrast = (enabled: boolean) => {
+    if (typeof document === 'undefined') return;
+    
     const root = document.documentElement;
     if (enabled) {
       root.classList.add('high-contrast');
@@ -152,6 +167,7 @@ export function useMobileAccessibility() {
   // リーチャブルな領域内かどうかを判定
   const isReachable = (elementY: number): boolean => {
     if (!settings.oneHandMode) return true;
+    if (typeof window === 'undefined') return true;
     return elementY >= window.innerHeight - reachableHeight;
   };
 

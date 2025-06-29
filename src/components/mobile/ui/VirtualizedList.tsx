@@ -101,6 +101,8 @@ export function DynamicVirtualizedList<T>({
 
   // アイテムの高さを測定
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const heights = itemsRef.current.map(el => 
       el ? el.getBoundingClientRect().height : estimatedItemHeight
     );

@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
 import { Mic, MicOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 interface VoiceTaskCreatorProps {
   onTaskCreated?: (task: ParsedTask) => void;
   className?: string;
@@ -28,7 +35,7 @@ export default function VoiceTaskCreator({ onTaskCreated, className }: VoiceTask
   const [success, setSuccess] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any | null>(null);
 
   useEffect(() => {
     // Initialize Speech Recognition API if available
@@ -40,13 +47,13 @@ export default function VoiceTaskCreator({ onTaskCreated, className }: VoiceTask
       recognition.interimResults = false;
       recognition.lang = 'ja-JP';
 
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setTranscript(transcript);
         processVoiceInput(transcript);
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         setError(`音声認識エラー: ${event.error}`);
         setIsRecording(false);
         setIsProcessing(false);

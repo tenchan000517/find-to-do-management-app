@@ -1,4 +1,5 @@
 import { prismaDataService } from '../database/prisma-service';
+import prisma from '../database/prisma';
 import { getAICallManager } from '../ai/call-manager';
 
 interface SuccessPrediction {
@@ -567,4 +568,49 @@ export class SuccessProbabilityEngine {
   private generateMitigationStrategy(factor: ProbabilityFactor): string { return `${factor.factor}への対策を実施`; }
   private generateEarlyWarnings(factors: ProbabilityFactor[], appointmentData: any): string[] { return []; }
   private generateFactorRecommendation(factor: ProbabilityFactor): Recommendation | null { return null; }
+
+  /**
+   * 全ての営業予測データを取得
+   */
+  async getAllPredictions(): Promise<SuccessPrediction[]> {
+    try {
+      // 今後予定されているカレンダーイベントから関連するアポイントメントを取得
+      const futureCalendarEvents = await prisma.calendar_events.findMany({
+        where: {
+          appointmentId: {
+            not: null
+          },
+          date: {
+            gte: new Date().toISOString().split('T')[0] // 今日以降
+          }
+        },
+        include: {
+          appointments: true
+        },
+        take: 50 // 最大50件
+      });
+
+      // アポイントメントが存在するイベントのみ抽出
+      const appointments = futureCalendarEvents
+        .filter(event => event.appointments)
+        .map(event => event.appointments!);
+
+      const predictions: SuccessPrediction[] = [];
+      
+      for (const appointment of appointments) {
+        try {
+          const prediction = await this.calculateSuccessProbability(appointment.id);
+          predictions.push(prediction);
+        } catch (error) {
+          console.error(`Failed to calculate prediction for appointment ${appointment.id}:`, error);
+          // エラーが発生したアポイントメントはスキップ
+        }
+      }
+
+      return predictions;
+    } catch (error) {
+      console.error('Failed to get all predictions:', error);
+      return [];
+    }
+  }
 }

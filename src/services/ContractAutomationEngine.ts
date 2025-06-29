@@ -119,6 +119,7 @@ export interface TaskChecklistItem {
 
 export interface AutomationRule {
   id: string;
+  description: string;
   trigger: 'task_complete' | 'date_reached' | 'condition_met';
   condition?: string;
   action: 'create_task' | 'send_notification' | 'update_status' | 'generate_document';

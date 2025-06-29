@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // メトリクス計算
     const totalOpportunities = opportunities.length;
-    const totalValue = opportunities.reduce((sum, opp) => sum + (opp.dealValue || 0), 0);
+    const totalValue = opportunities.reduce((sum, opp) => sum + Number(opp.dealValue || 0), 0);
     const avgDealSize = totalOpportunities > 0 ? totalValue / totalOpportunities : 0;
 
     // ステージ別分析
@@ -44,13 +44,13 @@ export async function POST(request: NextRequest) {
         acc[stage] = { count: 0, value: 0 };
       }
       acc[stage].count++;
-      acc[stage].value += opp.dealValue || 0;
+      acc[stage].value += Number(opp.dealValue || 0);
       return acc;
     }, {} as Record<string, { count: number; value: number }>);
 
     // 成約率計算
-    const wonOpportunities = opportunities.filter(opp => opp.stage === 'closed_won');
-    const lostOpportunities = opportunities.filter(opp => opp.stage === 'closed_lost');
+    const wonOpportunities = opportunities.filter(opp => opp.stage === 'CLOSED_WON');
+    const lostOpportunities = opportunities.filter(opp => opp.stage === 'CLOSED_LOST');
     const closedOpportunities = wonOpportunities.length + lostOpportunities.length;
     const conversionRate = closedOpportunities > 0 ? (wonOpportunities.length / closedOpportunities) * 100 : 0;
 
@@ -70,15 +70,15 @@ export async function POST(request: NextRequest) {
         acc[priority] = { count: 0, value: 0, conversionRate: 0 };
       }
       acc[priority].count++;
-      acc[priority].value += opp.dealValue || 0;
+      acc[priority].value += Number(opp.dealValue || 0);
       return acc;
     }, {} as Record<string, { count: number; value: number; conversionRate: number }>);
 
     // 優先度別成約率を計算
     Object.keys(priorityAnalysis).forEach(priority => {
       const priorityOpps = opportunities.filter(opp => (opp.priority || 'C') === priority);
-      const priorityWon = priorityOpps.filter(opp => opp.stage === 'closed_won');
-      const priorityClosed = priorityOpps.filter(opp => ['closed_won', 'closed_lost'].includes(opp.stage));
+      const priorityWon = priorityOpps.filter(opp => opp.stage === 'CLOSED_WON');
+      const priorityClosed = priorityOpps.filter(opp => ['CLOSED_WON', 'CLOSED_LOST'].includes(opp.stage));
       priorityAnalysis[priority].conversionRate = priorityClosed.length > 0 
         ? (priorityWon.length / priorityClosed.length) * 100 
         : 0;
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
         acc[month] = { count: 0, value: 0, won: 0 };
       }
       acc[month].count++;
-      acc[month].value += opp.dealValue || 0;
-      if (opp.stage === 'closed_won') {
+      acc[month].value += Number(opp.dealValue || 0);
+      if (opp.stage === 'CLOSED_WON') {
         acc[month].won++;
       }
       return acc;
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         avgDealSize,
         conversionRate,
         avgSalesCycle,
-        wonValue: wonOpportunities.reduce((sum, opp) => sum + (opp.dealValue || 0), 0)
+        wonValue: wonOpportunities.reduce((sum, opp) => sum + Number(opp.dealValue || 0), 0)
       },
       stageAnalysis,
       priorityAnalysis,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         companyName: opp.companyName,
         stage: opp.stage,
         priority: opp.priority,
-        dealValue: opp.dealValue,
+        dealValue: Number(opp.dealValue),
         createdAt: opp.createdAt,
         expectedCloseDate: opp.expectedCloseDate,
         customerIndustry: opp.customer?.industry

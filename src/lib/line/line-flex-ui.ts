@@ -10,7 +10,7 @@ import { getTypeDisplayName } from '@/lib/constants/line-types';
 import { formatDateTime } from './line-messages';
 
 /**
- * テスト用ボタンメッセージ
+ * 確認用ボタンメッセージ
  * @param replyToken 返信トークン
  * @returns 送信成功フラグ
  */
@@ -50,7 +50,7 @@ export async function createTestButtonMessage(replyToken: string): Promise<boole
           action: {
             type: 'postback',
             label: 'YES',
-            data: 'test_yes'
+            data: 'confirm_yes'
           }
         },
         {
@@ -60,7 +60,7 @@ export async function createTestButtonMessage(replyToken: string): Promise<boole
           action: {
             type: 'postback',
             label: 'NO',
-            data: 'test_no'
+            data: 'confirm_no'
           }
         }
       ]

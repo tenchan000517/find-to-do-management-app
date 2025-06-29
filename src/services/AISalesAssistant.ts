@@ -373,12 +373,12 @@ export class AISalesAssistant {
   /**
    * 包括的顧客分析の実行
    */
-  async analyzeCustomer(customerId: string, salesHistory: SalesOpportunity[]): Promise<CustomerProfile> {
+  async analyzeCustomer(customerId: string, salesHistory?: SalesOpportunity[]): Promise<CustomerProfile> {
     // 基本的な顧客情報の取得（実際にはCRMやデータベースから）
     const basicInfo = await this.fetchBasicCustomerInfo(customerId);
     
     // 行動パターン分析
-    const behaviorAnalysis = await this.analyzeBehaviorPatterns(salesHistory);
+    const behaviorAnalysis = await this.analyzeBehaviorPatterns(salesHistory || []);
     
     // 財務分析
     const financialAnalysis = await this.analyzeFinancialCapacity(basicInfo);
@@ -390,7 +390,7 @@ export class AISalesAssistant {
     const competitivePosition = await this.analyzeCompetitivePosition(basicInfo);
     
     // ペインポイント特定
-    const painPoints = await this.identifyPainPoints(basicInfo, salesHistory);
+    const painPoints = await this.identifyPainPoints(basicInfo, salesHistory || []);
     
     // 成長機会の特定
     const opportunities = await this.identifyGrowthOpportunities(basicInfo);
@@ -410,7 +410,7 @@ export class AISalesAssistant {
       budget: await this.assessBudgetInfo(basicInfo, financialAnalysis),
       timeframe: behaviorAnalysis.typicalDecisionTimeframe,
       competitivePosition,
-      riskFactors: await this.identifyRiskFactors(basicInfo, salesHistory),
+      riskFactors: await this.identifyRiskFactors(basicInfo, salesHistory || []),
       opportunities
     };
   }
@@ -418,45 +418,45 @@ export class AISalesAssistant {
   /**
    * AI提案書の自動生成
    */
-  async generateProposal(request: ProposalRequest, customerProfile: CustomerProfile): Promise<AIProposal> {
+  async generateProposal(request: ProposalRequest, customerProfile?: CustomerProfile): Promise<AIProposal> {
     // ソリューションの設計
-    const proposedSolution = await this.designSolution(request, customerProfile);
+    const proposedSolution = await this.designSolution(request, customerProfile!);
     
     // ビジネスケースの計算
-    const businessCase = await this.calculateBusinessCase(proposedSolution, customerProfile);
+    const businessCase = await this.calculateBusinessCase(proposedSolution, customerProfile!);
     
     // 技術アプローチの策定
-    const technicalApproach = await this.designTechnicalApproach(request.solutionType, customerProfile);
+    const technicalApproach = await this.designTechnicalApproach(request.solutionType, customerProfile!);
     
     // タイムラインの生成
-    const timeline = await this.generateProjectTimeline(proposedSolution, customerProfile);
+    const timeline = await this.generateProjectTimeline(proposedSolution, customerProfile || {} as CustomerProfile);
     
     // 価格設定の最適化
-    const pricing = await this.optimizePricing(proposedSolution, customerProfile, businessCase);
+    const pricing = await this.optimizePricing(proposedSolution, customerProfile || {} as CustomerProfile, businessCase);
     
     // リスク分析と軽減策
-    const risks = await this.analyzeAndMitigateRisks(proposedSolution, customerProfile);
+    const risks = await this.analyzeAndMitigateRisks(proposedSolution, customerProfile || {} as CustomerProfile);
     
     // 競合対策の策定
-    const competitiveStrategy = await this.developCompetitiveStrategy(customerProfile);
+    const competitiveStrategy = await this.developCompetitiveStrategy(customerProfile!);
 
     const proposal: AIProposal = {
       id: this.generateId('proposal'),
-      customerId: customerProfile.id,
-      title: this.generateProposalTitle(proposedSolution, customerProfile),
-      executiveSummary: this.generateExecutiveSummary(proposedSolution, businessCase, customerProfile),
-      problemStatement: this.generateProblemStatement(customerProfile),
+      customerId: customerProfile?.id || 'unknown',
+      title: this.generateProposalTitle(proposedSolution, customerProfile!),
+      executiveSummary: this.generateExecutiveSummary(proposedSolution, businessCase, customerProfile!),
+      problemStatement: this.generateProblemStatement(customerProfile!),
       proposedSolution,
       businessCase,
       technicalApproach,
       timeline,
       pricing,
       riskMitigation: risks,
-      nextSteps: this.generateNextSteps(customerProfile),
-      appendices: await this.generateAppendices(customerProfile, proposedSolution),
-      confidence: this.calculateProposalConfidence(customerProfile, proposedSolution),
+      nextSteps: this.generateNextSteps(customerProfile!),
+      appendices: await this.generateAppendices(customerProfile!, proposedSolution),
+      confidence: this.calculateProposalConfidence(customerProfile!, proposedSolution),
       generatedAt: new Date().toISOString(),
-      customizations: this.identifyCustomizations(customerProfile)
+      customizations: this.identifyCustomizations(customerProfile!)
     };
 
     return proposal;
@@ -668,10 +668,13 @@ export class AISalesAssistant {
   }
 
   private generateSolutionOverview(solutionType: SolutionType, customer: CustomerProfile): string {
-    const templates = {
+    const templates: Record<string, string> = {
       digital_transformation: `${customer.companyName}様のデジタル変革を包括的に支援し、業務効率化と競争力強化を実現します。`,
       process_automation: `${customer.companyName}様の業務プロセスを自動化し、生産性向上とコスト削減を実現します。`,
-      data_analytics: `${customer.companyName}様のデータ活用基盤を構築し、データドリブンな意思決定を支援します。`
+      data_analytics: `${customer.companyName}様のデータ活用基盤を構築し、データドリブンな意思決定を支援します。`,
+      cloud_migration: `${customer.companyName}様のクラウド移行を支援し、柔軟性とスケーラビリティを実現します。`,
+      security_enhancement: `${customer.companyName}様のセキュリティ体制を強化し、ビジネスリスクを最小化します。`,
+      custom_development: `${customer.companyName}様の固有のニーズに対応したカスタムソリューションを提供します。`
     };
 
     return templates[solutionType] || `${customer.companyName}様向けカスタムソリューション`;
@@ -810,7 +813,7 @@ export class AISalesAssistant {
     ];
   }
 
-  private async identifyRiskFactors(customerInfo: any, salesHistory: SalesOpportunity[]): Promise<CustomerRiskFactor[]> {
+  private async identifyRiskFactors(customerInfo: any, salesHistory: SalesOpportunity[] | undefined): Promise<CustomerRiskFactor[]> {
     return [
       {
         type: 'technical',
@@ -827,7 +830,7 @@ export class AISalesAssistant {
     
     return {
       architecture: 'マイクロサービス・クラウドネイティブアーキテクチャ',
-      technologies: template?.keyTechnologies.map(tech => ({
+      technologies: template?.keyTechnologies.map((tech: any) => ({
         name: tech,
         purpose: `${tech}による${solutionType}の実現`,
         justification: `${customer.industry}業界での実績と適合性`
@@ -1121,23 +1124,18 @@ export class AISalesAssistant {
 
   private async developCompetitiveStrategy(customer: CustomerProfile): Promise<CompetitiveStrategy> {
     return {
-      approach: 'differentiation',
+      positioning: 'differentiation',
       keyMessages: [
         '業界特化の深い理解',
         '実証済みのROI実績',
         '包括的なサポート体制'
       ],
-      competitiveAdvantages: [
+      differentiationFocus: [
         '豊富な導入実績',
         '柔軟なカスタマイゼーション',
         '継続的な機能拡張'
       ],
-      riskMitigation: [
-        'PoC提案による効果実証',
-        '段階的導入による リスク軽減',
-        '専任サポート体制'
-      ],
-      positioning: 'premium_solution',
+      pricingStrategy: 'value-based',
       valueProposition: '業界No.1のソリューション品質と顧客満足度'
     };
   }

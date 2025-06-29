@@ -32,13 +32,13 @@ export async function handlePostback(event: LineWebhookEvent): Promise<void> {
   }
   
   try {
-    if (data === 'test_yes') {
+    if (data === 'confirm_yes') {
       if (event.replyToken) {
-        await sendReplyMessage(event.replyToken, '✅ YESボタンが押されました！テスト成功です 🎉');
+        await sendReplyMessage(event.replyToken, '✅ 確認いただき、ありがとうございます。');
       }
-    } else if (data === 'test_no') {
+    } else if (data === 'confirm_no') {
       if (event.replyToken) {
-        await sendReplyMessage(event.replyToken, '❌ NOボタンが押されました！テスト成功です 🎉');
+        await sendReplyMessage(event.replyToken, '❌ キャンセルされました。');
       }
     } else if (data.startsWith('start_classification_')) {
       // メニューからの分類選択

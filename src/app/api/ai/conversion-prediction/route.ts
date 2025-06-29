@@ -36,9 +36,25 @@ export async function POST(request: NextRequest) {
 
     // 顧客プロファイルの構築
     const customerProfile = {
+      id: opportunity.customerId,
       companyName: opportunity.customer?.companyName || '',
       industry: opportunity.customer?.industry || '',
       companySize: opportunity.customer?.employees || 0,
+      revenue: opportunity.customer?.revenue || 0,
+      employees: opportunity.customer?.employees || 0,
+      businessModel: opportunity.customer?.businessModel || 'B2B',
+      customerPersona: {
+        primaryNeeds: [],
+        challenges: [],
+        goals: [],
+        decisionCriteria: []
+      },
+      budget: {
+        amount: 0,
+        costSensitivity: 'medium' as const,
+        approvalProcess: 'standard',
+        budgetCycle: 'annual'
+      },
       decisionMakers: [], // 実際には別テーブルから取得
       painPoints: [], // 実際には別テーブルから取得
       competitivePosition: {
@@ -48,23 +64,40 @@ export async function POST(request: NextRequest) {
         differentiationNeeds: []
       },
       riskFactors: [],
-      opportunities: []
+      opportunities: [],
+      techMaturity: 'intermediate' as const
     };
 
     let result;
 
     switch (predictionType) {
       case 'conversion_probability':
+        // Prismaから取得したデータをSalesOpportunity型に変換
+        const salesOpp = {
+          ...opportunity,
+          activities: opportunity.sales_activities || [],
+          dealValue: Number(opportunity.dealValue),
+          riskScore: 0,
+          probabilityScore: 0
+        } as any;
         result = await conversionPredictor.predictConversionProbability(
-          opportunity,
-          customerProfile
+          salesOpp,
+          customerProfile as any
         );
         break;
       
       case 'optimization':
+        // Prismaから取得したデータをSalesOpportunity型に変換
+        const salesOppOpt = {
+          ...opportunity,
+          activities: opportunity.sales_activities || [],
+          dealValue: Number(opportunity.dealValue),
+          riskScore: 0,
+          probabilityScore: 0
+        } as any;
         result = await conversionPredictor.optimizeConversionProbability(
-          opportunity,
-          customerProfile
+          salesOppOpt,
+          customerProfile as any
         );
         break;
       
@@ -73,7 +106,15 @@ export async function POST(request: NextRequest) {
           where: { customerId: opportunity.customerId },
           include: { sales_activities: true }
         });
-        result = await conversionPredictor.analyzeConversionMetrics(opportunities);
+        // Prismaから取得したデータをSalesOpportunity型に変換
+        const salesOpps = opportunities.map(opp => ({
+          ...opp,
+          activities: opp.sales_activities || [],
+          dealValue: Number(opp.dealValue),
+          riskScore: 0,
+          probabilityScore: 0
+        })) as any[];
+        result = await conversionPredictor.analyzeConversionMetrics(salesOpps);
         break;
       
       default:
@@ -88,7 +129,7 @@ export async function POST(request: NextRequest) {
       data: {
         opportunityId,
         predictionType,
-        probability: result.currentProbability || result.currentScore || 0,
+        probability: (result as any)?.currentProbability || (result as any)?.currentScore || 0,
         result: JSON.stringify(result),
         executedAt: new Date()
       }

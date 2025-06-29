@@ -476,7 +476,7 @@ export default function MobileSettings() {
                       className="w-32"
                       fullWidth={false}
                     >
-                      {item.options?.map((option) => (
+                      {(item as any).options?.map((option: any) => (
                         <SelectOption key={option.value} value={option.value}>
                           {option.label}
                         </SelectOption>

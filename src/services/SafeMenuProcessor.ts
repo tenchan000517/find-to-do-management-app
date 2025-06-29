@@ -438,8 +438,7 @@ export class SafeMenuProcessor {
     if (!action) {
       return {
         success: false,
-        message: '指定されたアクションが見つかりません。',
-        error: 'Action not found'
+        message: '指定されたアクションが見つかりません。'
       };
     }
 
@@ -472,8 +471,7 @@ export class SafeMenuProcessor {
     } else {
       return {
         success: false,
-        message: 'このアクションにはパラメータが定義されていません。',
-        error: 'No parameters defined'
+        message: 'このアクションにはパラメータが定義されていません。'
       };
     }
   }
@@ -489,8 +487,7 @@ export class SafeMenuProcessor {
     if (!session) {
       return {
         success: false,
-        message: 'セッションが見つかりません。最初からやり直してください。',
-        error: 'Session not found'
+        message: 'セッションが見つかりません。最初からやり直してください。'
       };
     }
 
@@ -498,7 +495,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: 'このセッションは無効です。',
-        error: 'Session inactive'
+        // Session inactive
       };
     }
 
@@ -507,7 +504,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: 'セッションがタイムアウトしました。最初からやり直してください。',
-        error: 'Session expired'
+        // Session expired
       };
     }
 
@@ -516,7 +513,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: 'アクションが見つかりません。',
-        error: 'Action not found'
+        // Action not found
       };
     }
 
@@ -525,7 +522,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: 'パラメータが見つかりません。',
-        error: 'Parameter not found'
+        // Parameter not found
       };
     }
 
@@ -535,7 +532,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: validationResult.message,
-        nextStep: this.getCurrentStep(action, session)
+        nextStep: this.getCurrentStep(action, session) || undefined
       };
     }
 
@@ -567,7 +564,7 @@ export class SafeMenuProcessor {
         message: executionResult.message,
         completed: true,
         data: executionResult.data,
-        error: executionResult.error
+        // Execution error
       };
     }
   }
@@ -883,11 +880,11 @@ export class SafeMenuProcessor {
         case 'analysis_sales_metrics':
           return await this.analyzeSalesMetrics(parameters);
         default:
-          return { success: false, message: 'サポートされていないアクションです。', error: 'Unsupported action' };
+          return { success: false, message: 'サポートされていないアクションです。' };
       }
     } catch (error) {
       console.error('Action execution error:', error);
-      return { success: false, message: 'アクション実行中にエラーが発生しました。', error: error instanceof Error ? error.message : 'Unknown error' };
+      return { success: false, message: 'アクション実行中にエラーが発生しました。' };
     }
   }
 
@@ -929,7 +926,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: '営業案件の作成に失敗しました。システム管理者にお問い合わせください。',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        // Error occurred
       };
     }
   }
@@ -968,7 +965,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: '営業ステージの更新に失敗しました。',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        // Error occurred
       };
     }
   }
@@ -1012,7 +1009,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: 'アポイントメントの設定に失敗しました。',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        // Error occurred
       };
     }
   }
@@ -1056,7 +1053,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: '契約処理の開始に失敗しました。',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        // Error occurred
       };
     }
   }
@@ -1096,7 +1093,7 @@ export class SafeMenuProcessor {
       return {
         success: false,
         message: '営業分析の実行に失敗しました。',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        // Error occurred
       };
     }
   }

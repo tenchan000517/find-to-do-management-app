@@ -1,6 +1,6 @@
 // Phase 3: Real-time API endpoints for WebSocket fallback
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database/prisma';
+import prisma from '@/lib/database/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 async function getMetrics() {
   try {
     // アクティブユーザー数を計算
-    const activeUsers = await prisma.user.count({
+    const activeUsers = await prisma.users.count({
       where: {
         updatedAt: {
           gte: new Date(Date.now() - 30 * 60 * 1000) // 30分以内
@@ -38,9 +38,9 @@ async function getMetrics() {
     // 今日完了したタスク数
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tasksCompleted = await prisma.task.count({
+    const tasksCompleted = await prisma.tasks.count({
       where: {
-        status: 'COMPLETED',
+        status: 'COMPLETE',
         updatedAt: {
           gte: today
         }
@@ -48,10 +48,10 @@ async function getMetrics() {
     });
 
     // 進行中のプロジェクト数
-    const projectsInProgress = await prisma.project.count({
+    const projectsInProgress = await prisma.projects.count({
       where: {
         status: {
-          in: ['planning', 'in_progress']
+          in: ['PLANNING', 'ACTIVE']
         }
       }
     });
@@ -61,9 +61,9 @@ async function getMetrics() {
     thisMonth.setDate(1);
     thisMonth.setHours(0, 0, 0, 0);
     
-    const revenueResult = await prisma.customerLtvAnalysis.aggregate({
+    const revenueResult = await prisma.customer_ltv_analysis.aggregate({
       _sum: {
-        currentLtv: true
+        totalLtv: true
       },
       where: {
         updatedAt: {
@@ -72,10 +72,10 @@ async function getMetrics() {
       }
     });
 
-    // リスクスコアの計算（平均）
-    const riskResult = await prisma.customerLtvAnalysis.aggregate({
+    // リスクスコアの計算（平均信頼度から換算）
+    const riskResult = await prisma.customer_ltv_analysis.aggregate({
       _avg: {
-        riskScore: true
+        confidenceScore: true
       }
     });
 
@@ -83,8 +83,8 @@ async function getMetrics() {
       activeUsers,
       tasksCompleted,
       projectsInProgress,
-      revenue: revenueResult._sum.currentLtv || 0,
-      riskScore: riskResult._avg.riskScore || 0,
+      revenue: Number(revenueResult._sum.totalLtv || 0),
+      riskScore: Number((1 - (riskResult._avg.confidenceScore || 0.8)) * 10),
       responseTime: Math.floor(Math.random() * 100) + 50 // 模擬応答時間
     };
 
@@ -101,15 +101,15 @@ async function getMetrics() {
 async function getEvents() {
   try {
     // 最近のタスク完了イベント
-    const recentTasks = await prisma.task.findMany({
+    const recentTasks = await prisma.tasks.findMany({
       where: {
-        status: 'COMPLETED',
+        status: 'COMPLETE',
         updatedAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // 24時間以内
         }
       },
       include: {
-        assignee: true
+        users: true
       },
       orderBy: {
         updatedAt: 'desc'
@@ -118,7 +118,7 @@ async function getEvents() {
     });
 
     // 最近のプロジェクト更新
-    const recentProjects = await prisma.project.findMany({
+    const recentProjects = await prisma.projects.findMany({
       where: {
         updatedAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
@@ -131,14 +131,17 @@ async function getEvents() {
     });
 
     // リスクアラート
-    const riskAlerts = await prisma.customerLtvAnalysis.findMany({
+    const riskAlerts = await prisma.customer_ltv_analysis.findMany({
       where: {
-        riskScore: {
-          gte: 7 // 高リスク
+        confidenceScore: {
+          lte: 0.3 // 低信頼度（高リスク）
         },
         updatedAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
         }
+      },
+      include: {
+        connection: true
       },
       orderBy: {
         updatedAt: 'desc'
@@ -148,12 +151,12 @@ async function getEvents() {
 
     const events = [
       // タスク完了イベント
-      ...recentTasks.map(task => ({
+      ...recentTasks.map((task: any) => ({
         id: `task-${task.id}`,
         type: 'task-completed' as const,
         timestamp: task.updatedAt.toISOString(),
-        userId: task.assigneeId,
-        userName: task.assignee?.name,
+        userId: task.userId,
+        userName: task.users?.name,
         data: {
           title: 'タスク完了',
           description: task.title,
@@ -162,7 +165,7 @@ async function getEvents() {
       })),
 
       // プロジェクト更新イベント
-      ...recentProjects.map(project => ({
+      ...recentProjects.map((project: any) => ({
         id: `project-${project.id}`,
         type: 'project-updated' as const,
         timestamp: project.updatedAt.toISOString(),
@@ -175,15 +178,15 @@ async function getEvents() {
       })),
 
       // リスクアラート
-      ...riskAlerts.map(alert => ({
+      ...riskAlerts.map((alert: any) => ({
         id: `risk-${alert.id}`,
         type: 'risk-alert' as const,
         timestamp: alert.updatedAt.toISOString(),
         data: {
           title: '財務リスクアラート',
-          description: `顧客 ${alert.customerId} のリスクスコアが ${alert.riskScore}% に上昇`,
-          priority: alert.riskScore >= 9 ? 'critical' as const : 'high' as const,
-          value: alert.riskScore
+          description: `顧客 ${alert.connection?.company || '不明'} の信頼度スコアが ${Math.round((1 - alert.confidenceScore) * 100)}% のリスク`,
+          priority: alert.confidenceScore <= 0.2 ? 'critical' as const : 'high' as const,
+          value: Number((1 - alert.confidenceScore) * 10)
         }
       }))
     ]

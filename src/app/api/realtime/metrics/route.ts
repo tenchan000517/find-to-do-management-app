@@ -1,11 +1,11 @@
 // Phase 3: Real-time metrics endpoint
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/database/prisma';
+import prisma from '@/lib/database/prisma';
 
 export async function GET() {
   try {
     // アクティブユーザー数を計算（30分以内の活動）
-    const activeUsers = await prisma.user.count({
+    const activeUsers = await prisma.users.count({
       where: {
         updatedAt: {
           gte: new Date(Date.now() - 30 * 60 * 1000)
@@ -16,9 +16,9 @@ export async function GET() {
     // 今日完了したタスク数
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tasksCompleted = await prisma.task.count({
+    const tasksCompleted = await prisma.tasks.count({
       where: {
-        status: 'COMPLETED',
+        status: 'COMPLETE',
         updatedAt: {
           gte: today
         }
@@ -26,10 +26,10 @@ export async function GET() {
     });
 
     // 進行中のプロジェクト数
-    const projectsInProgress = await prisma.project.count({
+    const projectsInProgress = await prisma.projects.count({
       where: {
         status: {
-          in: ['planning', 'in_progress']
+          in: ['PLANNING', 'ACTIVE']
         }
       }
     });
@@ -39,9 +39,9 @@ export async function GET() {
     thisMonth.setDate(1);
     thisMonth.setHours(0, 0, 0, 0);
     
-    const revenueResult = await prisma.customerLtvAnalysis.aggregate({
+    const revenueResult = await prisma.customer_ltv_analysis.aggregate({
       _sum: {
-        currentLtv: true
+        totalLtv: true
       },
       where: {
         updatedAt: {
@@ -51,9 +51,9 @@ export async function GET() {
     });
 
     // 平均リスクスコア
-    const riskResult = await prisma.customerLtvAnalysis.aggregate({
+    const riskResult = await prisma.customer_ltv_analysis.aggregate({
       _avg: {
-        riskScore: true
+        confidenceScore: true
       },
       where: {
         updatedAt: {
@@ -69,8 +69,8 @@ export async function GET() {
       activeUsers,
       tasksCompleted,
       projectsInProgress,
-      revenue: Math.round(revenueResult._sum.currentLtv || 0),
-      riskScore: Math.round((riskResult._avg.riskScore || 0) * 10) / 10,
+      revenue: Math.round(Number(revenueResult._sum.totalLtv) || 0),
+      riskScore: Math.round(((riskResult._avg?.confidenceScore || 0.8) * 10)) / 10,
       responseTime,
       timestamp: new Date().toISOString()
     };

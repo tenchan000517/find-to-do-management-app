@@ -65,7 +65,7 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <LoadingSpinner size="large" />
+          <LoadingSpinner />
           <p className="mt-4 text-lg text-gray-600">プロジェクト分析データを読み込み中...</p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
         {/* 成功予測メイン */}
         <div className="mb-8">
           <SuccessPrediction 
-            projectId={params.id}
+            projectId={projectId}
             analytics={analytics}
             projectHealth={projectHealth}
             isLoading={isRefreshing}
@@ -172,7 +172,7 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
           {/* KGI達成予測 */}
           <div>
             <KGIPredictionChart 
-              projectId={params.id}
+              projectId={projectId}
               kgiData={kgiData}
               isLoading={isRefreshing}
             />
@@ -190,7 +190,7 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
         {/* 改善提案 */}
         <div className="mb-8">
           <ImprovementRecommendations
-            recommendations={analytics?.improvementRecommendations || []}
+            recommendations={analytics?.improvementRecommendations as any[] || []}
             onApply={applyRecommendation}
             isLoading={isRefreshing}
           />
@@ -295,7 +295,7 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
         {/* ナビゲーション */}
         <div className="text-center">
           <Link 
-            href={`/projects/${params.id}`} 
+            href={`/projects/${projectId}`} 
             className="text-blue-500 hover:underline inline-flex items-center"
           >
             ← プロジェクト詳細に戻る

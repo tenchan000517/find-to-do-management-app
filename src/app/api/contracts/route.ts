@@ -73,18 +73,13 @@ export async function POST(request: NextRequest) {
     // 契約作成時にバックオフィスタスクも自動生成
     const backOfficeTask = await prisma.tasks.create({
       data: {
+        id: `contract-task-${contract.id}`,
         title: `契約処理: ${contract.customer?.companyName}`,
         description: `契約ID: ${contract.id} の処理を行う`,
-        type: 'CONTRACT_PROCESSING',
-        priority: 'HIGH',
-        status: 'TODO',
+        priority: 'A',
+        status: 'IDEA',
         userId: 'system', // 実際には担当者IDを使用
-        estimatedHours: 2,
-        metadata: {
-          contractId: contract.id,
-          customerId: contract.customerId,
-          automaticallyGenerated: true
-        }
+        estimatedHours: 2
       }
     });
 

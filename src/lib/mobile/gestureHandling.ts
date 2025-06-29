@@ -17,7 +17,7 @@ export interface GestureConfig {
 }
 
 export class MobileGestureHandler {
-  private hammer: HammerManager;
+  private hammer: HammerManager | null = null;
   private actions: Map<string, GestureAction> = new Map();
   private config: GestureConfig;
   private dragState: {
@@ -41,12 +41,17 @@ export class MobileGestureHandler {
       ...config
     };
 
-    this.hammer = new Hammer(element);
-    this.setupGestures();
-    this.setupDefaultActions();
+    // ブラウザ環境でのみ初期化
+    if (typeof window !== 'undefined' && element) {
+      this.hammer = new Hammer(element);
+      this.setupGestures();
+      this.setupDefaultActions();
+    }
   }
 
   private setupGestures(): void {
+    if (!this.hammer) return;
+    
     // スワイプジェスチャー設定
     this.hammer.get('swipe').set({
       direction: Hammer.DIRECTION_ALL,
@@ -219,6 +224,8 @@ export class MobileGestureHandler {
   }
 
   private handlePinchZoom(event: HammerInput): void {
+    if (typeof window === 'undefined') return;
+    
     const target = event.target as HTMLElement;
     const taskCard = target.closest('[data-task-id]') as HTMLElement;
     
@@ -239,7 +246,7 @@ export class MobileGestureHandler {
 
     // ズーム状態をローカルストレージに保存
     const taskId = taskCard.getAttribute('data-task-id');
-    if (taskId) {
+    if (taskId && typeof localStorage !== 'undefined') {
       localStorage.setItem(`task-zoom-${taskId}`, newSize.toString());
     }
   }
@@ -263,15 +270,17 @@ export class MobileGestureHandler {
     taskCard.style.zIndex = '1000';
     
     // バイブレーション
-    if (navigator.vibrate) {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(100);
     }
 
     // ドラッグ開始イベントをディスパッチ
-    const customEvent = new CustomEvent('taskDragStart', {
-      detail: { taskId: taskCard.getAttribute('data-task-id') }
-    });
-    window.dispatchEvent(customEvent);
+    if (typeof window !== 'undefined') {
+      const customEvent = new CustomEvent('taskDragStart', {
+        detail: { taskId: taskCard.getAttribute('data-task-id') }
+      });
+      window.dispatchEvent(customEvent);
+    }
   }
 
   private handlePanMove(event: HammerInput): void {
@@ -320,10 +329,12 @@ export class MobileGestureHandler {
     });
 
     // ドラッグ終了イベントをディスパッチ
-    const customEvent = new CustomEvent('taskDragEnd', {
-      detail: { taskId, dropZone: dropZone?.getAttribute('data-status') }
-    });
-    window.dispatchEvent(customEvent);
+    if (typeof window !== 'undefined') {
+      const customEvent = new CustomEvent('taskDragEnd', {
+        detail: { taskId, dropZone: dropZone?.getAttribute('data-status') }
+      });
+      window.dispatchEvent(customEvent);
+    }
   }
 
   private getDropZoneAt(x: number, y: number): HTMLElement | null {
@@ -369,14 +380,14 @@ export class MobileGestureHandler {
       }
 
       // 成功のバイブレーション
-      if (navigator.vibrate) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([50, 50, 50]);
       }
     } catch (error) {
       console.error('Error updating task status:', error);
       
       // エラーのバイブレーション
-      if (navigator.vibrate) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(200);
       }
     }
@@ -394,7 +405,7 @@ export class MobileGestureHandler {
     }
 
     // 触覚フィードバック
-    if (action.feedback?.haptic && navigator.vibrate) {
+    if (action.feedback?.haptic && typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(50);
     }
 
@@ -485,13 +496,17 @@ export class MobileGestureHandler {
 
   private showTaskDetails(taskId: string): void {
     // 詳細表示モーダルを開く
-    const event = new CustomEvent('showTaskDetails', { 
-      detail: { taskId } 
-    });
-    window.dispatchEvent(event);
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('showTaskDetails', { 
+        detail: { taskId } 
+      });
+      window.dispatchEvent(event);
+    }
   }
 
   public destroy(): void {
-    this.hammer.destroy();
+    if (this.hammer) {
+      this.hammer.destroy();
+    }
   }
 }

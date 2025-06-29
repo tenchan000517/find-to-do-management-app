@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     switch (analysisType) {
       case 'customer_profile':
-        result = await aiSalesAssistant.analyzeCustomer(customerId, salesData);
+        result = await aiSalesAssistant.analyzeCustomer(customerId);
         break;
       
       case 'customer_insights':
@@ -45,11 +45,12 @@ export async function POST(request: NextRequest) {
           customerId,
           solutionType: 'process_automation' as const,
           objectives: ['効率化', 'コスト削減'],
-          budget: 5000000,
-          timeline: '6ヶ月',
-          requirements: ['システム統合', 'データ分析']
+          constraints: ['既存システムとの互換性', 'セキュリティ要件'],
+          successMetrics: ['処理時間50%短縮', 'エラー率90%削減'],
+          budgetConstraints: 5000000,
+          timelineRequirements: '6ヶ月'
         };
-        result = await aiSalesAssistant.generateAIProposal(proposalRequest);
+        result = await aiSalesAssistant.generateProposal(proposalRequest);
         break;
       
       default:

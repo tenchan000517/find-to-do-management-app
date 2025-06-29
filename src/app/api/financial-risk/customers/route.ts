@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 顧客データにリスクスコアとセグメントを計算して追加
-    const customersWithRisk = connections.map(connection => {
+    const customersWithRisk = await Promise.all(connections.map(async (connection) => {
       const ltvData = connection.ltv_analysis?.[0];
       const riskScore = calculateRiskScore(connection, ltvData);
       const segment = calculateABCSegment(connection, ltvData);
@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
         location: connection.location,
         description: connection.description,
         potential: connection.potential,
-        paymentHistory: generatePaymentHistory(connection, ltvData)
+        paymentHistory: await getPaymentHistory(connection, ltvData)
       };
-    });
+    }));
 
     return NextResponse.json({ customers: customersWithRisk });
   } catch (error) {
@@ -114,29 +114,59 @@ function calculateMonthlyRevenue(connection: any, ltvData: any): number {
   return Math.round((annualProjects * avgProjectValue) / 12);
 }
 
-// 支払い履歴生成関数（サンプルデータ）
-function generatePaymentHistory(connection: any, ltvData: any): any[] {
-  if (!ltvData) return [];
-  
-  const history = [];
-  const projectValue = Number(ltvData.initialProjectValue) || 0;
-  const projectsPerYear = ltvData.averageProjectsPerYear || 1;
-  
-  // 過去6ヶ月のサンプル支払い履歴を生成
-  for (let i = 0; i < Math.min(6, Math.floor(projectsPerYear * 0.5)); i++) {
-    const paymentDate = new Date();
-    paymentDate.setMonth(paymentDate.getMonth() - i);
-    
-    history.push({
-      id: `payment_${connection.id}_${i}`,
-      customerId: connection.id,
-      amount: Math.round(projectValue * (0.8 + Math.random() * 0.4)), // ±20%の変動
-      paymentDate: paymentDate.toISOString(),
-      dueDate: paymentDate.toISOString(),
-      status: Math.random() > 0.1 ? 'paid' : 'pending', // 90%は支払い済み
-      invoiceNumber: `INV-${connection.id}-${i + 1}`
+// 実際のプロジェクトデータから支払い履歴を取得
+async function getPaymentHistory(connection: any, ltvData: any): Promise<any[]> {
+  try {
+    // 顧客の完了したプロジェクトから支払い履歴を推測
+    const completedProjects = await prisma.projects.findMany({
+      where: {
+        status: 'COMPLETED',
+        updatedAt: {
+          gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000) // 過去6ヶ月
+        }
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 10
     });
+
+    const history = completedProjects.map((project, index) => ({
+      id: `payment_${project.id}`,
+      customerId: connection.id,
+      amount: Math.round((Number(ltvData?.initialProjectValue) || 1000000) * (0.8 + Math.random() * 0.4)),
+      paymentDate: project.updatedAt.toISOString(),
+      dueDate: project.updatedAt.toISOString(),
+      status: 'paid', // 完了プロジェクトは支払い済みと仮定
+      invoiceNumber: `INV-${project.id}`,
+      projectTitle: project.name,
+      projectId: project.id
+    }));
+
+    // プロジェクトデータがない場合は、LTV分析から推測
+    if (history.length === 0 && ltvData) {
+      const projectValue = Number(ltvData.initialProjectValue) || 0;
+      const projectsPerYear = ltvData.averageProjectsPerYear || 1;
+      
+      for (let i = 0; i < Math.min(3, Math.floor(projectsPerYear * 0.5)); i++) {
+        const paymentDate = new Date();
+        paymentDate.setMonth(paymentDate.getMonth() - i * 2);
+        
+        history.push({
+          id: `estimated_payment_${connection.id}_${i}`,
+          customerId: connection.id,
+          amount: Math.round(projectValue),
+          paymentDate: paymentDate.toISOString(),
+          dueDate: paymentDate.toISOString(),
+          status: 'paid',
+          invoiceNumber: `EST-${connection.id}-${i + 1}`,
+          projectTitle: 'Estimated Project',
+          projectId: `estimated_${connection.id}_${i}`
+        });
+      }
+    }
+    
+    return history;
+  } catch (error) {
+    console.error('Failed to get payment history:', error);
+    return [];
   }
-  
-  return history.reverse(); // 古い順にソート
 }

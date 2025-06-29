@@ -82,12 +82,12 @@ export default function MBTIUserPage({ params }: MBTIUserPageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <PersonalityProfile 
             userProfile={selectedUserProfile}
-            mbtiType={selectedUserMBTI}
+            mbtiType={selectedUserMBTI || undefined}
           />
           
           <StrengthWeakness 
             userProfile={selectedUserProfile}
-            mbtiType={selectedUserMBTI}
+            mbtiType={selectedUserMBTI || undefined}
             recommendations={recommendations}
           />
         </div>

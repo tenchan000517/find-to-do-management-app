@@ -46,7 +46,7 @@ export default function SalesAnalyticsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <LoadingSpinner size="large" />
+          <LoadingSpinner />
           <p className="mt-4 text-lg text-gray-600">営業分析データを読み込み中...</p>
         </div>
       </div>

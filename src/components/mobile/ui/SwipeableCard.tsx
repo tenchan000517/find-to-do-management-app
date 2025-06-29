@@ -25,7 +25,7 @@ export default function SwipeableCard({
   const gestureHandlerRef = useRef<MobileGestureHandler | null>(null);
 
   useEffect(() => {
-    if (!cardRef.current) return;
+    if (typeof window === 'undefined' || !cardRef.current) return;
 
     // ジェスチャーハンドラー初期化
     gestureHandlerRef.current = new MobileGestureHandler(cardRef.current);

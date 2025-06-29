@@ -1,6 +1,6 @@
 // Phase 3: Real-time events endpoint
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/database/prisma';
+import prisma from '@/lib/database/prisma';
 
 export async function GET() {
   try {
@@ -8,15 +8,15 @@ export async function GET() {
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     // 最近のタスク完了イベント
-    const recentTasks = await prisma.task.findMany({
+    const recentTasks = await prisma.tasks.findMany({
       where: {
-        status: 'COMPLETED',
+        status: 'COMPLETE',
         updatedAt: {
           gte: oneDayAgo
         }
       },
       include: {
-        assignee: true
+        users: true
       },
       orderBy: {
         updatedAt: 'desc'
@@ -25,7 +25,7 @@ export async function GET() {
     });
 
     // 最近のプロジェクト更新
-    const recentProjects = await prisma.project.findMany({
+    const recentProjects = await prisma.projects.findMany({
       where: {
         updatedAt: {
           gte: oneDayAgo
@@ -38,23 +38,23 @@ export async function GET() {
     });
 
     // 高リスクアラート
-    const riskAlerts = await prisma.customerLtvAnalysis.findMany({
+    const riskAlerts = await prisma.customer_ltv_analysis.findMany({
       where: {
-        riskScore: {
-          gte: 7
+        confidenceScore: {
+          lte: 0.3 // 低信頼度
         },
         updatedAt: {
           gte: oneDayAgo
         }
       },
       orderBy: {
-        riskScore: 'desc'
+        confidenceScore: 'asc'
       },
       take: 3
     });
 
     // 新規ユーザー
-    const newUsers = await prisma.user.findMany({
+    const newUsers = await prisma.users.findMany({
       where: {
         createdAt: {
           gte: oneDayAgo
@@ -67,29 +67,29 @@ export async function GET() {
     });
 
     // 売上更新（今日の新しいLTV分析）
-    const revenueUpdates = await prisma.customerLtvAnalysis.findMany({
+    const revenueUpdates = await prisma.customer_ltv_analysis.findMany({
       where: {
         createdAt: {
           gte: new Date(now.getTime() - 2 * 60 * 60 * 1000) // 過去2時間
         },
-        currentLtv: {
+        totalLtv: {
           gt: 0
         }
       },
       orderBy: {
-        currentLtv: 'desc'
+        totalLtv: 'desc'
       },
       take: 3
     });
 
     const events = [
       // タスク完了イベント
-      ...recentTasks.map(task => ({
+      ...recentTasks.map((task: any) => ({
         id: `task-${task.id}-${task.updatedAt.getTime()}`,
         type: 'task-completed' as const,
         timestamp: task.updatedAt.toISOString(),
-        userId: task.assigneeId || undefined,
-        userName: task.assignee?.name,
+        userId: task.assignedTo || undefined,
+        userName: task.users?.name,
         data: {
           title: 'タスク完了',
           description: `"${task.title}" が完了されました`,
@@ -111,20 +111,20 @@ export async function GET() {
       })),
 
       // リスクアラート
-      ...riskAlerts.map(alert => ({
+      ...riskAlerts.map((alert: any) => ({
         id: `risk-${alert.id}-${alert.updatedAt.getTime()}`,
         type: 'risk-alert' as const,
         timestamp: alert.updatedAt.toISOString(),
         data: {
           title: '財務リスクアラート',
-          description: `顧客ID ${alert.customerId} のリスクスコア: ${alert.riskScore.toFixed(1)}%`,
-          priority: alert.riskScore >= 9 ? 'critical' as const : 'high' as const,
-          value: alert.riskScore
+          description: `顧客ID ${alert.connectionId} の信頼度: ${(alert.confidenceScore * 100).toFixed(1)}%`,
+          priority: alert.confidenceScore <= 0.2 ? 'critical' as const : 'high' as const,
+          value: Number((1 - alert.confidenceScore) * 10)
         }
       })),
 
       // 新規ユーザー
-      ...newUsers.map(user => ({
+      ...newUsers.map((user: any) => ({
         id: `user-${user.id}-${user.createdAt.getTime()}`,
         type: 'user-joined' as const,
         timestamp: user.createdAt.toISOString(),
@@ -138,16 +138,16 @@ export async function GET() {
       })),
 
       // 売上更新
-      ...revenueUpdates.map(revenue => ({
+      ...revenueUpdates.map((revenue: any) => ({
         id: `revenue-${revenue.id}-${revenue.createdAt.getTime()}`,
         type: 'revenue-update' as const,
         timestamp: revenue.createdAt.toISOString(),
         data: {
           title: '売上更新',
-          description: `新規LTV: ¥${revenue.currentLtv.toLocaleString()}`,
-          priority: revenue.currentLtv > 100000 ? 'high' as const : 'medium' as const,
-          value: revenue.currentLtv,
-          change: revenue.ltv12Months - revenue.currentLtv
+          description: `新規LTV: ¥${Number(revenue.totalLtv).toLocaleString()}`,
+          priority: Number(revenue.totalLtv) > 100000 ? 'high' as const : 'medium' as const,
+          value: Number(revenue.totalLtv),
+          change: Number(revenue.discountedLtv) - Number(revenue.totalLtv)
         }
       }))
     ]

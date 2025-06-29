@@ -151,7 +151,7 @@ export interface ValidationResult {
 export class SalesConversionPredictor {
   private anomalyEngine: AnomalyDetectionEngine;
   private recommendationEngine: SmartRecommendationEngine;
-  private predictionModel: PredictionModel;
+  private predictionModel!: PredictionModel;
   private historicalData: Map<string, any>;
 
   constructor() {
@@ -342,7 +342,7 @@ export class SalesConversionPredictor {
     
     // ROI計算
     const totalCost = phase1.cost + phase2.cost + phase3.cost;
-    const dealValue = opportunity.dealValue;
+    const dealValue = Number(opportunity.dealValue);
     const probabilityIncrease = optimizedScore - currentScore;
     const expectedROI = totalCost > 0 ? (dealValue * probabilityIncrease) / totalCost : Infinity;
 
@@ -390,7 +390,7 @@ export class SalesConversionPredictor {
     // パイプライン価値計算
     const pipelineValue = opportunities
       .filter(opp => !['closed_won', 'closed_lost'].includes(opp.stage))
-      .reduce((sum, opp) => sum + opp.dealValue, 0);
+      .reduce((sum, opp) => sum + Number(opp.dealValue), 0);
     
     // 重み付きパイプライン価値（確率考慮）
     const weightedPipelineValue = await this.calculateWeightedPipelineValue(opportunities);
@@ -435,9 +435,9 @@ export class SalesConversionPredictor {
     baseProbability += priorityAdjustment[opportunity.priority] || 0;
     
     // 案件金額による調整（大型案件は難易度が高い）
-    if (opportunity.dealValue > 10000000) {
+    if (Number(opportunity.dealValue) > 10000000) {
       baseProbability *= 0.9; // -10%
-    } else if (opportunity.dealValue > 5000000) {
+    } else if (Number(opportunity.dealValue) > 5000000) {
       baseProbability *= 0.95; // -5%
     }
 
@@ -606,7 +606,7 @@ export class SalesConversionPredictor {
     }
 
     // 競合リスク
-    if (customerProfile?.competitivePosition.keyCompetitors.length >= 3) {
+    if (customerProfile?.competitivePosition?.keyCompetitors?.length && customerProfile.competitivePosition.keyCompetitors.length >= 3) {
       risks.push({
         factor: 'high_competition',
         impact: -0.15,
@@ -669,13 +669,13 @@ export class SalesConversionPredictor {
     }
 
     // 大型案件
-    if (opportunity.dealValue > 5000000) {
+    if (Number(opportunity.dealValue) > 5000000) {
       factors.push({
         factor: 'large_deal',
         impact: 0.1,
         description: '大型案件による組織的関与',
         strength: 'moderate',
-        enhancement: '上級管理職の関与強化',
+        enhancement: '上級管理蝇の関与強化',
         canAmplify: true,
         amplificationCost: 100000
       });
@@ -1028,9 +1028,11 @@ export class SalesConversionPredictor {
   }
 
   private async identifyOptimizableFactors(opportunity: SalesOpportunity, prediction: ConversionPrediction): Promise<any[]> {
-    return prediction.riskFactors
-      .filter(risk => risk.isAddressable)
-      .concat(prediction.successFactors.filter(factor => factor.canAmplify));
+    const addressableRisks = prediction.riskFactors
+      .filter(risk => risk.isAddressable);
+    const amplifiableFactors = prediction.successFactors
+      .filter(factor => factor.canAmplify);
+    return [...addressableRisks, ...amplifiableFactors];
   }
 
   private async createImmediateOptimization(factors: any[], opportunity: SalesOpportunity): Promise<OptimizationPhase> {
@@ -1146,8 +1148,8 @@ export class SalesConversionPredictor {
   private async calculateConversionBySize(opportunities: SalesOpportunity[]): Promise<Record<string, number>> {
     const sizeGroups = opportunities.reduce((groups, opp) => {
       let sizeCategory;
-      if (opp.dealValue > 10000000) sizeCategory = 'large';
-      else if (opp.dealValue > 1000000) sizeCategory = 'medium';
+      if (Number(opp.dealValue) > 10000000) sizeCategory = 'large';
+      else if (Number(opp.dealValue) > 1000000) sizeCategory = 'medium';
       else sizeCategory = 'small';
 
       if (!groups[sizeCategory]) groups[sizeCategory] = [];
@@ -1196,7 +1198,7 @@ export class SalesConversionPredictor {
         closedLost,
         conversionRate: totalClosed > 0 ? closedWon / totalClosed : 0,
         averageDealSize: monthOpps.length > 0 ? 
-          monthOpps.reduce((sum, opp) => sum + opp.dealValue, 0) / monthOpps.length : 0,
+          monthOpps.reduce((sum, opp) => sum + Number(opp.dealValue), 0) / monthOpps.length : 0,
         averageTimeToClose: this.calculateAverageTimeToClose(monthOpps.filter(opp => opp.stage === 'closed_won'))
       });
     }
@@ -1220,7 +1222,7 @@ export class SalesConversionPredictor {
     for (const opp of opportunities) {
       if (!['closed_won', 'closed_lost'].includes(opp.stage)) {
         const prediction = await this.predictConversionProbability(opp);
-        weightedValue += opp.dealValue * prediction.currentProbability;
+        weightedValue += Number(opp.dealValue) * prediction.currentProbability;
       }
     }
     

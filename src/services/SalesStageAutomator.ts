@@ -110,7 +110,7 @@ export interface SalesMetrics {
 export class SalesStageAutomator {
   private anomalyEngine: AnomalyDetectionEngine;
   private recommendationEngine: SmartRecommendationEngine;
-  private progressionRules: StageProgressionRule[];
+  private progressionRules!: StageProgressionRule[];
 
   constructor() {
     this.anomalyEngine = new AnomalyDetectionEngine({

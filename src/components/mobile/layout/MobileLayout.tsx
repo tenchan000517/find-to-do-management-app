@@ -25,6 +25,8 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
   } = useMobileAccessibility();
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     // PWA Install prompt handler
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
@@ -41,10 +43,12 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
     window.addEventListener('offline', handleOffline);
 
     // Check initial online status
-    setIsOnline(navigator.onLine);
+    if (typeof navigator !== 'undefined') {
+      setIsOnline(navigator.onLine);
+    }
 
     // Register service worker
-    if ('serviceWorker' in navigator) {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
           console.log('SW registered: ', registration);

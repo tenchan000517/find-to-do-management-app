@@ -47,7 +47,7 @@ export default function RealTimeDashboard({ className }: RealTimeDashboardProps)
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pingIntervalRef = useRef<NodeJS.Interval | null>(null);
+  const pingIntervalRef = useRef<number | null>(null);
 
   // WebSocket接続とリアルタイム更新
   useEffect(() => {
@@ -72,14 +72,14 @@ export default function RealTimeDashboard({ className }: RealTimeDashboardProps)
         setIsConnected(true);
         
         // 定期的にpingを送信
-        pingIntervalRef.current = setInterval(() => {
+        pingIntervalRef.current = window.setInterval(() => {
           if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'ping' }));
           }
         }, 30000);
 
         // 初期データリクエスト
-        wsRef.current.send(JSON.stringify({ 
+        wsRef.current?.send(JSON.stringify({ 
           type: 'subscribe',
           channels: ['metrics', 'events', 'alerts']
         }));

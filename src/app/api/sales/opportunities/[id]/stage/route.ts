@@ -40,10 +40,10 @@ export async function PUT(
     await prisma.sales_activities.create({
       data: {
         opportunityId: id,
-        type: 'stage_change',
+        type: 'STAGE_CHANGE',
         title: `ステージ変更: ${stage}`,
         description: `ステージを ${stage} に変更しました`,
-        outcome: 'neutral',
+        outcome: 'NEUTRAL',
         userId: 'system', // 実際にはユーザーIDを使用
         metadata: {
           previousStage: opportunity.stage,

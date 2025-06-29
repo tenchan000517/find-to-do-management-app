@@ -60,7 +60,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
       const dueDate = new Date(task.dueDate);
       const isToday = dueDate.toDateString() === todayString;
       const isOverdue = dueDate < today && task.status !== 'COMPLETE';
-      const isHighPriority = task.priority === 'HIGH' || task.priority === 'high';
+      const isHighPriority = task.priority === 'A' || task.priority === 'B';
       
       return (isToday || isOverdue) && isHighPriority && task.status !== 'COMPLETE';
     }).map(task => {
@@ -122,7 +122,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
 
     const productivity = {
       score: Math.min(100, completedToday * 25 + (urgentItems.length === 0 ? 20 : 0)),
-      trend: completedToday > 2 ? 'up' : completedToday > 0 ? 'stable' : 'down' as const,
+      trend: (completedToday > 2 ? 'up' : completedToday > 0 ? 'stable' : 'down') as 'up' | 'down' | 'stable',
       message: completedToday > 2 ? '素晴らしい進捗です！' : 
                completedToday > 0 ? '順調にタスクを進めています' : 
                '今日のタスクを開始しましょう'

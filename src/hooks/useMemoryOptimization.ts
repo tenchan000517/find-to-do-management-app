@@ -13,7 +13,7 @@ export function useMemoryOptimization() {
 
   // メモリ使用量取得
   const getMemoryUsage = useCallback((): MemoryUsage | null => {
-    if ('memory' in performance) {
+    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in performance) {
       const memory = (performance as any).memory;
       return {
         usedJSHeapSize: memory.usedJSHeapSize,
@@ -34,13 +34,15 @@ export function useMemoryOptimization() {
 
   // 自動ガベージコレクション
   const forceGarbageCollection = useCallback(() => {
-    if ('gc' in window && typeof window.gc === 'function') {
+    if (typeof window !== 'undefined' && 'gc' in window && typeof window.gc === 'function') {
       window.gc();
     }
   }, []);
 
   // メモリクリーンアップ
   const performMemoryCleanup = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
     // 不要なDOM要素をクリア
     const unusedElements = document.querySelectorAll('[data-cleanup="true"]');
     unusedElements.forEach(element => {
@@ -67,14 +69,16 @@ export function useMemoryOptimization() {
     });
 
     // LocalStorageの不要なデータをクリア
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('temp-') && key.includes(Date.now().toString().slice(0, -6))) {
-        keysToRemove.push(key);
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('temp-') && key.includes(Date.now().toString().slice(0, -6))) {
+          keysToRemove.push(key);
+        }
       }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
     }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
 
     // 強制ガベージコレクション
     forceGarbageCollection();
@@ -82,6 +86,8 @@ export function useMemoryOptimization() {
 
   // 定期的なメモリチェック
   const startMemoryMonitoring = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
     const checkMemory = () => {
       if (isMemoryLow()) {
         console.warn('メモリ使用量が高くなっています。クリーンアップを実行します。');
@@ -114,6 +120,8 @@ export function useMemoryOptimization() {
 
   // Page Visibility API でのメモリ最適化
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // ページが非表示になった時にクリーンアップ
@@ -130,6 +138,8 @@ export function useMemoryOptimization() {
 
   // 低メモリ警告の監視
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleMemoryWarning = () => {
       console.warn('システムからの低メモリ警告を受信しました。');
       performMemoryCleanup();
