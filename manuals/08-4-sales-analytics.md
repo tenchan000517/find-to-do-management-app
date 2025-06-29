@@ -1,1731 +1,365 @@
-# 営業分析機能 マニュアル
+# 営業分析システム マニュアル
 
 ## 概要
 
-営業分析機能は、AI駆動の営業プロセス最適化システムです。成約確率予測、パイプライン分析、ROI予測、自動フォローアップ提案など、データサイエンスと機械学習を活用した包括的な営業支援を提供します。
+FIND to DO Management Appの営業分析システムは、営業活動のパフォーマンスを多角的に分析し、売上向上と営業効率化を支援する機能です。顧客管理、商談進捗、売上予測、営業活動の最適化を通じて、データドリブンな営業戦略の実現をサポートします。
 
 ### 主要特徴
-- **AI成約確率予測エンジン**
-- **リアルタイム営業パイプライン分析**
-- **ROI予測・最適化システム**
-- **自動フォローアップ提案**
-- **営業活動パターン分析**
+- 包括的な営業パフォーマンス分析
+- リアルタイムでの売上・進捗監視
+- 顧客別・商品別の詳細分析
+- 予測分析による売上予測
+- 営業活動の効率性評価
 
 ---
 
 ## 目次
 
-1. [システムアーキテクチャ](#システムアーキテクチャ)
-2. [成約確率予測エンジン](#成約確率予測エンジン)
-3. [営業パイプライン分析](#営業パイプライン分析)
-4. [ROI予測システム](#roi予測システム)
-5. [フォローアップ自動化](#フォローアップ自動化)
-6. [営業活動分析](#営業活動分析)
-7. [パフォーマンス指標](#パフォーマンス指標)
-8. [実装例](#実装例)
-9. [AI最適化機能](#ai最適化機能)
-10. [トラブルシューティング](#トラブルシューティング)
+1. [営業ダッシュボード](#営業ダッシュボード)
+2. [売上・実績分析](#売上実績分析)
+3. [顧客・商談分析](#顧客商談分析)
+4. [営業活動分析](#営業活動分析)
+5. [予測・トレンド分析](#予測トレンド分析)
+6. [パフォーマンス評価](#パフォーマンス評価)
+7. [レポート・共有](#レポート共有)
+8. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## システムアーキテクチャ
+## 営業ダッシュボード
 
-### 全体構成
+### メインダッシュボード表示
 
-```javascript
-// 営業分析システムの構成
-const SalesAnalyticsArchitecture = {
-  // AI予測エンジン
-  predictionEngines: {
-    conversionPredictor: 'SalesConversionPredictor',
-    anomalyDetection: 'AnomalyDetectionEngine',
-    smartRecommendation: 'SmartRecommendationEngine'
-  },
-  
-  // 営業支援サービス
-  salesServices: {
-    aiSalesAssistant: 'AISalesAssistant',
-    stageAutomator: 'SalesStageAutomator',
-    contractAutomation: 'ContractAutomationEngine'
-  },
-  
-  // UI・ダッシュボード
-  dashboardComponents: {
-    salesAnalyticsPage: 'sales-analytics/page.tsx',
-    predictionCard: 'SalesPredictionCard',
-    pipelineChart: 'SalesPipelineChart',
-    roiChart: 'ROIPredictionChart',
-    followUpSuggestions: 'FollowUpSuggestions'
-  }
-};
+#### 1. 基本指標の確認
+1. 「営業分析」画面にアクセス
+2. 期間設定（今月・四半期・年間・カスタム）
+3. 主要KPIを確認：
+   - **売上実績**: 期間内の総売上金額
+   - **目標達成率**: 売上目標に対する達成度
+   - **成約件数**: 契約成立した案件数
+   - **平均受注金額**: 1件あたりの平均受注額
+   - **商談転換率**: 商談から成約への転換率
 
-// SalesAnalyticsPage のメイン構造
-export default function SalesAnalyticsPage() {
-  const {
-    analyticsData,
-    followUpSuggestions,
-    loading,
-    error,
-    refreshData,
-    recalculatePredictions,
-    executeFollowUpAction
-  } = useSalesAnalytics();
+#### 2. 進捗状況の可視化
+**表示される情報:**
+- **月次売上推移**: 過去12ヶ月の売上トレンド
+- **目標vs実績**: 目標に対する現在の達成状況
+- **パイプライン状況**: 現在進行中の商談総額
+- **今月の成約予測**: 月末時点での成約見込み
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <SalesAnalyticsHeader />
-      <SalesSummaryCards data={analyticsData?.summary} />
-      <SalesAnalyticsGrid 
-        predictions={analyticsData?.predictions}
-        suggestions={followUpSuggestions}
-        roiProjections={analyticsData?.roiProjections}
-      />
-      <SalesPipelineChart data={analyticsData?.pipeline} />
-      <HighProbabilityDeals predictions={analyticsData?.predictions} />
-    </div>
-  );
-}
-```
+#### 3. アラート・注意項目
+- **目標未達リスク**: 達成困難な目標の早期警告
+- **失注リスク**: 失注可能性の高い重要商談
+- **フォロー漏れ**: 長期間アクションのない商談
+- **契約期限切れ**: 更新が必要な既存契約
 
-### データフロー
+### 地域・営業所別表示
 
-```javascript
-// 営業データフロー管理
-const SalesDataFlow = {
-  // データ収集
-  dataCollection: {
-    opportunities: 'sales_opportunities テーブル',
-    activities: 'sales_activities テーブル',
-    customers: 'customers テーブル',
-    interactions: 'customer_interactions'
-  },
-  
-  // AI処理パイプライン
-  aiProcessing: {
-    conversionPrediction: 'SalesConversionPredictor.predictConversionProbability()',
-    riskAnalysis: 'identifyRiskFactors()',
-    successFactors: 'identifySuccessFactors()',
-    optimization: 'optimizeConversionProbability()'
-  },
-  
-  // 結果配信
-  resultDelivery: {
-    dashboard: 'リアルタイムダッシュボード更新',
-    recommendations: 'フォローアップ提案生成',
-    alerts: 'リスク・機会アラート',
-    reports: '営業レポート自動生成'
-  }
-};
-```
+#### エリア別パフォーマンス
+1. 地図ビューで地域別売上を確認
+2. 比較項目：
+   - **売上金額**: 地域ごとの売上実績
+   - **成長率**: 前年同期比での成長
+   - **市場シェア**: 推定市場での占有率
+   - **顧客数**: 地域の顧客・見込客数
+
+#### 営業所・チーム比較
+- **営業所ランキング**: 売上・達成率でのランキング
+- **チーム別実績**: 各チームの詳細パフォーマンス
+- **個人実績**: 営業担当者別の成績
+- **ベンチマーク**: 平均値・上位者との比較
 
 ---
 
-## 成約確率予測エンジン
+## 売上・実績分析
 
-### SalesConversionPredictor
+### 売上実績の詳細分析
 
-```javascript
-// 成約確率予測エンジンの核心クラス
-export class SalesConversionPredictor {
-  private anomalyEngine: AnomalyDetectionEngine;
-  private recommendationEngine: SmartRecommendationEngine;
-  private predictionModel: PredictionModel;
+#### 1. 時系列売上分析
+1. 「売上分析」タブを選択
+2. 表示期間を設定（日別・週別・月別・四半期別）
+3. 分析項目：
+   - **売上推移**: 期間別の売上変動
+   - **季節性**: 季節・月による売上パターン
+   - **成長率**: 前年同期比・前期比での成長
+   - **累積売上**: 年初からの累積実績
 
-  constructor() {
-    this.anomalyEngine = new AnomalyDetectionEngine({
-      sensitivity: 0.8,
-      windowSize: 30,
-      threshold: 1.5
-    });
-    this.recommendationEngine = new SmartRecommendationEngine();
-    this.initializePredictionModel();
-  }
+#### 2. 商品・サービス別分析
+**分析可能な項目:**
+- **商品別売上**: 各商品・サービスの売上構成
+- **収益性**: 商品別の利益率・貢献度
+- **販売数量**: 数量ベースでの販売実績
+- **単価分析**: 平均単価の推移・変動要因
 
-  // リアルタイム成約確率算出
-  async predictConversionProbability(
-    opportunity: SalesOpportunity,
-    customerProfile?: CustomerProfile,
-    activities?: SalesActivity[]
-  ): Promise<ConversionPrediction> {
-    
-    // 1. 基本確率計算
-    const baseProbability = this.calculateBaseProbability(opportunity);
-    
-    // 2. 活動パターン分析
-    const activityAnalysis = await this.analyzeActivityPatterns(activities || opportunity.activities);
-    
-    // 3. 顧客エンゲージメント分析
-    const engagementScore = await this.calculateEngagementScore(opportunity, customerProfile);
-    
-    // 4. 市場・競合要因分析
-    const marketFactors = await this.analyzeMarketFactors(opportunity, customerProfile);
-    
-    // 5. 異常検知による調整
-    const anomalyInsights = await this.getAnomalyInsights(opportunity);
-    
-    // 6. 最終確率算出（重み付き平均）
-    const adjustedProbability = this.calculateAdjustedProbability(
-      baseProbability,
-      activityAnalysis.score,
-      engagementScore,
-      marketFactors.score,
-      anomalyInsights.adjustment
-    );
+#### 3. 売上構成分析
+- **新規vs既存**: 新規顧客・既存顧客からの売上比率
+- **契約形態**: 単発・継続契約の売上構成
+- **販売チャネル**: 直販・代理店・オンライン等の比率
 
-    // 7. 包括的分析結果の返却
-    return {
-      opportunityId: opportunity.id,
-      currentProbability: adjustedProbability,
-      probabilityTrend: this.calculateProbabilityTrend(opportunity),
-      confidenceLevel: this.calculateConfidenceLevel(opportunity, activityAnalysis),
-      expectedCloseDate: await this.predictCloseDate(opportunity, adjustedProbability),
-      probabilityByStage: this.calculateStagesProbability(opportunity, adjustedProbability),
-      riskFactors: await this.identifyRiskFactors(opportunity, customerProfile, activityAnalysis),
-      successFactors: await this.identifySuccessFactors(opportunity, customerProfile, activityAnalysis),
-      recommendedActions: await this.generateOptimizationActions(opportunity, riskFactors, successFactors),
-      historicalComparison: await this.compareWithHistorical(opportunity),
-      nextMilestones: await this.generateProbabilityMilestones(opportunity, adjustedProbability),
-      lastUpdated: new Date().toISOString()
-    };
-  }
-}
-```
+### 目標管理・達成分析
 
-### 予測モデル設計
+#### 目標設定・追跡
+1. 「目標管理」で各レベルの目標を確認
+2. 目標階層：
+   - **会社全体**: 全社売上目標
+   - **事業部**: 事業部別目標
+   - **営業所**: 拠点別目標
+   - **個人**: 営業担当者別目標
 
-```javascript
-// AI予測モデルの構成
-const PredictionModelConfig = {
-  // モデル特徴量
-  features: [
-    {
-      name: 'deal_value',
-      importance: 0.25,
-      description: '案件金額',
-      dataType: 'numeric'
-    },
-    {
-      name: 'stage_progression_velocity',
-      importance: 0.20,
-      description: 'ステージ進行速度',
-      dataType: 'numeric'
-    },
-    {
-      name: 'customer_engagement_score',
-      importance: 0.18,
-      description: '顧客エンゲージメントスコア',
-      dataType: 'numeric'
-    },
-    {
-      name: 'competition_intensity',
-      importance: 0.15,
-      description: '競合状況',
-      dataType: 'categorical'
-    },
-    {
-      name: 'decision_maker_influence',
-      importance: 0.12,
-      description: '意思決定者の影響力',
-      dataType: 'numeric'
-    },
-    {
-      name: 'budget_alignment',
-      importance: 0.10,
-      description: '予算との適合性',
-      dataType: 'boolean'
-    }
-  ],
-
-  // 重み付き計算
-  calculateAdjustedProbability: (base, activity, engagement, market, anomaly) => {
-    const weights = {
-      base: 0.4,
-      activity: 0.25,
-      engagement: 0.2,
-      market: 0.1,
-      anomaly: 0.05
-    };
-
-    const weighted = 
-      base * weights.base +
-      activity * weights.activity +
-      engagement * weights.engagement +
-      market * weights.market +
-      Math.max(0, base + anomaly) * weights.anomaly;
-
-    return Math.max(0.01, Math.min(0.99, weighted));
-  }
-};
-```
-
-### リスク・成功要因分析
-
-```javascript
-// リスク要因特定システム
-const RiskFactorAnalysis = {
-  // リスク要因の識別
-  identifyRiskFactors: async (opportunity, customerProfile, activityAnalysis) => {
-    const risks = [];
-
-    // 活動不足リスク
-    if (activityAnalysis && activityAnalysis.score < 0.5) {
-      risks.push({
-        factor: 'activity_insufficient',
-        impact: -0.2,
-        description: '営業活動が不足しています',
-        severity: 'high',
-        mitigation: '定期的なフォローアップと顧客接点の増加',
-        isAddressable: true,
-        timeToAddress: 7
-      });
-    }
-
-    // 競合リスク
-    if (customerProfile?.competitivePosition?.keyCompetitors?.length >= 3) {
-      risks.push({
-        factor: 'high_competition',
-        impact: -0.15,
-        description: '競合他社が多数存在',
-        severity: 'medium',
-        mitigation: '差別化要因の強化と価値提案の明確化',
-        isAddressable: true,
-        timeToAddress: 14
-      });
-    }
-
-    // 予算リスク
-    if (customerProfile?.budget.costSensitivity === 'high') {
-      risks.push({
-        factor: 'price_sensitivity',
-        impact: -0.1,
-        description: '価格感度が高い顧客',
-        severity: 'medium',
-        mitigation: 'ROI重視の提案とコスト最適化',
-        isAddressable: true,
-        timeToAddress: 10
-      });
-    }
-
-    // 期限リスク
-    const daysToClose = getDaysBetween(new Date(), opportunity.expectedCloseDate);
-    if (daysToClose < 30 && opportunity.stage !== 'negotiation') {
-      risks.push({
-        factor: 'timeline_pressure',
-        impact: -0.25,
-        description: '期限が迫っているがステージが進んでいない',
-        severity: 'critical',
-        mitigation: 'プロセス加速と意思決定の促進',
-        isAddressable: true,
-        timeToAddress: 3
-      });
-    }
-
-    return risks;
-  },
-
-  // 成功要因の特定
-  identifySuccessFactors: async (opportunity, customerProfile, activityAnalysis) => {
-    const factors = [];
-
-    // 高優先度案件
-    if (opportunity.priority === 'A') {
-      factors.push({
-        factor: 'high_priority',
-        impact: 0.15,
-        description: '高優先度案件として管理されています',
-        strength: 'strong',
-        enhancement: '継続的な重点管理',
-        canAmplify: true,
-        amplificationCost: 50000
-      });
-    }
-
-    // 顧客エンゲージメント
-    if (activityAnalysis && activityAnalysis.score > 0.7) {
-      factors.push({
-        factor: 'high_engagement',
-        impact: 0.2,
-        description: '顧客との良好な関係性',
-        strength: 'very_strong',
-        enhancement: '関係性の維持と深化',
-        canAmplify: true,
-        amplificationCost: 30000
-      });
-    }
-
-    // 技術適合性
-    if (customerProfile?.techMaturity === 'advanced') {
-      factors.push({
-        factor: 'tech_fit',
-        impact: 0.12,
-        description: '技術成熟度が高く導入リスクが低い',
-        strength: 'strong',
-        enhancement: '技術的価値の訴求強化',
-        canAmplify: true,
-        amplificationCost: 40000
-      });
-    }
-
-    return factors;
-  }
-};
-```
+#### 達成状況分析
+- **進捗率**: 期間経過に対する達成度
+- **必要ペース**: 目標達成に必要な今後のペース
+- **リスク評価**: 未達成リスクの早期発見
+- **上振れ要因**: 目標を上回る可能性の分析
 
 ---
 
-## 営業パイプライン分析
-
-### パイプライン可視化
-
-```javascript
-// 営業パイプライン分析コンポーネント
-const SalesPipelineChart = ({ pipelineData, isLoading }) => {
-  const [viewMode, setViewMode] = useState('conversion');
-  const [timeRange, setTimeRange] = useState('3months');
-
-  if (isLoading || !pipelineData) {
-    return <PipelineLoadingSkeleton />;
-  }
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
-          📊 営業パイプライン分析
-        </h3>
-        <div className="flex space-x-2">
-          <PipelineViewSelector 
-            value={viewMode} 
-            onChange={setViewMode}
-            options={['conversion', 'volume', 'velocity', 'value']}
-          />
-          <TimeRangeSelector 
-            value={timeRange} 
-            onChange={setTimeRange}
-            options={['1month', '3months', '6months', '1year']}
-          />
-        </div>
-      </div>
-
-      {/* パイプライン概要 */}
-      <PipelineOverview data={pipelineData.summary} />
-
-      {/* ステージ別分析 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <StageConversionChart 
-          data={pipelineData.stageConversion}
-          viewMode={viewMode}
-        />
-        <SalesVelocityChart 
-          data={pipelineData.velocity}
-          timeRange={timeRange}
-        />
-      </div>
-
-      {/* パフォーマンス指標 */}
-      <PipelineMetrics data={pipelineData.metrics} />
-    </div>
-  );
-};
-
-// パイプライン概要表示
-const PipelineOverview = ({ data }) => (
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <PipelineMetricCard
-      title="総パイプライン価値"
-      value={`¥${data.totalValue.toLocaleString()}`}
-      change={data.valueChange}
-      icon="💰"
-      color="blue"
-    />
-    <PipelineMetricCard
-      title="重み付きパイプライン"
-      value={`¥${data.weightedValue.toLocaleString()}`}
-      change={data.weightedChange}
-      icon="⚖️"
-      color="green"
-    />
-    <PipelineMetricCard
-      title="平均成約確率"
-      value={`${data.averageProbability}%`}
-      change={data.probabilityChange}
-      icon="🎯"
-      color="purple"
-    />
-    <PipelineMetricCard
-      title="予想成約数"
-      value={data.expectedClosures}
-      change={data.closureChange}
-      icon="📈"
-      color="orange"
-    />
-  </div>
-);
-```
-
-### ステージ最適化分析
-
-```javascript
-// ステージ分析システム
-const StageAnalysisSystem = {
-  // ステージ別コンバージョン分析
-  analyzeStageConversion: (opportunities) => {
-    const stageData = opportunities.reduce((acc, opp) => {
-      if (!acc[opp.stage]) {
-        acc[opp.stage] = {
-          total: 0,
-          converted: 0,
-          averageTime: 0,
-          totalValue: 0,
-          averageProbability: 0
-        };
-      }
-
-      acc[opp.stage].total++;
-      acc[opp.stage].totalValue += Number(opp.dealValue);
-      
-      if (opp.stage === 'closed_won') {
-        acc[opp.stage].converted++;
-      }
-
-      return acc;
-    }, {});
-
-    // コンバージョン率の計算
-    Object.keys(stageData).forEach(stage => {
-      const data = stageData[stage];
-      data.conversionRate = data.total > 0 ? data.converted / data.total : 0;
-      data.averageValue = data.total > 0 ? data.totalValue / data.total : 0;
-    });
-
-    return stageData;
-  },
-
-  // ステージ進行速度分析
-  analyzeSalesVelocity: (opportunities) => {
-    const velocityData = {};
-    const stages = ['prospect', 'qualified', 'proposal', 'negotiation', 'closed_won'];
-
-    stages.forEach((stage, index) => {
-      if (index === 0) return; // 最初のステージはスキップ
-
-      const stageOpportunities = opportunities.filter(opp => 
-        opp.stageHistory && opp.stageHistory.some(h => h.stage === stage)
-      );
-
-      const averageTime = stageOpportunities.reduce((total, opp) => {
-        const currentStageEntry = opp.stageHistory.find(h => h.stage === stage);
-        const previousStageEntry = opp.stageHistory.find(h => h.stage === stages[index - 1]);
-        
-        if (currentStageEntry && previousStageEntry) {
-          const timeDiff = new Date(currentStageEntry.timestamp) - new Date(previousStageEntry.timestamp);
-          return total + (timeDiff / (1000 * 60 * 60 * 24)); // 日数
-        }
-        return total;
-      }, 0);
-
-      velocityData[stage] = {
-        averageDays: stageOpportunities.length > 0 ? averageTime / stageOpportunities.length : 0,
-        opportunities: stageOpportunities.length,
-        bottleneck: averageTime > 30 // 30日以上は要注意
-      };
-    });
-
-    return velocityData;
-  },
-
-  // パイプライン価値計算
-  calculatePipelineValue: async (opportunities) => {
-    let totalValue = 0;
-    let weightedValue = 0;
-
-    for (const opp of opportunities) {
-      if (!['closed_won', 'closed_lost'].includes(opp.stage)) {
-        const dealValue = Number(opp.dealValue);
-        totalValue += dealValue;
-
-        // 成約確率による重み付き計算
-        const prediction = await conversionPredictor.predictConversionProbability(opp);
-        weightedValue += dealValue * prediction.currentProbability;
-      }
-    }
-
-    return {
-      totalValue,
-      weightedValue,
-      conversionMultiplier: totalValue > 0 ? weightedValue / totalValue : 0
-    };
-  }
-};
-```
-
----
-
-## ROI予測システム
-
-### ROI計算エンジン
-
-```javascript
-// ROI予測・計算システム
-const ROIPredictionEngine = {
-  // ROI予測計算
-  calculateROIProjection: async (opportunity, investmentData) => {
-    const prediction = await conversionPredictor.predictConversionProbability(opportunity);
-    const dealValue = Number(opportunity.dealValue);
-    
-    // 投資コスト計算
-    const totalInvestment = investmentData.salesEffort + 
-                           investmentData.resourceAllocation + 
-                           investmentData.marketingCost;
-
-    // 基本ROI計算
-    const expectedRevenue = dealValue * prediction.currentProbability;
-    const baseROI = totalInvestment > 0 ? (expectedRevenue - totalInvestment) / totalInvestment : 0;
-
-    // リスク調整ROI
-    const riskAdjustment = this.calculateRiskAdjustment(prediction.riskFactors);
-    const riskAdjustedROI = baseROI * (1 - riskAdjustment);
-
-    // 時間価値調整
-    const timeToClose = this.getDaysBetween(new Date(), opportunity.expectedCloseDate);
-    const timeValueAdjustment = this.calculateTimeValueAdjustment(timeToClose);
-    const adjustedROI = riskAdjustedROI * timeValueAdjustment;
-
-    return {
-      opportunityId: opportunity.id,
-      projections: {
-        baseROI,
-        riskAdjustedROI,
-        timeAdjustedROI: adjustedROI,
-        expectedRevenue,
-        totalInvestment,
-        probability: prediction.currentProbability
-      },
-      riskFactors: prediction.riskFactors,
-      optimization: await this.generateROIOptimization(opportunity, prediction, investmentData),
-      sensitivity: this.calculateSensitivityAnalysis(opportunity, investmentData),
-      timeline: this.projectRevenueTimeline(opportunity, prediction)
-    };
-  },
-
-  // ROI最適化提案
-  generateROIOptimization: async (opportunity, prediction, investmentData) => {
-    const optimizations = [];
-
-    // 投資効率の改善
-    if (investmentData.salesEffort > 100000) {
-      optimizations.push({
-        type: 'cost_reduction',
-        description: '営業工数の最適化',
-        potentialSaving: investmentData.salesEffort * 0.2,
-        impactOnProbability: -0.05,
-        implementation: 'プロセス自動化とツール活用'
-      });
-    }
-
-    // 成約確率の向上
-    const highImpactActions = prediction.recommendedActions
-      .filter(action => action.expectedImpact > 0.1)
-      .slice(0, 3);
-
-    for (const action of highImpactActions) {
-      optimizations.push({
-        type: 'probability_increase',
-        description: action.description,
-        additionalCost: action.cost,
-        probabilityIncrease: action.expectedImpact,
-        expectedROIImprovement: this.calculateROIImprovement(
-          Number(opportunity.dealValue), 
-          action.expectedImpact, 
-          action.cost
-        )
-      });
-    }
-
-    return optimizations.sort((a, b) => 
-      (b.expectedROIImprovement || 0) - (a.expectedROIImprovement || 0)
-    );
-  },
-
-  // 感度分析
-  calculateSensitivityAnalysis: (opportunity, investmentData) => {
-    const dealValue = Number(opportunity.dealValue);
-    const scenarios = {};
-
-    // 楽観シナリオ（+20%確率、-10%コスト）
-    scenarios.optimistic = {
-      probabilityChange: 0.2,
-      costChange: -0.1,
-      roiImpact: this.calculateScenarioROI(dealValue, investmentData, 0.2, -0.1)
-    };
-
-    // 悲観シナリオ（-20%確率、+15%コスト）
-    scenarios.pessimistic = {
-      probabilityChange: -0.2,
-      costChange: 0.15,
-      roiImpact: this.calculateScenarioROI(dealValue, investmentData, -0.2, 0.15)
-    };
-
-    // 最悪シナリオ（失注）
-    scenarios.worstCase = {
-      probabilityChange: -1.0,
-      costChange: 0,
-      roiImpact: -1.0 // 全額損失
-    };
-
-    return scenarios;
-  }
-};
-
-// ROI可視化コンポーネント
-const ROIPredictionChart = ({ projections, isLoading }) => {
-  const [selectedScenario, setSelectedScenario] = useState('base');
-
-  if (isLoading || !projections) {
-    return <ROIChartSkeleton />;
-  }
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">💰 ROI予測分析</h3>
-        <ScenarioSelector 
-          value={selectedScenario}
-          onChange={setSelectedScenario}
-          scenarios={['base', 'optimistic', 'pessimistic', 'worstCase']}
-        />
-      </div>
-
-      {/* ROI指標表示 */}
-      <ROIMetricsGrid projections={projections} scenario={selectedScenario} />
-
-      {/* ROI推移チャート */}
-      <div className="mt-6">
-        <ROITimelineChart 
-          data={projections.timeline}
-          scenario={selectedScenario}
-        />
-      </div>
-
-      {/* 最適化提案 */}
-      <ROIOptimizationPanel 
-        optimizations={projections.optimization}
-        currentROI={projections.projections.timeAdjustedROI}
-      />
-    </div>
-  );
-};
-```
-
----
-
-## フォローアップ自動化
-
-### AI提案システム
-
-```javascript
-// フォローアップ自動提案システム
-const FollowUpSuggestionEngine = {
-  // フォローアップ提案生成
-  generateFollowUpSuggestions: async (opportunities, customerProfiles) => {
-    const suggestions = [];
-
-    for (const opportunity of opportunities) {
-      const prediction = await conversionPredictor.predictConversionProbability(opportunity);
-      const customerProfile = customerProfiles.find(p => p.customerId === opportunity.customerId);
-
-      // 緊急フォローアップが必要な案件
-      if (prediction.currentProbability > 0.6 && this.daysSinceLastActivity(opportunity) > 7) {
-        suggestions.push({
-          id: `urgent_${opportunity.id}`,
-          type: 'urgent_follow_up',
-          priority: 'critical',
-          opportunityId: opportunity.id,
-          title: '緊急フォローアップが必要',
-          description: `${opportunity.title}の案件で1週間以上活動がありません`,
-          suggestedActions: [
-            '電話でのアポイントメント設定',
-            '進捗確認メールの送信',
-            '提案書の再送・説明'
-          ],
-          expectedImpact: 0.15,
-          urgency: 'high',
-          estimatedEffort: 2,
-          deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
-        });
-      }
-
-      // 成約確率向上のための提案
-      if (prediction.currentProbability > 0.4 && prediction.currentProbability < 0.8) {
-        const improvements = this.generateImprovementSuggestions(prediction, customerProfile);
-        suggestions.push(...improvements.map(improvement => ({
-          id: `improve_${opportunity.id}_${improvement.type}`,
-          type: 'probability_improvement',
-          priority: 'high',
-          opportunityId: opportunity.id,
-          title: improvement.title,
-          description: improvement.description,
-          suggestedActions: improvement.actions,
-          expectedImpact: improvement.impact,
-          urgency: 'medium',
-          estimatedEffort: improvement.effort,
-          deadline: new Date(Date.now() + improvement.timeframe * 24 * 60 * 60 * 1000)
-        })));
-      }
-
-      // リスク軽減提案
-      const criticalRisks = prediction.riskFactors.filter(risk => risk.severity === 'critical');
-      for (const risk of criticalRisks) {
-        suggestions.push({
-          id: `risk_${opportunity.id}_${risk.factor}`,
-          type: 'risk_mitigation',
-          priority: 'critical',
-          opportunityId: opportunity.id,
-          title: `リスク軽減: ${risk.factor}`,
-          description: risk.description,
-          suggestedActions: [risk.mitigation],
-          expectedImpact: -risk.impact,
-          urgency: 'high',
-          estimatedEffort: Math.ceil(risk.timeToAddress / 3),
-          deadline: new Date(Date.now() + risk.timeToAddress * 24 * 60 * 60 * 1000)
-        });
-      }
-    }
-
-    return suggestions.sort((a, b) => {
-      const priorityOrder = { critical: 3, high: 2, medium: 1, low: 0 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
-    });
-  },
-
-  // フォローアップ実行
-  executeFollowUpAction: async (suggestionId, actionType) => {
-    const suggestion = await this.findSuggestionById(suggestionId);
-    let result;
-
-    switch (actionType) {
-      case 'send_email':
-        result = await this.sendFollowUpEmail(suggestion);
-        break;
-      case 'schedule_call':
-        result = await this.scheduleFollowUpCall(suggestion);
-        break;
-      case 'create_task':
-        result = await this.createFollowUpTask(suggestion);
-        break;
-      case 'update_opportunity':
-        result = await this.updateOpportunityStage(suggestion);
-        break;
-      default:
-        throw new Error(`Unsupported action type: ${actionType}`);
-    }
-
-    // 実行結果をトラッキング
-    await this.trackFollowUpExecution(suggestionId, actionType, result);
-
-    return result;
-  }
-};
-
-// フォローアップ提案表示コンポーネント
-const FollowUpSuggestions = ({ suggestions, onExecute, isLoading }) => {
-  const [filter, setFilter] = useState('all');
-  const [selectedSuggestions, setSelectedSuggestions] = useState([]);
-
-  const filteredSuggestions = suggestions.filter(suggestion => {
-    if (filter === 'all') return true;
-    return suggestion.priority === filter;
-  });
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          🎯 フォローアップ提案
-        </h3>
-        <SuggestionFilter value={filter} onChange={setFilter} />
-      </div>
-
-      {isLoading ? (
-        <SuggestionsLoadingSkeleton />
-      ) : (
-        <div className="space-y-3">
-          {filteredSuggestions.map(suggestion => (
-            <SuggestionCard
-              key={suggestion.id}
-              suggestion={suggestion}
-              onExecute={onExecute}
-              isSelected={selectedSuggestions.includes(suggestion.id)}
-              onSelect={(selected) => {
-                if (selected) {
-                  setSelectedSuggestions([...selectedSuggestions, suggestion.id]);
-                } else {
-                  setSelectedSuggestions(selectedSuggestions.filter(id => id !== suggestion.id));
-                }
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* バッチ実行ボタン */}
-      {selectedSuggestions.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <BatchExecuteButton
-            selectedIds={selectedSuggestions}
-            onBatchExecute={(actionType) => {
-              selectedSuggestions.forEach(id => onExecute(id, actionType));
-              setSelectedSuggestions([]);
-            }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-```
+## 顧客・商談分析
+
+### 顧客セグメント分析
+
+#### 1. 顧客分類・分析
+1. 「顧客分析」セクションにアクセス
+2. セグメント別分析：
+   - **企業規模別**: 大企業・中小企業での売上構成
+   - **業界別**: 各業界への売上・浸透度
+   - **地域別**: 地域ごとの顧客分布・売上
+   - **取引歴**: 新規・既存・長期取引先での分類
+
+#### 2. 顧客価値分析
+**価値評価指標:**
+- **LTV（生涯価値）**: 顧客の将来価値予測
+- **年間取引額**: 年間での取引金額
+- **取引頻度**: 取引・発注の頻度
+- **紹介価値**: 他顧客紹介による間接的価値
+
+### 商談プロセス分析
+
+#### 商談ステージ管理
+1. 商談の進捗段階を可視化
+2. 一般的なステージ構成：
+   - **見込み発掘**: 初期接触・関心確認
+   - **ニーズ確認**: 詳細要件・課題の把握
+   - **提案・見積**: 解決策の提示・価格提示
+   - **交渉・調整**: 条件面での調整・詰め
+   - **契約**: 最終合意・契約締結
+
+#### 転換率・所要期間分析
+- **ステージ別転換率**: 各段階での成約率
+- **平均商談期間**: 初期接触から成約までの期間
+- **ボトルネック特定**: 進捗が滞りやすいポイント
+- **失注要因**: 失注した案件の要因分析
 
 ---
 
 ## 営業活動分析
 
-### 活動パターン分析
+### 活動量・効率性分析
 
-```javascript
-// 営業活動パターン分析システム
-const SalesActivityAnalyzer = {
-  // 活動パターンの分析
-  analyzeActivityPatterns: async (activities) => {
-    if (activities.length === 0) {
-      return { 
-        score: 0.1, 
-        insights: ['活動履歴が不足しています'],
-        patterns: {},
-        recommendations: []
-      };
-    }
+#### 1. 営業活動の記録・分析
+1. 「活動分析」で営業活動データを確認
+2. 活動種別：
+   - **訪問**: 顧客先への直接訪問
+   - **電話**: 電話での営業・フォロー
+   - **メール**: メールでの情報提供・フォロー
+   - **オンライン**: Web会議・オンライン商談
 
-    // 活動頻度分析
-    const frequencyAnalysis = this.analyzeActivityFrequency(activities);
-    
-    // 活動の質分析
-    const qualityAnalysis = this.analyzeActivityQuality(activities);
-    
-    // 進展性分析
-    const progressAnalysis = this.analyzeActivityProgress(activities);
-    
-    // 時間パターン分析
-    const timingAnalysis = this.analyzeActivityTiming(activities);
+#### 2. 効率性指標
+**測定項目:**
+- **活動量**: 1日・1週間あたりの活動数
+- **成果率**: 活動に対する成果（商談・成約）の比率
+- **時間効率**: 時間あたりの成果創出
+- **コスト効率**: コストあたりの売上・利益
 
-    // 総合スコア計算
-    const overallScore = (
-      frequencyAnalysis.score + 
-      qualityAnalysis.score + 
-      progressAnalysis.score + 
-      timingAnalysis.score
-    ) / 4;
+### 営業プロセス最適化
 
-    return {
-      score: overallScore,
-      insights: this.generateActivityInsights(frequencyAnalysis, qualityAnalysis, progressAnalysis, timingAnalysis),
-      patterns: {
-        frequency: frequencyAnalysis,
-        quality: qualityAnalysis,
-        progress: progressAnalysis,
-        timing: timingAnalysis
-      },
-      recommendations: this.generateActivityRecommendations(overallScore, activities)
-    };
-  },
+#### 最適な営業パターン
+1. 成功事例からのパターン分析
+2. 効果的な営業手法：
+   - **接触頻度**: 最適なフォロー頻度
+   - **提案タイミング**: 効果的な提案時期
+   - **資料・ツール**: 成約率の高い営業ツール
+   - **価格戦略**: 最適な価格設定・交渉方法
 
-  // 活動頻度分析
-  analyzeActivityFrequency: (activities) => {
-    const now = new Date();
-    const periods = {
-      last7Days: activities.filter(a => this.getDaysBetween(a.createdAt, now) <= 7),
-      last30Days: activities.filter(a => this.getDaysBetween(a.createdAt, now) <= 30),
-      last90Days: activities.filter(a => this.getDaysBetween(a.createdAt, now) <= 90)
-    };
-
-    // 理想的な頻度と比較
-    const idealFrequency = {
-      last7Days: 2,   // 週2回
-      last30Days: 8,  // 月8回
-      last90Days: 24  // 四半期24回
-    };
-
-    const frequencyScores = Object.keys(periods).map(period => {
-      const actual = periods[period].length;
-      const ideal = idealFrequency[period];
-      return Math.min(actual / ideal, 1);
-    });
-
-    const averageScore = frequencyScores.reduce((sum, score) => sum + score, 0) / frequencyScores.length;
-
-    return {
-      score: averageScore,
-      periods,
-      analysis: {
-        isConsistent: this.checkActivityConsistency(activities),
-        hasGaps: this.detectActivityGaps(activities),
-        trend: this.calculateActivityTrend(activities)
-      }
-    };
-  },
-
-  // 活動の質分析
-  analyzeActivityQuality: (activities) => {
-    const qualityWeights = {
-      initial_contact: 1,
-      meeting: 4,
-      proposal_sent: 5,
-      follow_up: 2,
-      negotiation: 6,
-      contract_review: 7,
-      demo: 4,
-      technical_discussion: 5
-    };
-
-    const totalQualityPoints = activities.reduce((sum, activity) => {
-      return sum + (qualityWeights[activity.type] || 1);
-    }, 0);
-
-    const maxPossiblePoints = activities.length * 6; // 最高品質活動を基準
-    const qualityScore = maxPossiblePoints > 0 ? totalQualityPoints / maxPossiblePoints : 0;
-
-    return {
-      score: qualityScore,
-      highValueActivities: activities.filter(a => (qualityWeights[a.type] || 1) >= 4),
-      distribution: this.getActivityTypeDistribution(activities),
-      recommendations: this.getQualityImprovementRecommendations(activities, qualityWeights)
-    };
-  },
-
-  // 進展性分析
-  analyzeActivityProgress: (activities) => {
-    const sortedActivities = activities.sort((a, b) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-
-    if (sortedActivities.length < 2) {
-      return { score: 0.3, progression: [], insights: ['活動数が不足'] };
-    }
-
-    const progressionStages = [
-      'initial_contact', 'meeting', 'proposal_sent', 
-      'negotiation', 'contract_review', 'contract_signed'
-    ];
-
-    let progressScore = 0;
-    let currentStageIndex = 0;
-
-    for (const activity of sortedActivities) {
-      const activityStageIndex = progressionStages.indexOf(activity.type);
-      if (activityStageIndex >= currentStageIndex) {
-        progressScore += 0.2;
-        currentStageIndex = activityStageIndex;
-      }
-    }
-
-    return {
-      score: Math.min(progressScore, 1),
-      progression: this.mapActivityProgression(sortedActivities, progressionStages),
-      currentStage: progressionStages[currentStageIndex],
-      nextRecommendedStage: progressionStages[currentStageIndex + 1] || 'maintain'
-    };
-  },
-
-  // 営業活動推奨事項生成
-  generateActivityRecommendations: (overallScore, activities) => {
-    const recommendations = [];
-
-    if (overallScore < 0.4) {
-      recommendations.push({
-        type: 'increase_frequency',
-        priority: 'high',
-        action: '活動頻度を週2-3回に増加',
-        rationale: '顧客エンゲージメントの維持',
-        expectedImpact: 0.2
-      });
-    }
-
-    if (overallScore < 0.6) {
-      recommendations.push({
-        type: 'improve_quality',
-        priority: 'medium',
-        action: 'より高価値な活動（会議、提案）の実施',
-        rationale: '活動の質的向上',
-        expectedImpact: 0.15
-      });
-    }
-
-    const lastActivity = activities.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )[0];
-
-    if (lastActivity && this.getDaysBetween(lastActivity.createdAt, new Date()) > 7) {
-      recommendations.push({
-        type: 'immediate_follow_up',
-        priority: 'critical',
-        action: '即座にフォローアップを実行',
-        rationale: '長期間の空白を回避',
-        expectedImpact: 0.25
-      });
-    }
-
-    return recommendations;
-  }
-};
-```
+#### 改善提案
+- **活動配分**: より効果的な時間・労力の配分
+- **ターゲット選定**: 成約可能性の高い見込客の特定
+- **アプローチ方法**: 顧客タイプ別の最適アプローチ
+- **フォロー戦略**: 商談段階別のフォロー方法
 
 ---
 
-## パフォーマンス指標
+## 予測・トレンド分析
 
-### 営業KPI管理
+### 売上予測機能
 
-```javascript
-// 営業パフォーマンス指標システム
-const SalesPerformanceMetrics = {
-  // 包括的メトリクス計算
-  calculateComprehensiveMetrics: async (opportunities, timeframe = '3months') => {
-    const filteredOpportunities = this.filterByTimeframe(opportunities, timeframe);
-    
-    return {
-      conversionMetrics: await this.calculateConversionMetrics(filteredOpportunities),
-      pipelineMetrics: await this.calculatePipelineMetrics(filteredOpportunities),
-      efficiencyMetrics: await this.calculateEfficiencyMetrics(filteredOpportunities),
-      predictiveMetrics: await this.calculatePredictiveMetrics(filteredOpportunities),
-      teamMetrics: await this.calculateTeamMetrics(filteredOpportunities),
-      trendAnalysis: await this.calculateTrendAnalysis(filteredOpportunities)
-    };
-  },
+#### 1. 短期売上予測
+1. 「予測分析」で将来の売上を確認
+2. 予測期間・精度：
+   - **今月末**: 90%以上の高精度予測
+   - **来月**: 比較的高精度の予測
+   - **四半期末**: 中期的な予測
+   - **年度末**: 長期トレンドに基づく予測
 
-  // コンバージョン指標
-  calculateConversionMetrics: async (opportunities) => {
-    const closedOpportunities = opportunities.filter(opp => 
-      ['closed_won', 'closed_lost'].includes(opp.stage)
-    );
-    const wonOpportunities = opportunities.filter(opp => opp.stage === 'closed_won');
+#### 2. 予測根拠・要因
+**予測に使用するデータ:**
+- **現在のパイプライン**: 進行中商談の成約見込み
+- **過去実績**: 過去の売上パターン・季節性
+- **市場動向**: 業界・経済環境の影響
+- **営業活動**: 現在の営業活動量・質
 
-    const conversionRate = closedOpportunities.length > 0 
-      ? wonOpportunities.length / closedOpportunities.length 
-      : 0;
+### トレンド分析・市場動向
 
-    // ステージ別コンバージョン率
-    const stageConversion = await this.calculateStageConversionRates(opportunities);
-    
-    // ソース別コンバージョン率
-    const sourceConversion = await this.calculateSourceConversionRates(opportunities);
+#### 長期トレンド分析
+1. 過去2-3年のデータから傾向を分析
+2. 分析項目：
+   - **成長トレンド**: 売上の長期的成長・減少傾向
+   - **顧客動向**: 顧客ニーズ・購買行動の変化
+   - **競合状況**: 競合他社の動向・市場シェア変化
+   - **商品ライフサイクル**: 商品・サービスの成熟度
 
-    return {
-      overallConversionRate: conversionRate,
-      totalOpportunities: opportunities.length,
-      wonDeals: wonOpportunities.length,
-      lostDeals: closedOpportunities.length - wonOpportunities.length,
-      stageConversion,
-      sourceConversion,
-      averageDealSize: wonOpportunities.length > 0 
-        ? wonOpportunities.reduce((sum, opp) => sum + Number(opp.dealValue), 0) / wonOpportunities.length 
-        : 0,
-      totalRevenue: wonOpportunities.reduce((sum, opp) => sum + Number(opp.dealValue), 0)
-    };
-  },
-
-  // パイプライン指標
-  calculatePipelineMetrics: async (opportunities) => {
-    const activeOpportunities = opportunities.filter(opp => 
-      !['closed_won', 'closed_lost'].includes(opp.stage)
-    );
-
-    const pipelineValue = activeOpportunities.reduce((sum, opp) => 
-      sum + Number(opp.dealValue), 0
-    );
-
-    // AI予測による重み付きパイプライン価値
-    let weightedValue = 0;
-    for (const opp of activeOpportunities) {
-      const prediction = await conversionPredictor.predictConversionProbability(opp);
-      weightedValue += Number(opp.dealValue) * prediction.currentProbability;
-    }
-
-    return {
-      totalPipelineValue: pipelineValue,
-      weightedPipelineValue: weightedValue,
-      averageProbability: activeOpportunities.length > 0 ? weightedValue / pipelineValue : 0,
-      activeDeals: activeOpportunities.length,
-      stageDistribution: this.calculateStageDistribution(activeOpportunities),
-      velocityMetrics: await this.calculateSalesVelocity(opportunities)
-    };
-  },
-
-  // 効率性指標
-  calculateEfficiencyMetrics: async (opportunities) => {
-    const avgTimeToClose = this.calculateAverageTimeToClose(
-      opportunities.filter(opp => opp.stage === 'closed_won')
-    );
-
-    const activityEfficiency = await this.calculateActivityEfficiency(opportunities);
-    const resourceUtilization = await this.calculateResourceUtilization(opportunities);
-
-    return {
-      averageTimeToClose: avgTimeToClose,
-      salesCycleEfficiency: this.calculateSalesCycleEfficiency(opportunities),
-      activityEfficiency,
-      resourceUtilization,
-      costPerAcquisition: this.calculateCostPerAcquisition(opportunities),
-      revenuePerSalesperson: this.calculateRevenuePerSalesperson(opportunities)
-    };
-  },
-
-  // 予測指標
-  calculatePredictiveMetrics: async (opportunities) => {
-    const activeOpportunities = opportunities.filter(opp => 
-      !['closed_won', 'closed_lost'].includes(opp.stage)
-    );
-
-    const predictions = await Promise.all(
-      activeOpportunities.map(opp => 
-        conversionPredictor.predictConversionProbability(opp)
-      )
-    );
-
-    const highProbabilityDeals = predictions.filter(p => p.currentProbability >= 0.8);
-    const mediumProbabilityDeals = predictions.filter(p => 
-      p.currentProbability >= 0.5 && p.currentProbability < 0.8
-    );
-    const lowProbabilityDeals = predictions.filter(p => p.currentProbability < 0.5);
-
-    return {
-      predictedClosures: {
-        thisMonth: this.calculatePredictedClosures(predictions, 30),
-        thisQuarter: this.calculatePredictedClosures(predictions, 90),
-        nextQuarter: this.calculatePredictedClosures(predictions, 180)
-      },
-      probabilityDistribution: {
-        high: highProbabilityDeals.length,
-        medium: mediumProbabilityDeals.length,
-        low: lowProbabilityDeals.length
-      },
-      riskFactors: this.aggregateRiskFactors(predictions),
-      opportunities: this.aggregateOpportunityFactors(predictions)
-    };
-  }
-};
-
-// パフォーマンスダッシュボード表示
-const SalesPerformanceDashboard = ({ metrics, timeframe, onTimeframeChange }) => (
-  <div className="space-y-6">
-    {/* 概要指標 */}
-    <MetricsOverview metrics={metrics.conversionMetrics} />
-
-    {/* チャートグリッド */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <ConversionTrendChart data={metrics.trendAnalysis} />
-      <PipelineVelocityChart data={metrics.pipelineMetrics.velocityMetrics} />
-    </div>
-
-    {/* 詳細メトリクス */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <EfficiencyMetricsCard metrics={metrics.efficiencyMetrics} />
-      <PredictiveMetricsCard metrics={metrics.predictiveMetrics} />
-      <TeamMetricsCard metrics={metrics.teamMetrics} />
-    </div>
-  </div>
-);
-```
+#### 外部要因分析
+- **経済指標**: GDP・業界指数との相関
+- **季節要因**: 季節・月による売上変動
+- **イベント影響**: 展示会・キャンペーン等の効果
+- **競合動向**: 競合他社の戦略・動向による影響
 
 ---
 
-## 実装例
+## パフォーマンス評価
 
-### 完全な営業分析システム
+### 個人別パフォーマンス
 
-```javascript
-// 完全な営業分析システムの実装例
-class CompleteSalesAnalyticsSystem {
-  constructor() {
-    this.conversionPredictor = new SalesConversionPredictor();
-    this.followUpEngine = new FollowUpSuggestionEngine();
-    this.activityAnalyzer = new SalesActivityAnalyzer();
-    this.performanceMetrics = new SalesPerformanceMetrics();
-    this.roiEngine = new ROIPredictionEngine();
-  }
+#### 1. 営業担当者評価
+1. 「パフォーマンス評価」で個人成績を確認
+2. 評価項目：
+   - **売上実績**: 目標達成度・売上金額
+   - **成約率**: 商談から成約への転換率
+   - **新規開拓**: 新規顧客の獲得実績
+   - **顧客満足**: 既存顧客からの評価・継続率
 
-  // 包括的営業分析の実行
-  async performComprehensiveAnalysis(salesData) {
-    const { opportunities, activities, customers } = salesData;
+#### 2. スキル・能力分析
+**評価領域:**
+- **営業スキル**: 提案力・交渉力・クロージング力
+- **商品知識**: 商品・サービスへの理解度
+- **顧客理解**: 顧客ニーズの把握・対応力
+- **活動管理**: 計画性・効率性・継続性
 
-    // 並列処理で効率化
-    const [
-      conversionPredictions,
-      followUpSuggestions,
-      activityAnalysis,
-      performanceMetrics,
-      roiProjections
-    ] = await Promise.all([
-      this.generateConversionPredictions(opportunities),
-      this.followUpEngine.generateFollowUpSuggestions(opportunities, customers),
-      this.analyzeAllActivities(activities),
-      this.performanceMetrics.calculateComprehensiveMetrics(opportunities),
-      this.generateROIProjections(opportunities)
-    ]);
+### チーム・組織評価
 
-    return {
-      summary: this.generateSummary(conversionPredictions, performanceMetrics),
-      predictions: conversionPredictions,
-      followUpSuggestions,
-      activityAnalysis,
-      performanceMetrics,
-      roiProjections,
-      pipeline: this.generatePipelineAnalysis(opportunities, conversionPredictions),
-      insights: this.generateActionableInsights(conversionPredictions, performanceMetrics),
-      lastUpdated: new Date().toISOString()
-    };
-  }
+#### チーム別比較分析
+1. チーム間でのパフォーマンス比較
+2. 比較指標：
+   - **売上実績**: チーム別の売上・達成率
+   - **効率性**: 人員あたり・コストあたりの売上
+   - **成長性**: 前年同期比での成長率
+   - **安定性**: 売上の安定性・変動幅
 
-  // サマリー生成
-  generateSummary(predictions, metrics) {
-    const highProbability = predictions.filter(p => p.currentProbability >= 0.8).length;
-    const mediumProbability = predictions.filter(p => 
-      p.currentProbability >= 0.6 && p.currentProbability < 0.8
-    ).length;
-
-    return {
-      totalAppointments: predictions.length,
-      highProbability,
-      mediumProbability,
-      averageProbability: Math.round(
-        predictions.reduce((sum, p) => sum + p.currentProbability, 0) / predictions.length * 100
-      ),
-      conversionRate: Math.round(metrics.conversionMetrics.overallConversionRate * 100),
-      pipelineValue: metrics.pipelineMetrics.totalPipelineValue,
-      weightedPipelineValue: metrics.pipelineMetrics.weightedPipelineValue
-    };
-  }
-
-  // アクションアブルインサイト生成
-  generateActionableInsights(predictions, metrics) {
-    const insights = [];
-
-    // 高確率案件のアラート
-    const urgentHighProbability = predictions.filter(p => 
-      p.currentProbability >= 0.8 && 
-      this.getDaysSinceLastActivity(p) > 5
-    );
-
-    if (urgentHighProbability.length > 0) {
-      insights.push({
-        type: 'urgent_action',
-        priority: 'critical',
-        title: '高確率案件の緊急フォローアップ',
-        description: `${urgentHighProbability.length}件の高確率案件でフォローアップが必要`,
-        action: '即座に連絡を取り、次のステップを確認',
-        impact: 'high'
-      });
-    }
-
-    // パイプライン健康度の警告
-    if (metrics.pipelineMetrics.averageProbability < 0.4) {
-      insights.push({
-        type: 'pipeline_health',
-        priority: 'high',
-        title: 'パイプライン品質の改善が必要',
-        description: '平均成約確率が40%を下回っています',
-        action: '質の高いリードの獲得と既存案件の最適化',
-        impact: 'medium'
-      });
-    }
-
-    // 営業効率の最適化提案
-    if (metrics.efficiencyMetrics.salesCycleEfficiency < 0.6) {
-      insights.push({
-        type: 'efficiency_improvement',
-        priority: 'medium',
-        title: '営業サイクルの最適化',
-        description: '営業サイクルが平均より長くなっています',
-        action: 'プロセスの見直しと自動化の導入',
-        impact: 'medium'
-      });
-    }
-
-    return insights.sort((a, b) => {
-      const priorityOrder = { critical: 3, high: 2, medium: 1, low: 0 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
-    });
-  }
-}
-
-// React Hook for Sales Analytics
-const useSalesAnalytics = () => {
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [followUpSuggestions, setFollowUpSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  const salesAnalyticsSystem = useMemo(() => new CompleteSalesAnalyticsSystem(), []);
-
-  const refreshData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // 営業データの取得
-      const salesData = await fetchSalesData();
-      
-      // 包括的分析の実行
-      const analysis = await salesAnalyticsSystem.performComprehensiveAnalysis(salesData);
-      
-      setAnalyticsData(analysis);
-      setFollowUpSuggestions(analysis.followUpSuggestions);
-      setLastRefresh(new Date());
-
-    } catch (err) {
-      setError(err.message);
-      console.error('Sales analytics error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [salesAnalyticsSystem]);
-
-  const recalculatePredictions = useCallback(async () => {
-    if (!analyticsData) return;
-
-    try {
-      const salesData = await fetchSalesData();
-      const newPredictions = await salesAnalyticsSystem.generateConversionPredictions(
-        salesData.opportunities
-      );
-      
-      setAnalyticsData(prev => ({
-        ...prev,
-        predictions: newPredictions,
-        summary: salesAnalyticsSystem.generateSummary(newPredictions, prev.performanceMetrics)
-      }));
-
-    } catch (err) {
-      console.error('Prediction recalculation error:', err);
-    }
-  }, [analyticsData, salesAnalyticsSystem]);
-
-  const executeFollowUpAction = useCallback(async (suggestionId, actionType) => {
-    try {
-      const result = await salesAnalyticsSystem.followUpEngine.executeFollowUpAction(
-        suggestionId, 
-        actionType
-      );
-      
-      // 提案リストを更新
-      setFollowUpSuggestions(prev => 
-        prev.filter(suggestion => suggestion.id !== suggestionId)
-      );
-
-      return result;
-    } catch (err) {
-      console.error('Follow-up execution error:', err);
-      throw err;
-    }
-  }, [salesAnalyticsSystem]);
-
-  // 初期データ読み込み
-  useEffect(() => {
-    refreshData();
-  }, [refreshData]);
-
-  return {
-    analyticsData,
-    followUpSuggestions,
-    loading,
-    error,
-    lastRefresh,
-    refreshData,
-    recalculatePredictions,
-    executeFollowUpAction
-  };
-};
-```
+#### ベストプラクティス抽出
+- **成功要因**: 高業績チーム・個人の成功要因
+- **改善ポイント**: 課題のあるエリアの改善点
+- **標準化**: 成功手法の他チームへの展開
+- **教育・研修**: スキル向上のための研修計画
 
 ---
 
-## AI最適化機能
+## レポート・共有
 
-### 成約確率最適化
+### 定期レポート機能
 
-```javascript
-// AI最適化システム
-const SalesOptimizationAI = {
-  // 包括的最適化分析
-  optimizeSalesProcess: async (opportunities, constraints = {}) => {
-    const optimizations = [];
+#### 1. 自動レポート生成
+1. 「レポート設定」で定期レポートを作成
+2. レポート種別：
+   - **日次レポート**: 前日の活動・成果サマリー
+   - **週次レポート**: 週間実績と翌週の予定
+   - **月次レポート**: 月間実績と詳細分析
+   - **四半期レポート**: 四半期総括と次期計画
 
-    for (const opportunity of opportunities) {
-      const currentPrediction = await conversionPredictor.predictConversionProbability(opportunity);
-      
-      if (currentPrediction.currentProbability < (constraints.targetProbability || 0.8)) {
-        const optimization = await this.optimizeSingleOpportunity(opportunity, constraints);
-        optimizations.push(optimization);
-      }
-    }
+#### 2. 配信・共有設定
+- **配信先**: 経営層・営業管理者・担当者
+- **配信方法**: メール・Slack・ダッシュボード
+- **カスタマイズ**: 受信者別の内容調整
 
-    return {
-      totalOptimizations: optimizations.length,
-      potentialRevenue: this.calculatePotentialRevenue(optimizations),
-      implementationCost: this.calculateTotalImplementationCost(optimizations),
-      expectedROI: this.calculateOptimizationROI(optimizations),
-      recommendations: this.prioritizeOptimizations(optimizations),
-      timeline: this.generateOptimizationTimeline(optimizations)
-    };
-  },
+### カスタムレポート作成
 
-  // 個別案件最適化
-  optimizeSingleOpportunity: async (opportunity, constraints) => {
-    const conversionOptimization = await conversionPredictor.optimizeConversionProbability(
-      opportunity,
-      undefined,
-      constraints.targetProbability || 0.8
-    );
+#### レポートビルダー活用
+1. 「カスタムレポート」で独自レポートを作成
+2. 設定項目：
+   - **データ期間**: 分析対象期間の設定
+   - **表示項目**: 必要な指標・データの選択
+   - **グラフ種別**: 棒グラフ・円グラフ・線グラフ等
+   - **比較軸**: 前年・前期・目標値との比較
 
-    const roiOptimization = await roiEngine.calculateROIProjection(
-      opportunity,
-      constraints.investmentData || this.getDefaultInvestmentData()
-    );
-
-    return {
-      opportunityId: opportunity.id,
-      currentState: {
-        probability: conversionOptimization.currentScore,
-        expectedRevenue: Number(opportunity.dealValue) * conversionOptimization.currentScore,
-        currentROI: roiOptimization.projections.baseROI
-      },
-      optimizedState: {
-        probability: conversionOptimization.optimizedScore,
-        expectedRevenue: Number(opportunity.dealValue) * conversionOptimization.optimizedScore,
-        projectedROI: roiOptimization.projections.timeAdjustedROI
-      },
-      improvement: {
-        probabilityIncrease: conversionOptimization.improvementPotential,
-        revenueIncrease: Number(opportunity.dealValue) * conversionOptimization.improvementPotential,
-        roiImprovement: roiOptimization.projections.timeAdjustedROI - roiOptimization.projections.baseROI
-      },
-      optimizationPlan: conversionOptimization.optimizationPlan,
-      implementationCost: conversionOptimization.implementationCost,
-      timeframe: conversionOptimization.timeframe,
-      priority: this.calculateOptimizationPriority(conversionOptimization, roiOptimization)
-    };
-  },
-
-  // 最適化優先度計算
-  calculateOptimizationPriority: (conversionOpt, roiOpt) => {
-    const factors = {
-      impactScore: conversionOpt.improvementPotential * 100,
-      roiScore: roiOpt.projections.timeAdjustedROI * 100,
-      urgencyScore: this.calculateUrgencyScore(conversionOpt),
-      feasibilityScore: this.calculateFeasibilityScore(conversionOpt.optimizationPlan)
-    };
-
-    const weightedScore = 
-      factors.impactScore * 0.3 +
-      factors.roiScore * 0.25 +
-      factors.urgencyScore * 0.25 +
-      factors.feasibilityScore * 0.2;
-
-    if (weightedScore >= 80) return 'critical';
-    if (weightedScore >= 60) return 'high';
-    if (weightedScore >= 40) return 'medium';
-    return 'low';
-  }
-};
-```
+#### ステークホルダー別レポート
+- **経営陣向け**: 全社売上・戦略指標中心
+- **営業管理者向け**: 詳細実績・改善点分析
+- **営業担当者向け**: 個人実績・活動指標
+- **他部門向け**: 営業状況・協力依頼事項
 
 ---
 
 ## トラブルシューティング
 
-### よくある問題と解決策
+### よくある問題と解決方法
 
-#### 1. 予測精度の問題
+#### Q1: データが正しく表示されない
+**原因と対処法:**
+- CRM・営業システムとの連携エラー
+  → 連携設定の確認・再接続
+- データ入力の不備・漏れ
+  → 入力データの完全性確認
 
-```javascript
-// 予測精度改善システム
-const PredictionAccuracyImprover = {
-  // 精度診断
-  diagnosePredictionAccuracy: async (historicalData) => {
-    const predictions = historicalData.predictions;
-    const actualOutcomes = historicalData.actualOutcomes;
+#### Q2: 予測値が実際と大きく異なる
+**原因と対処法:**
+- 市場環境の急変
+  → 予測モデルの調整・外部要因考慮
+- データの品質問題
+  → 入力データの精度向上
 
-    const accuracyMetrics = {
-      overallAccuracy: this.calculateOverallAccuracy(predictions, actualOutcomes),
-      precisionRecall: this.calculatePrecisionRecall(predictions, actualOutcomes),
-      calibration: this.calculateCalibration(predictions, actualOutcomes),
-      featureImportance: this.analyzeFeatureImportance(historicalData)
-    };
+#### Q3: レポートの生成に時間がかかる
+**原因と対処法:**
+- 大量データの処理
+  → 期間・条件の絞り込み
+- システム負荷
+  → 利用者の少ない時間帯での実行
 
-    return {
-      currentAccuracy: accuracyMetrics.overallAccuracy,
-      issues: this.identifyAccuracyIssues(accuracyMetrics),
-      recommendations: this.generateAccuracyImprovements(accuracyMetrics),
-      modelRetraining: this.assessRetrainingNeed(accuracyMetrics)
-    };
-  },
+#### Q4: 個人実績が反映されない
+**原因と対処法:**
+- 担当者設定の間違い
+  → 商談・顧客の担当者設定確認
+- 権限・アクセス制限
+  → データアクセス権限の確認
 
-  // モデル再訓練
-  retrainPredictionModel: async (trainingData) => {
-    const newModel = await this.trainImprovedModel(trainingData);
-    const validationResults = await this.validateModel(newModel, trainingData.testSet);
-    
-    if (validationResults.accuracy > 0.8) {
-      await this.deployModel(newModel);
-      return {
-        success: true,
-        newAccuracy: validationResults.accuracy,
-        improvements: validationResults.improvements
-      };
-    } else {
-      return {
-        success: false,
-        issues: validationResults.issues,
-        recommendations: 'データ品質の改善が必要'
-      };
-    }
-  }
-};
-```
+### 分析精度向上
 
-#### 2. パフォーマンス問題
+#### データ品質の改善
+- **入力標準化**: 一貫したデータ入力ルール
+- **定期更新**: タイムリーなデータ更新
+- **検証・チェック**: データの正確性確認
+- **トレーニング**: 正しいデータ入力の教育
 
-```javascript
-// パフォーマンス最適化
-const PerformanceOptimizer = {
-  // 分析パフォーマンス監視
-  monitorAnalysisPerformance: () => {
-    const metrics = {
-      predictionTime: 0,
-      dataLoadTime: 0,
-      renderTime: 0,
-      memoryUsage: 0
-    };
-
-    const startTime = performance.now();
-    
-    return {
-      startTimer: (operation) => {
-        metrics[`${operation}StartTime`] = performance.now();
-      },
-      
-      endTimer: (operation) => {
-        const endTime = performance.now();
-        const startTime = metrics[`${operation}StartTime`];
-        metrics[`${operation}Time`] = endTime - startTime;
-      },
-
-      getMetrics: () => ({
-        ...metrics,
-        totalTime: performance.now() - startTime,
-        memoryUsage: performance.memory ? 
-          Math.round(performance.memory.usedJSHeapSize / 1048576) : null
-      })
-    };
-  },
-
-  // バッチ処理最適化
-  optimizeBatchProcessing: async (opportunities, batchSize = 10) => {
-    const results = [];
-    
-    for (let i = 0; i < opportunities.length; i += batchSize) {
-      const batch = opportunities.slice(i, i + batchSize);
-      const batchResults = await Promise.all(
-        batch.map(opp => conversionPredictor.predictConversionProbability(opp))
-      );
-      results.push(...batchResults);
-      
-      // CPUに負荷をかけすぎないよう小休止
-      if (i + batchSize < opportunities.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-    
-    return results;
-  }
-};
-```
-
-#### 3. データ品質問題
-
-```javascript
-// データ品質管理
-const DataQualityManager = {
-  // データ品質チェック
-  validateSalesData: (salesData) => {
-    const issues = [];
-    const { opportunities, activities, customers } = salesData;
-
-    // 必須フィールドのチェック
-    opportunities.forEach(opp => {
-      if (!opp.dealValue || isNaN(Number(opp.dealValue))) {
-        issues.push({
-          type: 'missing_deal_value',
-          opportunityId: opp.id,
-          severity: 'high'
-        });
-      }
-      
-      if (!opp.expectedCloseDate) {
-        issues.push({
-          type: 'missing_close_date',
-          opportunityId: opp.id,
-          severity: 'medium'
-        });
-      }
-    });
-
-    // データ整合性チェック
-    const orphanedActivities = activities.filter(activity => 
-      !opportunities.some(opp => opp.id === activity.opportunityId)
-    );
-
-    if (orphanedActivities.length > 0) {
-      issues.push({
-        type: 'orphaned_activities',
-        count: orphanedActivities.length,
-        severity: 'medium'
-      });
-    }
-
-    return {
-      isValid: issues.length === 0,
-      issues,
-      recommendations: this.generateDataQualityRecommendations(issues),
-      fixableIssues: issues.filter(issue => this.isAutoFixable(issue))
-    };
-  },
-
-  // 自動データ修正
-  autoFixDataIssues: async (salesData, issues) => {
-    const fixedData = { ...salesData };
-    
-    for (const issue of issues.filter(i => this.isAutoFixable(i))) {
-      switch (issue.type) {
-        case 'missing_close_date':
-          const opportunity = fixedData.opportunities.find(opp => opp.id === issue.opportunityId);
-          if (opportunity) {
-            // 30日後をデフォルトに設定
-            opportunity.expectedCloseDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          }
-          break;
-          
-        case 'invalid_stage':
-          // ステージ名の正規化
-          // 実装詳細は省略
-          break;
-      }
-    }
-    
-    return fixedData;
-  }
-};
-```
+#### 継続的改善
+- **分析結果検証**: 予測と実績の照合
+- **モデル調整**: 予測精度向上のための調整
+- **新指標追加**: より有用な分析項目の追加
+- **ベンチマーク更新**: 業界標準との比較更新
 
 ---
 
-このマニュアルは、営業分析機能の包括的な実装・運用ガイドです。AI駆動の成約確率予測から高度な営業最適化まで、全ての重要な機能を効率的に管理・活用するためのベストプラクティスを提供します。
+## まとめ
+
+営業分析システムを効果的に活用することで、以下の効果が期待できます：
+
+### 期待効果
+- **売上向上**: データに基づく戦略的営業活動
+- **効率性改善**: 無駄のない効率的な営業プロセス
+- **予測精度向上**: 正確な売上予測による計画精度向上
+- **人材育成**: 客観的評価による営業スキル向上
+
+### 活用のポイント
+- **データ品質**: 正確で完全なデータの継続的入力
+- **定期分析**: 継続的な分析と改善アクション
+- **チーム共有**: 分析結果の共有と活用
+- **戦略連動**: 分析結果に基づく戦略・戦術の調整
+
+データドリブンな営業管理により、より確実で効率的な売上拡大を実現できます。

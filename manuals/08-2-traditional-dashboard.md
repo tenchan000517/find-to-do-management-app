@@ -1,1004 +1,408 @@
-# 詳細ダッシュボード機能 マニュアル
+# 従来型ダッシュボード マニュアル
 
 ## 概要
 
-詳細ダッシュボードは、FIND to DO Management Appの包括的な情報表示機能を提供する従来型ダッシュボードシステムです。プロジェクト進捗、タスク管理、統合システム状況、Discord分析など、全ての重要な情報を一画面で確認できる設計となっています。
+FIND to DO Management Appの従来型ダッシュボードは、シンプルで見やすい表示と確実なデータ表示を重視した、クラシックなビジネスダッシュボードです。基本的な集計機能とグラフ表示により、安定したプロジェクト監視とレポート作成を支援します。
 
 ### 主要特徴
-- **包括的データ表示**：全ての主要機能の統計情報を表示
-- **リアルタイム統合システム監視**
-- **Discord コミュニティ分析**
-- **AI レコメンデーション機能**
-- **カスタマイズ可能なダッシュボード表示**
+- シンプルで直感的なインターフェース
+- 高速な表示とレスポンス
+- 基本的な集計・分析機能
+- 安定した動作とデータ精度
+- カスタマイズ可能なレイアウト
 
 ---
 
 ## 目次
 
-1. [アーキテクチャ設計](#アーキテクチャ設計)
-2. [統計カードシステム](#統計カードシステム)
-3. [統合システム監視](#統合システム監視)
-4. [データ管理・計算](#データ管理計算)
-5. [Discord 分析機能](#discord-分析機能)
-6. [AI レコメンデーション](#ai-レコメンデーション)
-7. [レスポンシブ設計](#レスポンシブ設計)
-8. [実装例](#実装例)
-9. [パフォーマンス最適化](#パフォーマンス最適化)
-10. [トラブルシューティング](#トラブルシューティング)
+1. [ダッシュボードの基本操作](#ダッシュボードの基本操作)
+2. [データ表示・グラフ機能](#データ表示グラフ機能)
+3. [フィルタリング・検索](#フィルタリング検索)
+4. [レポート作成・出力](#レポート作成出力)
+5. [表示カスタマイズ](#表示カスタマイズ)
+6. [データエクスポート](#データエクスポート)
+7. [設定・管理](#設定管理)
+8. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## アーキテクチャ設計
+## ダッシュボードの基本操作
 
-### コンポーネント構造
+### ダッシュボードへのアクセス
 
-```javascript
-// Dashboard.tsx の基本構造
-export default function Dashboard({ onDataRefresh }) {
-  // データフック
-  const { tasks, loading: tasksLoading, refreshTasks } = useTasks();
-  const { projects, loading: projectsLoading, refreshProjects } = useProjects();
-  const { connections, loading: connectionsLoading, refreshConnections } = useConnections();
-  const { appointments, loading: appointmentsLoading, reload: reloadAppointments } = useAppointments();
-  const { events, loading: eventsLoading, refreshEvents } = useCalendarEvents();
-  
-  // Discord metrics および レコメンデーション
-  const [discordMetrics, setDiscordMetrics] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
-  const [integratedSystemStatus, setIntegratedSystemStatus] = useState(null);
-  
-  // モード切り替え機能
-  const [isSimpleMode, setIsSimpleMode] = useState(true);
-  
-  return (
-    <div className="min-h-screen bg-gray-50 py-4 md:py-8">
-      {/* ヘッダー・モード切り替え */}
-      <DashboardHeader />
-      
-      {/* 条件付きダッシュボード表示 */}
-      {isSimpleMode ? <SmartDashboard /> : <TraditionalDashboard />}
-    </div>
-  );
-}
-```
+#### 1. 基本アクセス方法
+1. メインメニューから「従来型ダッシュボード」を選択
+2. または「ダッシュボード」→「クラシックビュー」を選択
+3. 初回アクセス時は表示設定ガイドが表示
 
-### データフロー管理
+#### 2. 画面構成
+- **ヘッダー**: 現在日時、ユーザー情報、メニュー
+- **サイドバー**: ナビゲーション、フィルター設定
+- **メインエリア**: データ表示とグラフ
+- **ステータスバー**: データ更新時刻、件数表示
 
-```javascript
-// 統合データ管理システム
-const DashboardDataManager = {
-  // 統計データの一元管理
-  calculateStats: (tasks, projects, connections, appointments) => {
-    const today = new Date();
-    const thisWeekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
-    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    return {
-      projects: {
-        total: projects.length,
-        active: projects.filter(p => p.status === 'active').length,
-        completed: projects.filter(p => p.status === 'completed').length,
-        onHold: projects.filter(p => p.status === 'on_hold').length
-      },
-      tasks: {
-        total: tasks.length,
-        completed: tasks.filter(t => t.status === 'COMPLETE').length,
-        inProgress: tasks.filter(t => ['PLAN', 'DO', 'CHECK'].includes(t.status)).length,
-        overdue: tasks.filter(t => {
-          if (!t.dueDate) return false;
-          const dueDate = new Date(t.dueDate);
-          return dueDate < today && t.status !== 'COMPLETE';
-        }).length
-      },
-      connections: {
-        total: connections.length,
-        companies: connections.filter(c => c.type === 'company').length,
-        students: connections.filter(c => c.type === 'student').length,
-        thisMonth: connections.filter(c => {
-          const createdDate = new Date(c.createdAt);
-          return createdDate >= thisMonthStart;
-        }).length
-      },
-      appointments: {
-        total: appointments.length,
-        scheduled: appointments.filter(a => a.status === 'scheduled').length,
-        completed: appointments.filter(a => a.status === 'contacted' || a.status === 'interested').length,
-        thisWeek: appointments.filter(a => {
-          const lastContact = a.lastContact ? new Date(a.lastContact) : null;
-          return lastContact && lastContact >= thisWeekStart;
-        }).length
-      }
-    };
-  }
-};
-```
+### 基本的な操作方法
+
+#### ナビゲーション
+- **プロジェクト切り替え**: 上部のドロップダウンから選択
+- **期間切り替え**: 「今日」「今週」「今月」「カスタム」から選択
+- **表示切り替え**: 「一覧」「グラフ」「詳細」タブで切り替え
+
+#### データの更新
+- **手動更新**: 右上の「更新」ボタンをクリック
+- **自動更新**: 設定で5分、15分、30分間隔を選択可能
+- **最終更新確認**: ステータスバーで更新時刻を確認
+
+### ショートカットキー
+
+#### よく使うショートカット
+- **Ctrl + R**: データ更新
+- **Ctrl + F**: 検索バーにフォーカス
+- **Ctrl + P**: 印刷プレビュー
+- **Ctrl + E**: エクスポート画面を開く
+- **F5**: ページ全体を更新
 
 ---
 
-## 統計カードシステム
+## データ表示・グラフ機能
 
-### StatCard コンポーネント
+### データ表示形式
 
-```javascript
-// 統計カード基本コンポーネント
-const StatCard = ({ title, value, subtitle, color, icon }) => (
-  <Card variant="elevated" padding="normal">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-xs sm:text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-2xl md:text-3xl font-bold text-gray-900">{value}</p>
-        <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>
-      </div>
-      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${color} flex items-center justify-center`}>
-        {icon}
-      </div>
-    </div>
-  </Card>
-);
+#### 1. 一覧表示
+**基本的な情報表示:**
+- タスク名、担当者、期限、進捗率
+- プロジェクト名、優先度、作成日
+- コメント数、添付ファイル数
 
-// 使用例
-const StatCardsGrid = ({ stats, discordMetrics, discordLoading }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-    <StatCard
-      title="アクティブプロジェクト"
-      value={stats.projects.active}
-      subtitle={`全${stats.projects.total}プロジェクト中`}
-      color="bg-blue-100"
-      icon="🚀"
-    />
-    <StatCard
-      title="進行中タスク"
-      value={stats.tasks.inProgress}
-      subtitle={`${stats.tasks.overdue}件が期限超過`}
-      color="bg-green-100"
-      icon={<CheckCircle className="w-6 h-6" />}
-    />
-    <StatCard
-      title="今月の新規つながり"
-      value={stats.connections.thisMonth}
-      subtitle={`全${stats.connections.total}件のつながり`}
-      color="bg-purple-100"
-      icon="👥"
-    />
-    <StatCard
-      title="今週のアポ"
-      value={stats.appointments.thisWeek}
-      subtitle={`${stats.appointments.scheduled}件予定中`}
-      color="bg-orange-100"
-      icon="📞"
-    />
-    <StatCard
-      title="コミュニティメンバー"
-      value={!discordLoading && discordMetrics.length > 0 ? 
-        discordMetrics[discordMetrics.length - 1]?.memberCount || 0 : 0}
-      subtitle="Discord総メンバー数"
-      color="bg-indigo-100"
-      icon="👨‍👩‍👧‍👦"
-    />
-  </div>
-);
-```
+**表示のカスタマイズ:**
+1. 列ヘッダーを右クリック
+2. 表示・非表示を切り替え
+3. 列幅をドラッグで調整
+4. 並び替えはヘッダークリック
 
-### 動的統計計算
+#### 2. カード表示
+- タスクごとに独立したカード形式
+- 重要情報を大きく表示
+- 画像・アイコンによる視覚的識別
+- ドラッグ&ドロップでの並び替え
 
-```javascript
-// リアルタイム統計更新システム
-const StatisticsCalculator = {
-  // 今日のタスク分析
-  getTodayTasks: (tasks) => {
-    return tasks.filter(task => {
-      if (!task.dueDate) return false;
-      const dueDate = new Date(task.dueDate);
-      const today = new Date();
-      return dueDate.toDateString() === today.toDateString();
-    });
-  },
-  
-  // プロジェクト進捗分析
-  getActiveProjects: (projects) => {
-    return projects.filter(project => project.status === 'active');
-  },
-  
-  // 期限迫るタスクの計算
-  getUpcomingDeadlines: (tasks, daysAhead = 3) => {
-    const today = new Date();
-    const targetDate = new Date();
-    targetDate.setDate(today.getDate() + daysAhead);
-    
-    return tasks.filter(task => {
-      if (!task.dueDate) return false;
-      const dueDate = new Date(task.dueDate);
-      return dueDate >= today && dueDate <= targetDate && task.status !== 'COMPLETE';
-    });
-  },
-  
-  // 時間分析ユーティリティ
-  formatTimeAgo: (timestamp) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffInHours = Math.floor((now.getTime() - time.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return '数分前';
-    if (diffInHours < 24) return `${diffInHours}時間前`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}日前`;
-  }
-};
-```
+### グラフ・チャート機能
+
+#### 利用可能なグラフ種類
+
+##### 円グラフ
+- **用途**: 進捗状況の割合表示
+- **表示項目**: 完了・進行中・未着手の比率
+- **操作**: セクションクリックで詳細表示
+
+##### 棒グラフ
+- **用途**: 期間別、メンバー別の比較
+- **表示項目**: 週別・月別の完了タスク数
+- **操作**: バーをクリックで詳細データ表示
+
+##### 線グラフ
+- **用途**: 時系列での進捗トレンド
+- **表示項目**: 日別・週別の累積進捗
+- **操作**: ポイントにカーソルで詳細表示
+
+##### ガントチャート
+- **用途**: プロジェクトスケジュール表示
+- **表示項目**: タスクの開始・終了予定日
+- **操作**: バーのドラッグでスケジュール調整
+
+#### グラフの操作
+
+##### 表示データの選択
+1. グラフ上部の「設定」アイコンをクリック
+2. 表示したいデータ系列を選択
+3. 色やスタイルを選択
+4. 「適用」で反映
+
+##### 期間の調整
+- スライダーで表示期間を調整
+- カレンダーで開始・終了日を指定
+- プリセット期間（今週、今月等）を選択
 
 ---
 
-## 統合システム監視
+## フィルタリング・検索
 
-### SystemIntegrator 連携
+### 基本検索機能
 
-```javascript
-// Phase 5 統合システム状態監視
-const IntegratedSystemMonitor = {
-  // システム状態取得
-  fetchIntegratedSystemStatus: async () => {
-    try {
-      const response = await fetch('/api/dashboard/integrated');
-      if (response.ok) {
-        const data = await response.json();
-        return data.data || null;
-      }
-    } catch (error) {
-      console.error('Integrated system status fetch error:', error);
-      return null;
-    }
-  },
-  
-  // SystemIntegrator からの詳細状態取得
-  fetchSystemIntegratorStatus: async (systemIntegrator) => {
-    try {
-      const systemStatus = await systemIntegrator.getSystemStatus();
-      return {
-        systemIntegrator: systemStatus,
-        health: systemStatus.health || 0,
-        lastCheck: systemStatus.lastCheck || new Date(),
-        performance: systemStatus.performance || {}
-      };
-    } catch (error) {
-      console.error('Failed to fetch system status:', error);
-      return null;
-    }
-  }
-};
+#### 1. キーワード検索
+1. 上部の検索ボックスにキーワードを入力
+2. 検索対象を選択：
+   - タスク名
+   - 説明文
+   - コメント
+   - タグ
 
-// 統合システム状態表示コンポーネント
-const SystemIntegrationStatus = ({ integratedSystemStatus, systemStatusLoading }) => (
-  <Card variant="elevated" padding="normal">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-lg md:text-xl font-semibold text-gray-900">🚀 システム統合状況</h2>
-      <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${
-          integratedSystemStatus?.systemIntegrator?.health > 0.8 ? 'bg-green-500' :
-          integratedSystemStatus?.systemIntegrator?.health > 0.5 ? 'bg-yellow-500' : 'bg-red-500'
-        }`}></div>
-        <span className="text-sm text-gray-600">
-          {integratedSystemStatus?.systemIntegrator?.health ? 
-            `${Math.round(integratedSystemStatus.systemIntegrator.health * 100)}%` : '0%'}
-        </span>
-      </div>
-    </div>
-    
-    {systemStatusLoading ? (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-      </div>
-    ) : (
-      <PhaseStatusGrid systemStatus={integratedSystemStatus} />
-    )}
-  </Card>
-);
-```
+#### 2. 検索結果の表示
+- マッチしたキーワードをハイライト表示
+- 検索結果件数をステータスバーに表示
+- 検索履歴から過去の検索を再実行可能
 
-### Phase別統合監視
+### 高度なフィルタリング
 
-```javascript
-// Phase別統合状況表示
-const PhaseStatusGrid = ({ systemStatus }) => (
-  <div className="space-y-3">
-    <div className="grid grid-cols-2 gap-4 text-sm">
-      <PhaseStatusItem 
-        phase="Phase 1" 
-        status={systemStatus?.systemIntegrator?.integration?.phase1?.dataIntegrity}
-        label="リソース管理統合"
-      />
-      <PhaseStatusItem 
-        phase="Phase 2" 
-        status={systemStatus?.systemIntegrator?.integration?.phase2?.performanceOptimized}
-        label="パフォーマンス最適化"
-      />
-      <PhaseStatusItem 
-        phase="Phase 3" 
-        status={systemStatus?.systemIntegrator?.integration?.phase3?.analyticsIntegrated}
-        label="アナリティクス統合"
-      />
-      <PhaseStatusItem 
-        phase="Phase 4" 
-        status={systemStatus?.systemIntegrator?.integration?.phase4?.aiAssistant}
-        label="AI アシスタント"
-      />
-    </div>
-    
-    <div className="pt-3 border-t border-gray-200">
-      <SystemPerformanceMetrics performance={systemStatus?.systemIntegrator?.performance} />
-    </div>
-  </div>
-);
+#### フィルター項目
+- **期間**: 作成日、更新日、期限日で絞り込み
+- **担当者**: 特定のメンバーが関与するタスク
+- **プロジェクト**: 特定プロジェクトのみを表示
+- **ステータス**: 完了、進行中、未着手等
+- **優先度**: 高、中、低の組み合わせ
+- **タグ**: 設定されたタグでの絞り込み
 
-const PhaseStatusItem = ({ phase, status, label }) => (
-  <div className="flex justify-between">
-    <span className="text-gray-600">{phase}</span>
-    <span className={`font-medium ${status ? 'text-green-600' : 'text-red-600'}`}>
-      {status ? '✅' : '❌'}
-    </span>
-  </div>
-);
-```
+#### フィルターの使用方法
+1. サイドバーの「フィルター」セクション
+2. 適用したい条件にチェック
+3. 日付範囲がある場合はカレンダーで選択
+4. 「適用」ボタンで表示を更新
+
+#### 保存済みフィルター
+1. よく使う条件を設定
+2. 「フィルターを保存」をクリック
+3. 分かりやすい名前を設定
+4. 次回以降は保存済みフィルターから選択
 
 ---
 
-## データ管理・計算
+## レポート作成・出力
 
-### 最近のアクティビティ生成
+### 標準レポート
 
-```javascript
-// 実データからアクティビティを生成
-const ActivityGenerator = {
-  generateRecentActivities: (tasks, projects, connections) => {
-    const activities = [];
-    
-    // 最近完了したタスク
-    const completedTasks = tasks
-      .filter(t => t.status === 'COMPLETE')
-      .slice(0, 2)
-      .map(task => ({
-        id: task.id,
-        type: 'task',
-        title: task.title,
-        description: 'タスクが完了されました',
-        timestamp: task.updatedAt,
-        user: task.user?.name || task.userId || 'Unknown'
-      }));
-    
-    // 最近作成されたプロジェクト
-    const recentProjects = projects
-      .slice(0, 1)
-      .map(project => ({
-        id: project.id,
-        type: 'project',
-        title: project.name,
-        description: `プロジェクトの進捗が${project.progress}%に更新されました`,
-        timestamp: project.updatedAt,
-        user: 'Unknown'
-      }));
-    
-    // 最近追加されたつながり
-    const recentConnections = connections
-      .slice(0, 1)
-      .map(connection => ({
-        id: connection.id,
-        type: 'connection',
-        title: `${connection.name}（${connection.company}）`,
-        description: '新しいつながりが追加されました',
-        timestamp: connection.createdAt,
-        user: 'Unknown'
-      }));
-    
-    activities.push(...completedTasks, ...recentProjects, ...recentConnections);
-    
-    return activities
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 4);
-  }
-};
-```
+#### 1. プロジェクト進捗レポート
+**含まれる情報:**
+- プロジェクト全体の進捗率
+- タスク完了状況（完了・進行中・未着手）
+- メンバー別の作業状況
+- 期限との比較状況
 
-### 今後のイベント計算
+**生成方法:**
+1. 「レポート」メニューから「進捗レポート」を選択
+2. 対象プロジェクトを選択
+3. レポート期間を設定
+4. 「生成」ボタンをクリック
 
-```javascript
-// カレンダーイベントと締切の統合表示
-const EventScheduler = {
-  generateUpcomingEvents: (events, tasks) => {
-    const upcomingEvents = [];
-    
-    // カレンダーイベント
-    const calendarEvents = events
-      .filter(event => {
-        const eventDate = new Date(event.startTime);
-        const today = new Date();
-        return eventDate >= today;
-      })
-      .slice(0, 2)
-      .map(event => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.startTime).toISOString().split('T')[0],
-        time: new Date(event.startTime).toLocaleTimeString('ja-JP', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        type: event.type
-      }));
-    
-    // 期限が近いタスク（締切として）
-    const upcomingDeadlines = tasks
-      .filter(task => {
-        if (!task.dueDate) return false;
-        const dueDate = new Date(task.dueDate);
-        const today = new Date();
-        const threeDaysFromNow = new Date();
-        threeDaysFromNow.setDate(today.getDate() + 3);
-        return dueDate >= today && dueDate <= threeDaysFromNow && task.status !== 'COMPLETE';
-      })
-      .slice(0, 2)
-      .map(task => ({
-        id: task.id,
-        title: `${task.title}（締切）`,
-        date: new Date(task.dueDate).toISOString().split('T')[0],
-        time: '終日',
-        type: 'deadline'
-      }));
-    
-    upcomingEvents.push(...calendarEvents, ...upcomingDeadlines);
-    
-    return upcomingEvents
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(0, 4);
-  }
-};
-```
+#### 2. 作業時間レポート
+**含まれる情報:**
+- メンバー別作業時間集計
+- プロジェクト別時間配分
+- 日別・週別の作業時間推移
+- 効率性指標
+
+#### 3. 完了タスクレポート
+**含まれる情報:**
+- 期間内に完了したタスク一覧
+- 完了日と予定日の比較
+- 品質指標（やり直し回数等）
+- 成果物の概要
+
+### カスタムレポート
+
+#### レポートビルダーの使用
+1. 「レポート」→「カスタムレポート」を選択
+2. 以下の項目を設定：
+   - **データソース**: 表示するデータの種類
+   - **表示項目**: レポートに含める情報
+   - **グループ化**: データの集計方法
+   - **並び順**: 表示順序の設定
+
+#### テンプレートの活用
+- **週次報告**: 週間の活動概要
+- **月次サマリー**: 月間実績の詳細
+- **プロジェクト完了報告**: プロジェクト終了時の総括
+- **個人実績**: メンバー個別の成果
 
 ---
 
-## Discord 分析機能
+## 表示カスタマイズ
 
-### Discord メトリクス取得
+### レイアウトの調整
 
-```javascript
-// Discord API データ取得
-const DiscordAnalytics = {
-  // 基本メトリクス取得
-  fetchDiscordMetrics: async (days = 7) => {
-    try {
-      const response = await fetch(`/api/discord/metrics?days=${days}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.data || [];
-      }
-      return [];
-    } catch (error) {
-      console.error('Discord metrics fetch error:', error);
-      return [];
-    }
-  },
-  
-  // 過去7日間のデータ生成
-  getLast7Days: () => {
-    const days = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      days.push(date);
-    }
-    return days;
-  },
-  
-  // 特定日のメトリクス取得
-  getMetricForDate: (discordMetrics, date) => {
-    const dateString = date.toISOString().split('T')[0];
-    return discordMetrics.find(m => m.date === dateString);
-  }
-};
-```
+#### 1. パネル配置
+- **ドラッグ&ドロップ**: パネルを希望の位置に移動
+- **サイズ調整**: パネル境界をドラッグして大きさ変更
+- **表示・非表示**: 不要なパネルを非表示に設定
 
-### Discord チャート表示
+#### 2. グリッドレイアウト
+1. 「レイアウト設定」メニューを選択
+2. グリッドサイズを選択（2x2、3x3、4x4等）
+3. 各グリッドに表示する内容を設定
+4. 設定を保存して適用
 
-```javascript
-// メンバー数推移チャート
-const DiscordMemberChart = ({ discordMetrics }) => {
-  const last7Days = DiscordAnalytics.getLast7Days();
-  
-  const chartData = last7Days.map((date, index) => {
-    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-    const currentMetric = DiscordAnalytics.getMetricForDate(discordMetrics, date);
-    const previousMetric = index > 0 ? 
-      DiscordAnalytics.getMetricForDate(discordMetrics, last7Days[index-1]) : null;
-    
-    const newMembers = (currentMetric && previousMetric) 
-      ? Math.max(0, currentMetric.memberCount - previousMetric.memberCount) 
-      : 0;
-    
-    return {
-      date: dateStr,
-      memberCount: currentMetric?.memberCount || 0,
-      newMembers: newMembers
-    };
-  });
+### 色・テーマ設定
 
-  return <MemberChart data={chartData} height={180} />;
-};
+#### テーマの選択
+- **ライトテーマ**: 明るい背景で視認性重視
+- **ダークテーマ**: 暗い背景で目に優しい
+- **ハイコントラスト**: アクセシビリティ重視
+- **カスタムテーマ**: 独自の色設定
 
-// ロール分析チャート
-const DiscordRoleChart = ({ discordMetrics }) => {
-  const last7Days = DiscordAnalytics.getLast7Days();
-  
-  const chartData = last7Days.map(date => {
-    const metric = DiscordAnalytics.getMetricForDate(discordMetrics, date);
-    const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-    
-    if (!metric?.roleCounts) {
-      return {
-        date: dateStr,
-        'FIND to DO': 0,
-        'イベント情報': 0,
-        'みんなの告知': 0
-      };
-    }
-    
-    const roleCounts = typeof metric.roleCounts === 'string' 
-      ? JSON.parse(metric.roleCounts) 
-      : metric.roleCounts;
-    
-    return {
-      date: dateStr,
-      'FIND to DO': roleCounts['1332242428459221046']?.count || 0,
-      'イベント情報': roleCounts['1381201663045668906']?.count || 0,
-      'みんなの告知': roleCounts['1382167308180394145']?.count || 0
-    };
-  });
+#### カラーパレット
+1. 設定メニューから「表示設定」
+2. 「カラーパレット」タブを選択
+3. 各要素の色を個別に設定：
+   - 背景色
+   - 文字色
+   - グラフの配色
+   - アクセントカラー
 
-  const lines = [
-    { dataKey: 'FIND to DO', stroke: '#3b82f6' },
-    { dataKey: 'イベント情報', stroke: '#10b981' },
-    { dataKey: 'みんなの告知', stroke: '#f59e0b' }
-  ];
+### フォント・表示サイズ
 
-  return <RoleLineChart data={chartData} lines={lines} height={180} />;
-};
-```
+#### フォント設定
+- **フォントファミリー**: システムフォント、明朝、ゴシック
+- **フォントサイズ**: 小、標準、大、特大
+- **行間**: 通常、広め、狭め
+
+#### 表示密度
+- **コンパクト**: 狭いスペースに多くの情報
+- **標準**: バランスの取れた表示
+- **ゆったり**: 見やすさを重視した表示
 
 ---
 
-## AI レコメンデーション
+## データエクスポート
 
-### レコメンデーション取得・実行
+### エクスポート形式
 
-```javascript
-// AI レコメンデーション管理システム
-const AIRecommendationSystem = {
-  // レコメンデーション取得
-  fetchRecommendations: async (options = {}) => {
-    const params = new URLSearchParams({
-      status: options.status || 'PENDING',
-      limit: options.limit || '5',
-      minRelevance: options.minRelevance || '0.6'
-    });
-    
-    try {
-      const response = await fetch(`/api/google-docs/recommendations?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.data?.recommendations || [];
-      }
-      return [];
-    } catch (error) {
-      console.error('Recommendations fetch error:', error);
-      return [];
-    }
-  },
-  
-  // レコメンデーション実行
-  executeRecommendation: async (recommendationId) => {
-    try {
-      const response = await fetch('/api/google-docs/recommendations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'execute',
-          recommendationId,
-          params: { userId: 'current-user' }
-        })
-      });
+#### 1. Excel形式（.xlsx）
+**特徴:**
+- 詳細な分析に適している
+- 計算式やグラフも含める
+- 複数シートでの情報整理
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Recommendation execution error:', error);
-      return { success: false, error: error.message };
-    }
-  }
-};
+**エクスポート手順:**
+1. エクスポートしたいデータを画面に表示
+2. 「エクスポート」→「Excel」を選択
+3. 含める情報を選択（データのみ、グラフ含む等）
+4. ファイル名を設定してダウンロード
 
-// レコメンデーション表示コンポーネント
-const RecommendationCard = ({ recommendation, onExecute }) => (
-  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-    <div className="flex justify-between items-start mb-2">
-      <div className="flex-1 mr-2">
-        <h4 className="text-sm font-medium text-gray-900 truncate">
-          {recommendation.title}
-        </h4>
-        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-          {recommendation.description}
-        </p>
-      </div>
-      <div className="flex items-center gap-1">
-        <ImpactBadge impact={recommendation.estimatedImpact} />
-      </div>
-    </div>
-    <div className="flex justify-between items-center">
-      <div className="flex items-center gap-3 text-xs text-gray-500">
-        <span>関連性: {Math.round(recommendation.relevance_score * 100)}%</span>
-        <span>実行性: {Math.round(recommendation.executabilityScore * 100)}%</span>
-      </div>
-      <Button
-        onClick={() => onExecute(recommendation.id)}
-        size="sm"
-        className="px-2 py-1 text-xs"
-      >
-        実行
-      </Button>
-    </div>
-  </div>
-);
-```
+#### 2. CSV形式（.csv）
+**特徴:**
+- 他システムでの読み込みに適している
+- 軽量でシンプルな形式
+- 日本語の文字化け対策済み
+
+#### 3. PDF形式（.pdf）
+**特徴:**
+- 印刷やプレゼンテーションに適している
+- レイアウトが保持される
+- セキュリティ設定可能
+
+### エクスポート設定
+
+#### データ範囲の指定
+- **全データ**: 現在の表示条件での全データ
+- **選択データ**: チェックボックスで選択したデータのみ
+- **表示中データ**: 現在画面に表示されているデータのみ
+
+#### 出力項目の選択
+1. エクスポート画面で「詳細設定」をクリック
+2. 出力したい項目にチェック：
+   - 基本情報（名前、期限等）
+   - 詳細情報（説明、コメント等）
+   - 関連情報（添付ファイル名等）
 
 ---
 
-## レスポンシブ設計
+## 設定・管理
 
-### グリッドレイアウト対応
+### ユーザー設定
 
-```javascript
-// レスポンシブグリッドシステム
-const ResponsiveGridSystem = {
-  // 統計カード用グリッド
-  statCardsGrid: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4",
-  
-  // メインダッシュボード用グリッド
-  mainDashboardGrid: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
-  
-  // Discord分析用グリッド
-  discordAnalyticsGrid: "grid grid-cols-1 lg:grid-cols-4 gap-6",
-  
-  // 二列レイアウト
-  twoColumnGrid: "grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8",
-  
-  // デバイス別表示制御
-  getDeviceSpecificClasses: (device) => {
-    const classes = {
-      mobile: {
-        text: "text-xs sm:text-sm",
-        card: "p-4",
-        grid: "grid-cols-1"
-      },
-      tablet: {
-        text: "text-sm md:text-base", 
-        card: "p-4 md:p-6",
-        grid: "grid-cols-1 md:grid-cols-2"
-      },
-      desktop: {
-        text: "text-base lg:text-lg",
-        card: "p-6 lg:p-8", 
-        grid: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
-      }
-    };
-    
-    return classes[device] || classes.desktop;
-  }
-};
-```
+#### 1. 個人設定
+- **言語設定**: 日本語、英語の切り替え
+- **タイムゾーン**: 表示時刻の基準設定
+- **日付形式**: 年月日の表示順序
+- **数値形式**: 桁区切りや小数点の表示
 
-### モバイル最適化
+#### 2. 表示設定
+- **ホーム画面**: ログイン時の初期表示
+- **更新間隔**: 自動更新の頻度
+- **通知設定**: ブラウザ通知の有効・無効
+- **ショートカット**: よく使う機能への素早いアクセス
 
-```javascript
-// モバイル対応コンポーネント
-const MobileOptimizedCard = ({ title, children, className = "" }) => (
-  <Card 
-    variant="elevated" 
-    padding="normal" 
-    className={`${className} overflow-hidden`}
-  >
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-lg md:text-xl font-semibold text-gray-900 truncate">
-        {title}
-      </h2>
-    </div>
-    <div className="overflow-x-auto">
-      {children}
-    </div>
-  </Card>
-);
+### システム設定
 
-// タッチ対応インタラクション
-const TouchOptimizedButton = ({ children, onClick, className = "" }) => (
-  <button
-    onClick={onClick}
-    className={`
-      ${className}
-      min-h-[44px] min-w-[44px] 
-      touch-manipulation
-      active:scale-95 
-      transition-transform duration-150
-      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-    `}
-  >
-    {children}
-  </button>
-);
-```
+#### データベース設定
+- **バックアップ頻度**: 自動バックアップの間隔
+- **データ保持期間**: 古いデータの削除設定
+- **パフォーマンス**: 表示速度の最適化設定
 
----
-
-## 実装例
-
-### 完全なダッシュボード実装
-
-```javascript
-// TraditionalDashboard の完全実装例
-const TraditionalDashboard = () => {
-  const [stats, setStats] = useState(initialStats);
-  const [discordMetrics, setDiscordMetrics] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
-  const [integratedSystemStatus, setIntegratedSystemStatus] = useState(null);
-  
-  // データ取得とリアルタイム更新
-  useEffect(() => {
-    const fetchAllData = async () => {
-      const [discord, recs, systemStatus] = await Promise.all([
-        DiscordAnalytics.fetchDiscordMetrics(7),
-        AIRecommendationSystem.fetchRecommendations(),
-        IntegratedSystemMonitor.fetchIntegratedSystemStatus()
-      ]);
-      
-      setDiscordMetrics(discord);
-      setRecommendations(recs);
-      setIntegratedSystemStatus(systemStatus);
-    };
-    
-    fetchAllData();
-    
-    // 5分ごとの自動更新
-    const interval = setInterval(fetchAllData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  return (
-    <div>
-      {/* 統計カード */}
-      <StatCardsGrid stats={stats} discordMetrics={discordMetrics} />
-      
-      {/* Phase 5: 統合システム概要 */}
-      <IntegratedSystemOverview systemStatus={integratedSystemStatus} />
-      
-      {/* メインコンテンツグリッド */}
-      <MainContentGrid 
-        stats={stats}
-        discordMetrics={discordMetrics}
-        recommendations={recommendations}
-        integratedSystemStatus={integratedSystemStatus}
-      />
-      
-      {/* Discord 分析セクション */}
-      <DiscordAnalyticsSection discordMetrics={discordMetrics} />
-      
-      {/* 最下部セクション */}
-      <BottomSection 
-        recommendations={recommendations}
-        onExecuteRecommendation={handleExecuteRecommendation}
-      />
-    </div>
-  );
-};
-```
-
----
-
-## パフォーマンス最適化
-
-### データキャッシュ戦略
-
-```javascript
-// パフォーマンス最適化システム
-const DashboardPerformanceOptimizer = {
-  // メモ化によるレンダリング最適化
-  memoizedComponents: {
-    StatCard: React.memo(StatCard),
-    ProjectProgressCard: React.memo(ProjectProgressCard),
-    DiscordChart: React.memo(DiscordMemberChart)
-  },
-  
-  // データキャッシュ
-  cacheManager: {
-    set: (key, data, ttl = 5 * 60 * 1000) => {
-      const item = {
-        data,
-        timestamp: Date.now(),
-        ttl
-      };
-      localStorage.setItem(`dashboard_cache_${key}`, JSON.stringify(item));
-    },
-    
-    get: (key) => {
-      const item = localStorage.getItem(`dashboard_cache_${key}`);
-      if (!item) return null;
-      
-      const parsed = JSON.parse(item);
-      if (Date.now() - parsed.timestamp > parsed.ttl) {
-        localStorage.removeItem(`dashboard_cache_${key}`);
-        return null;
-      }
-      
-      return parsed.data;
-    }
-  },
-  
-  // 遅延ローディング
-  lazyLoadComponents: {
-    DiscordAnalytics: React.lazy(() => import('./DiscordAnalyticsSection')),
-    RecommendationSection: React.lazy(() => import('./RecommendationSection'))
-  }
-};
-```
-
-### バッチAPI呼び出し
-
-```javascript
-// 効率的なAPI呼び出し管理
-const APIBatchManager = {
-  // 並列データ取得
-  fetchDashboardData: async () => {
-    const batchRequests = [
-      fetch('/api/discord/metrics?days=7'),
-      fetch('/api/google-docs/recommendations?status=PENDING&limit=5'),
-      fetch('/api/dashboard/integrated'),
-      fetch('/api/analytics/dashboard')
-    ];
-    
-    try {
-      const responses = await Promise.allSettled(batchRequests);
-      
-      const results = await Promise.allSettled(
-        responses.map(response => 
-          response.status === 'fulfilled' && response.value.ok ? 
-          response.value.json() : null
-        )
-      );
-      
-      return {
-        discord: results[0]?.value?.data || [],
-        recommendations: results[1]?.value?.data?.recommendations || [],
-        systemStatus: results[2]?.value?.data || null,
-        analytics: results[3]?.value?.data || null
-      };
-    } catch (error) {
-      console.error('Batch API fetch error:', error);
-      return {};
-    }
-  }
-};
-```
+#### セキュリティ設定
+- **アクセス制限**: IP アドレスによる制限
+- **セッション管理**: 自動ログアウト時間
+- **データ暗号化**: 保存データの暗号化レベル
 
 ---
 
 ## トラブルシューティング
 
-### よくある問題と解決策
+### よくある問題と解決方法
 
-#### 1. データローディングが遅い
+#### Q1: ダッシュボードが正しく表示されない
+**原因と対処法:**
+- ブラウザの互換性問題
+  → 推奨ブラウザ（Chrome、Firefox、Edge）を使用
+- キャッシュの問題
+  → ブラウザのキャッシュをクリア
 
-```javascript
-// ローディング状態最適化
-const LoadingStateManager = {
-  // 段階的ローディング
-  useStaggeredLoading: () => {
-    const [loadingStates, setLoadingStates] = useState({
-      stats: true,
-      discord: true,
-      recommendations: true,
-      system: true
-    });
-    
-    const updateLoadingState = (key, isLoading) => {
-      setLoadingStates(prev => ({ ...prev, [key]: isLoading }));
-    };
-    
-    return { loadingStates, updateLoadingState };
-  },
-  
-  // スケルトンUI
-  SkeletonCard: () => (
-    <Card variant="elevated" padding="normal" className="animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-      <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-    </Card>
-  )
-};
-```
+#### Q2: グラフが表示されない
+**原因と対処法:**
+- データが不足している
+  → 表示期間を長くするか、データ入力を確認
+- ブラウザの JavaScript が無効
+  → JavaScript を有効にする
 
-#### 2. レスポンシブ表示の問題
+#### Q3: エクスポートが失敗する
+**原因と対処法:**
+- データサイズが大きすぎる
+  → エクスポート対象を絞り込む
+- ブラウザのポップアップブロック
+  → ポップアップを許可する
 
-```javascript
-// レスポンシブ問題の対処
-const ResponsiveDebugger = {
-  // ブレークポイント検出
-  useBreakpoint: () => {
-    const [breakpoint, setBreakpoint] = useState('desktop');
-    
-    useEffect(() => {
-      const updateBreakpoint = () => {
-        const width = window.innerWidth;
-        if (width < 768) setBreakpoint('mobile');
-        else if (width < 1024) setBreakpoint('tablet');
-        else setBreakpoint('desktop');
-      };
-      
-      updateBreakpoint();
-      window.addEventListener('resize', updateBreakpoint);
-      return () => window.removeEventListener('resize', updateBreakpoint);
-    }, []);
-    
-    return breakpoint;
-  },
-  
-  // デバッグ用表示
-  BreakpointIndicator: () => (
-    <div className="fixed top-4 right-4 z-50 bg-black text-white px-2 py-1 rounded text-xs">
-      <span className="sm:hidden">XS</span>
-      <span className="hidden sm:block md:hidden">SM</span>
-      <span className="hidden md:block lg:hidden">MD</span>
-      <span className="hidden lg:block xl:hidden">LG</span>
-      <span className="hidden xl:block">XL</span>
-    </div>
-  )
-};
-```
+#### Q4: 表示が遅い
+**原因と対処法:**
+- 大量のデータを表示している
+  → フィルターでデータを絞り込む
+- 複数のタブを開いている
+  → 不要なタブを閉じる
 
-#### 3. メモリリーク対策
+### パフォーマンス最適化
 
-```javascript
-// メモリ管理システム
-const MemoryManager = {
-  // クリーンアップ処理
-  useCleanup: () => {
-    const cleanup = useCallback(() => {
-      // インターバルクリア
-      const intervals = window.dashboardIntervals || [];
-      intervals.forEach(clearInterval);
-      window.dashboardIntervals = [];
-      
-      // イベントリスナー削除
-      const listeners = window.dashboardListeners || [];
-      listeners.forEach(({ element, event, handler }) => {
-        element.removeEventListener(event, handler);
-      });
-      window.dashboardListeners = [];
-    }, []);
-    
-    useEffect(() => {
-      return cleanup;
-    }, [cleanup]);
-  },
-  
-  // メモリ使用量監視
-  monitorMemoryUsage: () => {
-    if (performance.memory) {
-      console.log('Memory usage:', {
-        used: Math.round(performance.memory.usedJSHeapSize / 1048576) + 'MB',
-        total: Math.round(performance.memory.totalJSHeapSize / 1048576) + 'MB',
-        limit: Math.round(performance.memory.jsHeapSizeLimit / 1048576) + 'MB'
-      });
-    }
-  }
-};
-```
+#### 表示速度の改善
+- 表示データ件数の制限
+- 画像・アイコンの最適化
+- ブラウザの推奨設定の確認
+
+#### メモリ使用量の最適化
+- 不要なデータのクリア
+- 定期的なブラウザ再起動
+- 拡張機能の見直し
+
+### データの整合性確認
+
+#### 定期チェック項目
+- データの重複確認
+- 欠損データの補完
+- 計算結果の検証
+- バックアップデータとの照合
 
 ---
 
-このマニュアルは、詳細ダッシュボードの包括的な実装・運用ガイドです。システム全体の統合監視から個別機能の詳細表示まで、全ての重要な情報を効率的に管理・表示するためのベストプラクティスを提供します。
+## まとめ
+
+従来型ダッシュボードを効果的に活用することで、以下の効果が期待できます：
+
+### 期待効果
+- **安定した情報管理**: 確実で分かりやすいデータ表示
+- **効率的なレポート作成**: 素早いレポート生成と出力
+- **チーム内の情報共有**: 標準的な形式での情報伝達
+- **長期的なデータ蓄積**: 継続的なデータ管理
+
+### 活用のコツ
+- **シンプルな運用**: 複雑な設定を避け、基本機能を確実に活用
+- **定期的なメンテナンス**: データの整理と設定の見直し
+- **チーム標準の確立**: 共通の表示・操作方法の統一
+- **段階的な改善**: 使用状況に応じた機能の追加・調整
+
+確実で使いやすいダッシュボードにより、安定したプロジェクト管理を実現できます。

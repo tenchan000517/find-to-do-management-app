@@ -1,546 +1,423 @@
-# 認証・権限管理システム マニュアル
+# 認証・認可システム マニュアル
 
 ## 概要
 
-FIND to DO Management Appの認証・権限管理システムは、NextAuth.jsをベースとした堅牢なセキュリティシステムです。ユーザーの認証から権限管理、セキュリティ監視まで包括的な機能を提供します。
+FIND to DO Management Appの認証・認可システムは、セキュアなアクセス管理とユーザー権限制御を提供する基盤機能です。多様な認証方法をサポートし、組織のセキュリティポリシーに応じた柔軟な権限設定が可能です。
+
+### 主要特徴
+- 複数の認証方法（パスワード、2FA、SSO）
+- きめ細かな権限管理とロールベースアクセス制御
+- セキュリティログの監視と異常検知
+- 企業向けシングルサインオン（SSO）連携
+- コンプライアンス要件への対応
+
+---
 
 ## 目次
 
-1. [基本認証機能](#基本認証機能)
-2. [ユーザーロール管理](#ユーザーロール管理)
-3. [セキュリティ設定](#セキュリティ設定)
-4. [ログイン履歴・監視](#ログイン履歴監視)
-5. [API認証](#api認証)
-6. [トラブルシューティング](#トラブルシューティング)
+1. [ユーザー登録・ログイン](#ユーザー登録ログイン)
+2. [二要素認証（2FA）設定](#二要素認証2fa設定)
+3. [パスワード管理](#パスワード管理)
+4. [権限・ロール管理](#権限ロール管理)
+5. [SSO連携設定](#sso連携設定)
+6. [セキュリティ設定](#セキュリティ設定)
+7. [ログ・監査機能](#ログ監査機能)
+8. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## 基本認証機能
+## ユーザー登録・ログイン
 
-### 1.1 ログイン方法
+### 新規ユーザー登録
 
-#### Google OAuth認証
-```javascript
-// Google認証を使用したログイン
-import { signIn } from "next-auth/react"
+#### 1. 基本的な登録手順
+1. トップページの「新規登録」ボタンをクリック
+2. 必要情報を入力：
+   - **メールアドレス**: ログインIDとして使用
+   - **パスワード**: 8文字以上の複雑なパスワード
+   - **氏名**: フルネームを入力
+   - **所属組織**: 会社名・部署名（任意）
 
-const handleGoogleLogin = () => {
-  signIn('google', { callbackUrl: '/dashboard' })
-}
-```
+#### 2. メール認証
+1. 登録後、確認メールが送信されます
+2. メール内の「アカウントを有効化」リンクをクリック
+3. 認証完了後、ログイン可能になります
 
-**手順:**
-1. ログインページで「Googleでログイン」ボタンをクリック
-2. Google認証画面で認証情報を入力
-3. 権限許可を確認
-4. ダッシュボードにリダイレクト
+**注意**: メール認証を24時間以内に完了してください
 
-#### メールアドレス認証
-```javascript
-// メールアドレス認証を使用したログイン
-const handleEmailLogin = async (email, password) => {
-  const result = await signIn('credentials', {
-    email,
-    password,
-    redirect: false
-  })
-  
-  if (result?.error) {
-    console.error('Login failed:', result.error)
-  }
-}
-```
+#### 3. 初期設定
+初回ログイン時に以下の設定を行います：
+- プロフィール画像の設定
+- タイムゾーンの選択
+- 通知設定の調整
+- セキュリティ設定の確認
 
-**手順:**
+### ログイン方法
+
+#### 通常ログイン
 1. ログインページでメールアドレスとパスワードを入力
 2. 「ログイン」ボタンをクリック
-3. 認証成功後、ダッシュボードにリダイレクト
+3. 2FAが有効な場合は認証コードを入力
 
-### 1.2 ログアウト機能
+#### ログイン状態の維持
+- 「ログイン状態を保持」チェックボックス
+- 最大30日間の自動ログイン
+- 共用端末では使用を避けてください
 
-```javascript
-import { signOut } from "next-auth/react"
-
-const handleLogout = () => {
-  signOut({ callbackUrl: '/' })
-}
-```
-
-**機能:**
-- セッション完全削除
-- セキュアなログアウト処理
-- リダイレクト先指定可能
-
-### 1.3 セッション管理
-
-```javascript
-import { useSession } from "next-auth/react"
-
-const Component = () => {
-  const { data: session, status } = useSession()
-  
-  if (status === "loading") return <p>Loading...</p>
-  if (status === "unauthenticated") return <p>Access Denied</p>
-  
-  return <p>Signed in as {session.user.email}</p>
-}
-```
-
-**セッション情報:**
-- ユーザー基本情報
-- 権限レベル
-- セッション期限
-- トークン情報
+#### パスワードを忘れた場合
+1. ログインページの「パスワードを忘れた方」をクリック
+2. 登録済みメールアドレスを入力
+3. 送信されたリンクからパスワードをリセット
 
 ---
 
-## ユーザーロール管理
+## 二要素認証（2FA）設定
 
-### 2.1 ロール一覧
+### 2FAの有効化
 
-| ロール名 | 権限レベル | 主な機能 |
-|---------|-----------|---------|
-| **SUPER_ADMIN** | 最高権限 | 全システム管理、ユーザー管理 |
-| **ADMIN** | 管理者権限 | 組織管理、設定変更 |
-| **MANAGER** | マネージャー権限 | チーム管理、プロジェクト管理 |
-| **MEMBER** | メンバー権限 | 基本機能利用、タスク管理 |
-| **VIEWER** | 閲覧権限 | 読み取り専用 |
-| **GUEST** | ゲスト権限 | 限定機能のみ |
+#### 1. 設定画面へのアクセス
+1. 右上のプロフィールアイコンをクリック
+2. 「セキュリティ設定」を選択
+3. 「二要素認証」セクションを確認
 
-### 2.2 権限チェック機能
+#### 2. 認証アプリの設定
+1. 「2FAを有効にする」ボタンをクリック
+2. QRコードが表示されます
+3. 認証アプリでQRコードをスキャン：
+   - **Google Authenticator**（推奨）
+   - **Microsoft Authenticator**
+   - **Authy**
 
-```javascript
-// コンポーネント内での権限チェック
-import { useSession } from "next-auth/react"
+#### 3. 設定の確認
+1. 認証アプリで生成されたコードを入力
+2. 「確認」ボタンをクリック
+3. バックアップコードを安全な場所に保存
 
-const ProtectedComponent = () => {
-  const { data: session } = useSession()
-  
-  const hasPermission = (requiredRole) => {
-    const roleHierarchy = {
-      'GUEST': 0,
-      'VIEWER': 1,
-      'MEMBER': 2,
-      'MANAGER': 3,
-      'ADMIN': 4,
-      'SUPER_ADMIN': 5
-    }
-    
-    const userRole = session?.user?.role || 'GUEST'
-    return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
-  }
-  
-  if (!hasPermission('MEMBER')) {
-    return <div>アクセス権限がありません</div>
-  }
-  
-  return <div>保護されたコンテンツ</div>
-}
-```
+### バックアップコードの管理
 
-### 2.3 API レベル権限制御
+#### バックアップコードとは
+- 認証アプリが使用できない場合の緊急用コード
+- 各コードは1回のみ使用可能
+- 8個のコードが生成されます
 
-```javascript
-// API Routes での権限チェック
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "../auth/[...nextauth]"
+#### 使用方法
+1. ログイン時に「バックアップコードを使用」をクリック
+2. 保存しておいたコードの1つを入力
+3. 使用後は新しいバックアップコードを生成推奨
 
-export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions)
-  
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-  
-  const requiredRole = 'MANAGER'
-  if (!hasPermission(session.user.role, requiredRole)) {
-    return res.status(403).json({ error: 'Forbidden' })
-  }
-  
-  // 権限チェックを通過した処理
-  // ...
-}
-```
+### 2FAの無効化・再設定
 
-### 2.4 ロール変更機能
+#### 無効化の手順
+1. セキュリティ設定から「2FAを無効にする」
+2. 現在のパスワードを入力
+3. 確認のため認証コードを入力
+4. 「無効化する」で完了
 
-**管理者による権限変更:**
-```javascript
-const updateUserRole = async (userId, newRole) => {
-  const response = await fetch('/api/users/update-role', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      userId,
-      newRole
-    })
-  })
-  
-  if (response.ok) {
-    console.log('Role updated successfully')
-  }
-}
-```
+---
+
+## パスワード管理
+
+### パスワード要件
+
+#### 安全なパスワードの条件
+- **最低8文字以上**
+- **大文字・小文字・数字・記号を含む**
+- **辞書に載っている単語を避ける**
+- **個人情報（誕生日、名前など）を含まない**
+
+#### パスワード強度チェック
+- 入力時にリアルタイムで強度を表示
+- 「弱い」「普通」「強い」「非常に強い」の4段階
+- 「強い」以上のパスワード設定を推奨
+
+### パスワード変更
+
+#### 定期的な変更手順
+1. セキュリティ設定から「パスワード変更」を選択
+2. 現在のパスワードを入力
+3. 新しいパスワードを2回入力
+4. 「変更する」ボタンをクリック
+
+#### 変更後の対応
+- 全デバイスでの再ログインが必要
+- 変更完了メールが送信されます
+- API キーやアプリ連携は継続して使用可能
+
+### パスワード履歴・制限
+
+#### 履歴管理
+- 過去12回のパスワードは再使用不可
+- 最低90日間は同じパスワードを使用不可
+- セキュリティポリシーによる制限
+
+#### 失敗回数制限
+- **5回連続失敗**: 15分間のアカウントロック
+- **10回連続失敗**: 1時間のアカウントロック
+- **15回連続失敗**: 管理者による手動解除が必要
+
+---
+
+## 権限・ロール管理
+
+### 基本的な権限レベル
+
+#### ユーザー権限の種類
+- **閲覧者**: データの閲覧のみ
+- **編集者**: データの作成・編集
+- **管理者**: ユーザー管理・設定変更
+- **システム管理者**: 全権限
+
+#### 機能別権限設定
+各機能に対して個別に権限を設定可能：
+- **タスク管理**: 作成、編集、削除、アーカイブ
+- **プロジェクト管理**: 新規作成、メンバー管理、設定変更
+- **レポート**: 閲覧、出力、共有
+- **システム設定**: アクセス、変更、権限付与
+
+### ロールベースアクセス制御
+
+#### 標準ロールの種類
+
+##### プロジェクトマネージャー
+- プロジェクト全体の管理権限
+- チームメンバーの権限設定
+- 進捗レポートの作成・共有
+
+##### チームリーダー
+- 担当チーム内での管理権限
+- タスク割り当て・進捗管理
+- チーム内のコミュニケーション管理
+
+##### メンバー
+- 自分に割り当てられたタスクの管理
+- プロジェクト情報の閲覧
+- 基本的なレポート機能の使用
+
+#### カスタムロールの作成
+1. 管理者設定から「ロール管理」を選択
+2. 「新しいロール」ボタンをクリック
+3. ロール名と説明を設定
+4. 各機能の権限レベルを個別に設定
+5. 保存後、ユーザーにロールを割り当て
+
+### 組織・部署別権限管理
+
+#### 階層的な組織管理
+- **会社レベル**: 最上位の権限管理
+- **部署レベル**: 部署内のリソースアクセス
+- **チームレベル**: 具体的なプロジェクト権限
+- **個人レベル**: 個別のタスクアクセス
+
+#### 権限の継承
+- 上位組織の権限は下位組織に継承
+- 下位組織で権限の制限は可能
+- 権限の追加は上位組織の承認が必要
+
+---
+
+## SSO連携設定
+
+### 対応SSO プロバイダー
+
+#### 企業向けSSO
+- **Microsoft Azure AD**: Office 365連携
+- **Google Workspace**: Gmail・Google Apps連携
+- **Okta**: エンタープライズSSO
+- **LDAP/Active Directory**: オンプレミス環境
+
+#### SNS ログイン（オプション）
+- **Google アカウント**: 個人利用向け
+- **Microsoft アカウント**: 個人利用向け
+
+### SSO設定手順
+
+#### 管理者側の設定
+1. システム設定から「SSO設定」を選択
+2. 使用するSSO プロバイダーを選択
+3. 必要な設定情報を入力：
+   - **ドメイン名**: 組織のドメイン
+   - **クライアントID**: SSO プロバイダーから取得
+   - **シークレットキー**: セキュリティ認証用
+   - **コールバックURL**: 認証後のリダイレクト先
+
+#### ユーザー側の利用
+1. ログイン画面で「SSO ログイン」を選択
+2. 組織のSSO プロバイダーにリダイレクト
+3. 既存の企業アカウントでログイン
+4. 初回のみアカウント紐付けの確認
+
+### SSO ユーザー管理
+
+#### 自動プロビジョニング
+- 新規ユーザーの自動作成
+- グループ情報に基づく自動ロール割り当て
+- ユーザー情報の自動同期
+
+#### 手動管理との併用
+- SSO ユーザーと通常ユーザーの混在可能
+- 管理者による手動でのロール調整
+- 緊急時のローカルアカウントアクセス
 
 ---
 
 ## セキュリティ設定
 
-### 3.1 パスワードポリシー
+### アカウントセキュリティ
 
-**要件:**
-- 最小8文字以上
-- 大文字・小文字を含む
-- 数字を含む
-- 特殊文字を含む（推奨）
+#### セッション管理
+- **セッション有効期限**: 8時間（調整可能）
+- **同時ログイン数制限**: 最大3デバイス
+- **非アクティブ時の自動ログアウト**: 30分
 
-```javascript
-const validatePassword = (password) => {
-  const minLength = 8
-  const hasUpperCase = /[A-Z]/.test(password)
-  const hasLowerCase = /[a-z]/.test(password)
-  const hasNumbers = /\d/.test(password)
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-  
-  return password.length >= minLength && 
-         hasUpperCase && 
-         hasLowerCase && 
-         hasNumbers
-}
-```
+#### IP アドレス制限
+1. セキュリティ設定から「IP制限」を選択
+2. 許可するIPアドレス範囲を設定
+3. 「すべて拒否」→「許可リストのみ」に変更
+4. 設定保存後、指定IPからのみアクセス可能
 
-### 3.2 二段階認証（2FA）
+#### デバイス管理
+- **信頼済みデバイス**: 定期認証を簡略化
+- **デバイス登録**: ブラウザ・アプリの登録管理
+- **不審なアクセスの検知**: 新しいデバイスからのアクセス通知
 
-```javascript
-// 2FA有効化
-const enable2FA = async () => {
-  const response = await fetch('/api/auth/2fa/enable', {
-    method: 'POST'
-  })
-  
-  const { qrCode, secret } = await response.json()
-  
-  // QRコード表示とシークレット保存
-  return { qrCode, secret }
-}
+### 通知・アラート設定
 
-// 2FA検証
-const verify2FA = async (token) => {
-  const response = await fetch('/api/auth/2fa/verify', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ token })
-  })
-  
-  return response.ok
-}
-```
+#### セキュリティ通知の種類
+- **ログイン通知**: 新しい場所・デバイスからのアクセス
+- **パスワード変更**: 変更完了とセキュリティ確認
+- **権限変更**: ロール・権限の変更通知
+- **失敗ログイン**: 連続失敗時のアラート
 
-### 3.3 セッション設定
-
-```javascript
-// NextAuth設定（next-auth.config.js）
-export const authOptions = {
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30日
-    updateAge: 24 * 60 * 60,   // 24時間
-  },
-  jwt: {
-    maxAge: 30 * 24 * 60 * 60,
-  },
-  pages: {
-    signIn: '/auth/signin',
-    signOut: '/auth/signout',
-    error: '/auth/error',
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role
-        token.permissions = user.permissions
-      }
-      return token
-    },
-    async session({ session, token }) {
-      session.user.role = token.role
-      session.user.permissions = token.permissions
-      return session
-    }
-  }
-}
-```
+#### 通知方法の設定
+1. 通知設定から「セキュリティ通知」を選択
+2. 通知したい項目にチェック
+3. 通知方法を選択：
+   - **メール通知**: 即座に送信
+   - **SMS通知**: 緊急時のみ（要設定）
+   - **アプリ内通知**: ログイン時に確認
 
 ---
 
-## ログイン履歴・監視
+## ログ・監査機能
 
-### 4.1 ログイン履歴記録
+### アクセスログの確認
 
-```javascript
-// ログイン成功時の履歴記録
-const recordLoginHistory = async (userId, loginData) => {
-  await fetch('/api/auth/login-history', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      userId,
-      timestamp: new Date(),
-      ipAddress: loginData.ip,
-      userAgent: loginData.userAgent,
-      loginMethod: loginData.method, // 'google', 'email', etc.
-      success: true
-    })
-  })
-}
-```
+#### ログ画面へのアクセス
+1. 管理者権限でログイン
+2. システム管理から「セキュリティログ」を選択
+3. 確認したい期間・種類を選択
 
-### 4.2 異常アクセス検知
+#### 記録される情報
+- **ログイン・ログアウト**: 日時、IPアドレス、デバイス情報
+- **権限変更**: 変更者、対象者、変更内容
+- **データアクセス**: アクセスした情報、操作内容
+- **設定変更**: システム設定の変更履歴
 
-```javascript
-// 異常ログイン検知システム
-const detectAnomalousLogin = (loginAttempt, userHistory) => {
-  const alerts = []
-  
-  // 異なる地域からのアクセス
-  if (isFromDifferentLocation(loginAttempt.ip, userHistory.recentIPs)) {
-    alerts.push({
-      type: 'LOCATION_ANOMALY',
-      message: '異なる地域からのアクセスを検知しました'
-    })
-  }
-  
-  // 短時間での複数ログイン試行
-  if (hasMultipleRecentAttempts(loginAttempt.userId, userHistory.recentAttempts)) {
-    alerts.push({
-      type: 'BRUTE_FORCE',
-      message: '短時間での複数ログイン試行を検知しました'
-    })
-  }
-  
-  return alerts
-}
-```
+### 異常検知・アラート
 
-### 4.3 セキュリティ通知
+#### 自動検知機能
+- **異常ログイン**: 通常と異なる時間・場所からのアクセス
+- **権限昇格**: 短期間での権限レベル変更
+- **大量データアクセス**: 通常より多い情報へのアクセス
+- **失敗パターン**: 攻撃的なログイン試行
 
-```javascript
-// セキュリティアラート送信
-const sendSecurityAlert = async (userId, alertType, details) => {
-  const user = await getUserById(userId)
-  
-  const notification = {
-    type: 'SECURITY_ALERT',
-    userId,
-    title: getAlertTitle(alertType),
-    message: getAlertMessage(alertType, details),
-    timestamp: new Date(),
-    read: false
-  }
-  
-  // データベースに保存
-  await saveNotification(notification)
-  
-  // メール送信（重要なアラートの場合）
-  if (isHighPriorityAlert(alertType)) {
-    await sendEmail({
-      to: user.email,
-      subject: `[セキュリティアラート] ${notification.title}`,
-      body: notification.message
-    })
-  }
-}
-```
+#### インシデント対応
+1. 異常検知時の自動アラート送信
+2. 管理者による詳細調査
+3. 必要に応じたアカウント停止
+4. インシデントレポートの作成
 
----
+### コンプライアンス対応
 
-## API認証
+#### 監査レポート
+- **アクセス権限レポート**: 全ユーザーの権限状況
+- **操作履歴レポート**: 重要データへのアクセス記録
+- **セキュリティ事象レポート**: インシデント一覧と対応状況
 
-### 5.1 JWT トークン認証
-
-```javascript
-// API Routes でのJWT認証
-import { verify } from 'jsonwebtoken'
-
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization']
-  const token = authHeader && authHeader.split(' ')[1]
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' })
-  }
-  
-  verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' })
-    }
-    req.user = user
-    next()
-  })
-}
-```
-
-### 5.2 API キー認証
-
-```javascript
-// API キー生成と管理
-const generateAPIKey = async (userId) => {
-  const apiKey = crypto.randomBytes(32).toString('hex')
-  
-  await saveAPIKey({
-    userId,
-    apiKey: hashAPIKey(apiKey),
-    createdAt: new Date(),
-    lastUsed: null,
-    isActive: true
-  })
-  
-  return apiKey
-}
-
-// API キー検証
-const validateAPIKey = async (apiKey) => {
-  const hashedKey = hashAPIKey(apiKey)
-  const keyRecord = await getAPIKeyByHash(hashedKey)
-  
-  if (!keyRecord || !keyRecord.isActive) {
-    return null
-  }
-  
-  // 最後の使用時刻を更新
-  await updateAPIKeyLastUsed(keyRecord.id)
-  
-  return keyRecord.userId
-}
-```
-
-### 5.3 レート制限
-
-```javascript
-// レート制限実装
-import rateLimit from 'express-rate-limit'
-
-const createRateLimit = (windowMs, max, message) => {
-  return rateLimit({
-    windowMs,
-    max,
-    message: { error: message },
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-}
-
-// 異なるエンドポイントでの制限設定
-export const authRateLimit = createRateLimit(
-  15 * 60 * 1000, // 15分
-  5,              // 5回まで
-  'Too many authentication attempts'
-)
-
-export const apiRateLimit = createRateLimit(
-  60 * 1000,      // 1分
-  100,            // 100回まで
-  'Too many API requests'
-)
-```
+#### データ保持ポリシー
+- **ログ保持期間**: 最低12ヶ月間
+- **削除ユーザーデータ**: 90日後に完全削除
+- **バックアップ**: 定期的な安全な場所での保管
 
 ---
 
 ## トラブルシューティング
 
-### 6.1 よくある問題と解決方法
+### よくある問題と解決方法
 
-#### ログインできない
+#### Q1: ログインできない
+**原因と対処法:**
+- パスワードを忘れた
+  → 「パスワードを忘れた方」からリセット
+- アカウントがロックされている
+  → 管理者に解除を依頼
+- 2FAコードが認識されない
+  → 時刻設定を確認、バックアップコードを使用
 
-**症状:** ログインボタンを押しても反応しない
-**原因・解決方法:**
-1. **ブラウザのJavaScriptが無効**
-   - ブラウザ設定でJavaScriptを有効にする
-2. **セッション期限切れ**
-   - ページを再読み込みして再試行
-3. **ネットワーク接続問題**
-   - インターネット接続を確認
+#### Q2: 2FAが設定できない
+**原因と対処法:**
+- 認証アプリがQRコードを読み取れない
+  → 手動でコードを入力
+- 時刻がずれている
+  → デバイスの時刻設定を自動同期に変更
 
-#### 権限エラー
+#### Q3: SSO ログインができない
+**原因と対処法:**
+- 企業アカウントが無効
+  → IT部門に確認
+- ドメイン設定が間違っている
+  → 管理者に設定確認を依頼
 
-**症状:** "アクセス権限がありません" エラー
-**原因・解決方法:**
-1. **ロール不足**
-   - 管理者に権限昇格を依頼
-2. **セッション無効**
-   - 一度ログアウトして再ログイン
-3. **権限キャッシュ問題**
-   - ブラウザキャッシュをクリア
+#### Q4: 権限が正しく設定されない
+**原因と対処法:**
+- 組織階層の設定ミス
+  → 上位組織の権限を確認
+- ロールの継承問題
+  → 個別にロールを再設定
 
-#### 2FA問題
+### セキュリティインシデント対応
 
-**症状:** 二段階認証コードが通らない
-**原因・解決方法:**
-1. **時刻同期ずれ**
-   - デバイスの時刻設定を確認
-2. **アプリの問題**
-   - 認証アプリを再起動
-3. **バックアップコード使用**
-   - 緊急時はバックアップコードを使用
+#### 不正アクセスの疑いがある場合
+1. **即座にパスワード変更**
+2. **全デバイスからログアウト**
+3. **2FAの再設定**
+4. **管理者への報告**
 
-### 6.2 エラーコード一覧
+#### アカウント乗っ取りの対処
+1. 管理者にアカウント停止を依頼
+2. セキュリティチームに連絡
+3. アクセスログの詳細確認
+4. 影響範囲の調査と対応
 
-| エラーコード | 意味 | 対処法 |
-|-------------|------|--------|
-| **AUTH_001** | 認証情報が無効 | 正しい認証情報を入力 |
-| **AUTH_002** | セッション期限切れ | 再ログイン |
-| **AUTH_003** | 権限不足 | 管理者に権限昇格を依頼 |
-| **AUTH_004** | アカウント無効 | 管理者に問い合わせ |
-| **AUTH_005** | 2FA認証失敗 | 正しいコードを入力 |
-| **AUTH_006** | レート制限超過 | 時間をおいて再試行 |
+### パフォーマンス問題
 
-### 6.3 デバッグ情報取得
+#### ログイン・認証が遅い場合
+- **ネットワーク環境の確認**
+- **ブラウザキャッシュのクリア**
+- **2FA アプリの再起動**
+- **VPN・プロキシ設定の確認**
 
-```javascript
-// デバッグ情報収集
-const getAuthDebugInfo = () => {
-  return {
-    sessionStatus: status,
-    userAgent: navigator.userAgent,
-    timestamp: new Date().toISOString(),
-    url: window.location.href,
-    cookies: document.cookie,
-    localStorage: {
-      hasNextAuthSession: !!localStorage.getItem('next-auth.session-token'),
-      hasNextAuthState: !!localStorage.getItem('next-auth.state')
-    }
-  }
-}
-```
+#### 権限反映の遅れ
+- 通常5分以内に反映
+- 緊急時は管理者がキャッシュクリア
+- ログアウト・再ログインで即座に反映
 
 ---
 
-## セキュリティベストプラクティス
+## まとめ
 
-### 7.1 推奨設定
+認証・認可システムを適切に活用することで、以下の効果が期待できます：
 
-1. **強力なパスワード使用**
-2. **二段階認証有効化**
-3. **定期的なパスワード変更**
-4. **不審なログイン履歴の確認**
-5. **セッション管理の適切な設定**
+### 期待効果
+- **セキュリティ強化**: 不正アクセスの防止
+- **利便性向上**: SSO による簡単ログイン
+- **管理効率化**: 自動化された権限管理
+- **コンプライアンス対応**: 監査要件の満足
 
-### 7.2 開発者向けセキュリティ
+### セキュリティのベストプラクティス
+- **強固なパスワード**: 定期的な変更と複雑性の確保
+- **2FA の活用**: 可能な限り二要素認証を有効化
+- **権限の最小化**: 必要最小限の権限付与
+- **定期的な監査**: アクセス権限の定期見直し
 
-1. **環境変数の適切な管理**
-2. **HTTPS通信の徹底**
-3. **セキュリティヘッダーの設定**
-4. **定期的なセキュリティ監査**
-5. **ログの適切な管理**
-
----
-
-**最終更新日**: 2025-06-29  
-**対象バージョン**: Phase 4 完了版  
-**関連ドキュメント**: システム機能カテゴリ一覧
+適切な認証・認可により、安全で効率的なシステム利用を実現できます。

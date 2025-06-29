@@ -2,910 +2,422 @@
 
 ## 概要
 
-FIND to DO Management Appのタスク管理システムは、7段階カンバンボードを中心とした高度なタスク管理機能を提供します。MECE（Mutually Exclusive, Collectively Exhaustive）原則に基づく関係性管理と、AI機能を活用したインテリジェントなタスク処理が特徴です。
+FIND to DO Management Appのタスク管理システムは、個人・チーム・プロジェクトのタスクを効率的に管理するための中核機能です。直感的なカンバンボード形式でタスクの状態を可視化し、進捗管理とコラボレーションを支援します。
+
+### 主要特徴
+- 直感的なカンバンボード形式のタスク管理
+- 個人・チーム・プロジェクト別のタスク整理
+- リアルタイム同期によるチーム協働
+- 期限管理と進捗追跡
+- 豊富なカスタマイズオプション
+
+---
 
 ## 目次
 
-1. [7段階カンバンボード](#7段階カンバンボード)
-2. [MECE関係性管理](#mece関係性管理)
-3. [優先度管理システム](#優先度管理システム)
-4. [協力者・担当者管理](#協力者担当者管理)
-5. [AI機能連携](#ai機能連携)
-6. [詳細操作ガイド](#詳細操作ガイド)
-7. [トラブルシューティング](#トラブルシューティング)
+1. [基本的なタスク操作](#基本的なタスク操作)
+2. [カンバンボードの使用方法](#カンバンボードの使用方法)
+3. [タスクの詳細管理](#タスクの詳細管理)
+4. [チーム・プロジェクト管理](#チームプロジェクト管理)
+5. [検索・フィルタリング](#検索フィルタリング)
+6. [通知・アラート機能](#通知アラート機能)
+7. [設定・カスタマイズ](#設定カスタマイズ)
+8. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## 7段階カンバンボード
+## 基本的なタスク操作
 
-### 1.1 ボードステージ構成
+### 新しいタスクの作成
 
-| ステージ | 英語名 | 説明 | 主な操作 |
-|---------|--------|------|---------|
-| **アイデア** | IDEA | タスクの発想・構想段階 | アイデア登録、概要作成 |
-| **計画** | PLAN | 具体的な計画立案段階 | 詳細化、スケジュール設定 |
-| **実行** | DO | タスクの実際の実行段階 | 進捗更新、作業記録 |
-| **確認** | CHECK | 完了内容の確認・検証段階 | 品質チェック、レビュー |
-| **完了** | COMPLETE | タスクの正式完了段階 | 完了確定、成果物確認 |
-| **ナレッジ** | KNOWLEDGE | 知識として蓄積する段階 | ナレッジ化、共有設定 |
-| **削除** | DELETE | 削除・アーカイブ段階 | 削除理由記録、履歴保持 |
+#### 1. 基本的なタスク作成
+1. メインダッシュボードから「タスク管理」をクリック
+2. 右上の「＋新規タスク」ボタンをクリック
+3. 必要な情報を入力：
+   - **タスク名**: 分かりやすい名前を設定
+   - **説明**: 詳細な内容や要件
+   - **優先度**: 高・中・低から選択
+   - **期限**: カレンダーから選択
+   - **担当者**: チームメンバーから選択
 
-### 1.2 ステージ遷移ルール
+#### 2. クイック作成
+1. カンバンボード上の任意の列で「＋」アイコンをクリック
+2. タスク名を入力してEnterキーを押す
+3. 後から詳細情報を追加可能
 
-```javascript
-// タスクステージ遷移の制御
-const allowedTransitions = {
-  'IDEA': ['PLAN', 'DELETE'],
-  'PLAN': ['IDEA', 'DO', 'DELETE'],
-  'DO': ['PLAN', 'CHECK', 'DELETE'],
-  'CHECK': ['DO', 'COMPLETE', 'DELETE'],
-  'COMPLETE': ['CHECK', 'KNOWLEDGE', 'DELETE'],
-  'KNOWLEDGE': ['DELETE'],
-  'DELETE': [] // 削除後は遷移不可
-}
+### タスクの編集・更新
 
-const canTransition = (currentStage, targetStage) => {
-  return allowedTransitions[currentStage]?.includes(targetStage) || false
-}
-```
+#### 基本情報の変更
+1. 編集したいタスクをクリック
+2. タスク詳細画面で各項目を編集：
+   - タスク名をクリックして直接編集
+   - 説明欄で詳細を追加・変更
+   - 優先度・期限・担当者を変更
 
-### 1.3 カンバンボード操作
+#### 進捗状況の更新
+1. タスクカード上の進捗バーをクリック
+2. スライダーで進捗率を調整（0%〜100%）
+3. 自動保存されます
 
-#### ドラッグ&ドロップ機能
-```javascript
-// ドラッグ&ドロップによる移動
-const handleDragEnd = (result) => {
-  const { destination, source, draggableId } = result
-  
-  if (!destination) return
-  
-  const sourceStage = source.droppableId
-  const destStage = destination.droppableId
-  
-  // 遷移ルールチェック
-  if (!canTransition(sourceStage, destStage)) {
-    showError('この移動は許可されていません')
-    return
-  }
-  
-  // タスク移動実行
-  moveTask(draggableId, destStage, destination.index)
-}
-```
+### タスクの削除
+1. 削除したいタスクを選択
+2. タスク詳細画面で「削除」ボタンをクリック
+3. 確認ダイアログで「削除する」を選択
 
-#### 一括操作機能
-```javascript
-// 複数タスクの一括操作
-const bulkMoveTask = async (taskIds, targetStage) => {
-  const validTasks = taskIds.filter(id => {
-    const task = getTaskById(id)
-    return canTransition(task.stage, targetStage)
-  })
-  
-  if (validTasks.length === 0) {
-    showError('移動可能なタスクがありません')
-    return
-  }
-  
-  await Promise.all(
-    validTasks.map(id => updateTaskStage(id, targetStage))
-  )
-  
-  showSuccess(`${validTasks.length}件のタスクを移動しました`)
-}
-```
+**注意**: 削除したタスクは復元できません
 
 ---
 
-## MECE関係性管理
+## カンバンボードの使用方法
 
-### 2.1 MECE原則の適用
+### ボードの基本構成
 
-MECE原則に基づいてタスク間の関係性を管理します：
+#### デフォルトの列構成
+- **バックログ**: 着手前のタスク
+- **進行中**: 現在作業しているタスク
+- **レビュー**: 確認待ちのタスク
+- **完了**: 完成したタスク
 
-- **Mutually Exclusive（相互排他的）**: タスクの重複を排除
-- **Collectively Exhaustive（全体網羅的）**: 必要なタスクを漏れなく管理
+#### タスクの移動方法
 
-### 2.2 タスク関係性の種類
+##### ドラッグ&ドロップでの移動
+1. 移動したいタスクをクリック
+2. 目的の列までドラッグ
+3. 適切な位置でドロップ
 
-```javascript
-// タスク関係性の定義
-const TaskRelationTypes = {
-  DEPENDS_ON: 'depends_on',       // 依存関係（前提条件）
-  BLOCKS: 'blocks',               // ブロック関係（実行阻害）
-  PARENT_CHILD: 'parent_child',   // 親子関係（階層構造）
-  SIMILAR: 'similar',             // 類似関係（重複検知）
-  SEQUENCE: 'sequence',           // 順序関係（実行順序）
-  RESOURCE: 'resource'            // リソース関係（共有リソース）
-}
-```
+##### メニューからの移動
+1. タスクを右クリック
+2. 「移動」メニューを選択
+3. 移動先の列を選択
 
-### 2.3 関係性管理機能
+### カスタム列の作成
 
-#### 依存関係の設定
-```javascript
-// タスク依存関係の設定
-const setTaskDependency = async (taskId, dependsOnTaskId) => {
-  // 循環依存チェック
-  if (await hasCyclicDependency(taskId, dependsOnTaskId)) {
-    throw new Error('循環依存が発生するため設定できません')
-  }
-  
-  await createTaskRelation({
-    sourceTaskId: taskId,
-    targetTaskId: dependsOnTaskId,
-    relationType: 'DEPENDS_ON',
-    createdAt: new Date()
-  })
-  
-  // 依存タスクの完了状況をチェック
-  await checkDependencyStatus(taskId)
-}
-```
+#### 新しい列の追加
+1. ボード右端の「＋新しい列」をクリック
+2. 列名を入力（例：「テスト中」「承認待ち」）
+3. 列の色を選択
+4. 「作成」ボタンをクリック
 
-#### 重複検知システム
-```javascript
-// 類似タスクの自動検知
-const detectSimilarTasks = async (newTask) => {
-  const similarTasks = await findSimilarTasks({
-    title: newTask.title,
-    description: newTask.description,
-    category: newTask.category,
-    threshold: 0.8 // 類似度80%以上
-  })
-  
-  if (similarTasks.length > 0) {
-    return {
-      hasSimilar: true,
-      suggestions: similarTasks.map(task => ({
-        id: task.id,
-        title: task.title,
-        similarity: task.similarity,
-        action: 'merge_or_differentiate'
-      }))
-    }
-  }
-  
-  return { hasSimilar: false }
-}
-```
+#### 列の並び替え
+1. 列のヘッダーをドラッグ
+2. 適切な位置に移動
+3. 自動的に順序が保存されます
 
-### 2.4 階層構造管理
-
-```javascript
-// 親子関係のあるタスク階層
-const TaskHierarchy = {
-  // 親タスクの作成
-  createParentTask: async (parentData) => {
-    const parent = await createTask({
-      ...parentData,
-      isParent: true,
-      childTasks: []
-    })
-    return parent
-  },
-  
-  // 子タスクの追加
-  addChildTask: async (parentId, childData) => {
-    const child = await createTask({
-      ...childData,
-      parentId,
-      isChild: true
-    })
-    
-    await updateParentProgress(parentId)
-    return child
-  },
-  
-  // 進捗の自動計算
-  calculateParentProgress: (childTasks) => {
-    const completedChildren = childTasks.filter(
-      child => child.stage === 'COMPLETE'
-    ).length
-    
-    return Math.round((completedChildren / childTasks.length) * 100)
-  }
-}
-```
+### 列の表示・非表示設定
+1. ボード上部の「表示設定」をクリック
+2. 表示したい列にチェック
+3. 不要な列のチェックを外す
+4. 「適用」をクリック
 
 ---
 
-## 優先度管理システム
+## タスクの詳細管理
 
-### 3.1 優先度レベル
+### サブタスクの管理
 
-| レベル | 記号 | 名称 | 説明 | 色分け |
-|--------|------|------|------|--------|
-| **A** | 🔴 | 最高優先 | 緊急かつ重要 | 赤色 |
-| **B** | 🟡 | 高優先 | 重要だが緊急でない | 黄色 |
-| **C** | 🟢 | 中優先 | 緊急だが重要でない | 緑色 |
-| **D** | 🔵 | 低優先 | 緊急でも重要でもない | 青色 |
+#### サブタスクの作成
+1. 親タスクを開く
+2. 「サブタスク」セクションで「＋追加」をクリック
+3. サブタスク名を入力
+4. 必要に応じて担当者や期限を設定
 
-### 3.2 アイゼンハワーマトリックス適用
+#### サブタスクの進捗確認
+- 親タスクの進捗は自動的にサブタスクの完了率で更新
+- サブタスク一覧で個別の状況を確認可能
 
-```javascript
-// 優先度自動判定システム
-const determinePriority = (task) => {
-  const isUrgent = checkUrgency(task)
-  const isImportant = checkImportance(task)
-  
-  if (isUrgent && isImportant) return 'A'
-  if (!isUrgent && isImportant) return 'B'
-  if (isUrgent && !isImportant) return 'C'
-  return 'D'
-}
+### 添付ファイルの管理
 
-const checkUrgency = (task) => {
-  const now = new Date()
-  const deadline = new Date(task.deadline)
-  const daysDiff = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24))
-  
-  return daysDiff <= 3 // 3日以内は緊急
-}
+#### ファイルの添付
+1. タスク詳細画面の「添付ファイル」セクション
+2. 「ファイルを選択」ボタンをクリック
+3. アップロードするファイルを選択
+4. 自動的にアップロード完了
 
-const checkImportance = (task) => {
-  const importanceFactors = [
-    task.businessImpact >= 8,     // ビジネスインパクト8以上
-    task.assignedBy === 'MANAGER', // 管理者からの依頼
-    task.category === 'CRITICAL',  // 重要カテゴリ
-    task.stakeholders.length > 3   // 関係者3人以上
-  ]
-  
-  return importanceFactors.filter(Boolean).length >= 2
-}
-```
+**対応ファイル形式:**
+- 画像: JPG, PNG, GIF（最大10MB）
+- 文書: PDF, DOC, DOCX, TXT（最大20MB）
+- その他: ZIP, CSV, XLSX（最大50MB）
 
-### 3.3 優先度ベースソート
+#### ファイルの閲覧・ダウンロード
+- ファイル名をクリックして閲覧
+- 「ダウンロード」ボタンで保存
 
-```javascript
-// 優先度とその他要素を組み合わせたソート
-const sortTasksByPriority = (tasks) => {
-  return tasks.sort((a, b) => {
-    // 優先度レベル（A > B > C > D）
-    const priorityOrder = { 'A': 4, 'B': 3, 'C': 2, 'D': 1 }
-    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
-    
-    if (priorityDiff !== 0) return priorityDiff
-    
-    // 締切の近さ
-    const deadlineDiff = new Date(a.deadline) - new Date(b.deadline)
-    if (deadlineDiff !== 0) return deadlineDiff
-    
-    // 作成日（新しいもの優先）
-    return new Date(b.createdAt) - new Date(a.createdAt)
-  })
-}
-```
+### コメント・メモ機能
 
-### 3.4 動的優先度更新
+#### コメントの追加
+1. タスク詳細画面下部のコメント欄
+2. テキストを入力
+3. 「投稿」ボタンをクリック
 
-```javascript
-// 時間経過による優先度の動的更新
-const updatePriorityBasedOnTime = async () => {
-  const tasks = await getActiveTasks()
-  
-  for (const task of tasks) {
-    const newPriority = determinePriority(task)
-    
-    if (newPriority !== task.priority) {
-      await updateTask(task.id, { priority: newPriority })
-      
-      // 優先度変更通知
-      await sendPriorityChangeNotification(task, newPriority)
-    }
-  }
-}
+#### メンション機能
+- `@ユーザー名` でチームメンバーに通知
+- 該当者にリアルタイム通知が送信
 
-// 定期実行（1日1回）
-setInterval(updatePriorityBasedOnTime, 24 * 60 * 60 * 1000)
-```
+### 期限・リマインダー設定
+
+#### 期限の設定
+1. タスク詳細の「期限」欄をクリック
+2. カレンダーから日付を選択
+3. 時刻も設定可能（任意）
+
+#### リマインダーの設定
+1. 期限設定後、「リマインダー」をクリック
+2. 通知タイミングを選択：
+   - 1時間前
+   - 1日前
+   - 1週間前
+   - カスタム設定
 
 ---
 
-## 協力者・担当者管理
+## チーム・プロジェクト管理
 
-### 4.1 ロール定義
+### プロジェクトボードの作成
 
-```javascript
-// タスク内のユーザーロール
-const TaskUserRoles = {
-  OWNER: 'owner',           // オーナー（作成者・責任者）
-  ASSIGNEE: 'assignee',     // 担当者（実行者）
-  REVIEWER: 'reviewer',     // レビュワー（確認者）
-  COLLABORATOR: 'collaborator', // 協力者（支援者）
-  OBSERVER: 'observer'      // オブザーバー（閲覧者）
-}
-```
+#### 新しいプロジェクトの開始
+1. サイドバーから「プロジェクト」を選択
+2. 「＋新規プロジェクト」をクリック
+3. プロジェクト情報を入力：
+   - プロジェクト名
+   - 説明
+   - 開始・終了予定日
+   - チームメンバー
 
-### 4.2 担当者アサイン機能
+#### プロジェクトテンプレートの使用
+- **ソフトウェア開発**: 要件定義〜リリースまでの標準的な流れ
+- **マーケティング**: 企画〜実行〜分析の流れ
+- **イベント企画**: 準備〜実施〜振り返りの流れ
+- **カスタム**: 独自の列構成を作成
 
-```javascript
-// 担当者の自動アサイン
-const autoAssignTask = async (taskId, criteria) => {
-  const availableUsers = await getAvailableUsers(criteria)
-  
-  // 負荷分散を考慮した担当者選定
-  const bestAssignee = selectBestAssignee(availableUsers, {
-    skillMatch: criteria.requiredSkills,
-    workload: true,
-    availability: true,
-    performance: true
-  })
-  
-  await assignUserToTask(taskId, bestAssignee, 'ASSIGNEE')
-  
-  // 担当者に通知
-  await sendAssignmentNotification(bestAssignee, taskId)
-}
+### チームメンバーの管理
 
-const selectBestAssignee = (users, criteria) => {
-  return users
-    .map(user => ({
-      user,
-      score: calculateAssignmentScore(user, criteria)
-    }))
-    .sort((a, b) => b.score - a.score)[0]?.user
-}
-```
+#### メンバーの招待
+1. プロジェクト設定から「メンバー管理」
+2. 「メンバーを招待」ボタンをクリック
+3. メールアドレスを入力
+4. 権限レベルを選択：
+   - **管理者**: 全権限
+   - **編集者**: タスク作成・編集
+   - **閲覧者**: 閲覧のみ
 
-### 4.3 コラボレーション機能
+#### 権限の変更
+1. メンバー一覧から対象者を選択
+2. 権限レベルを変更
+3. 変更内容が即座に反映
 
-```javascript
-// タスクコメント・コミュニケーション
-const TaskComments = {
-  addComment: async (taskId, userId, content, type = 'COMMENT') => {
-    const comment = await createComment({
-      taskId,
-      userId,
-      content,
-      type, // COMMENT, QUESTION, SUGGESTION, UPDATE
-      timestamp: new Date(),
-      mentions: extractMentions(content)
-    })
-    
-    // メンション通知
-    if (comment.mentions.length > 0) {
-      await sendMentionNotifications(comment.mentions, taskId, comment.id)
-    }
-    
-    return comment
-  },
-  
-  // 進捗更新コメント
-  addProgressUpdate: async (taskId, userId, progress, notes) => {
-    return await TaskComments.addComment(taskId, userId, 
-      `進捗更新: ${progress}%\n${notes}`, 'UPDATE')
-  }
-}
-```
+### プロジェクトの進捗管理
 
-### 4.4 チーム負荷管理
+#### 全体進捗の確認
+- プロジェクトダッシュボードで以下を確認：
+  - 全体進捗率
+  - 期限までの残り日数
+  - 完了・進行中・未着手タスク数
+  - チームメンバー別の作業状況
 
-```javascript
-// チームメンバーの作業負荷監視
-const WorkloadManager = {
-  // 個人の作業負荷計算
-  calculateWorkload: (userId) => {
-    const activeTasks = getUserActiveTasks(userId)
-    
-    return activeTasks.reduce((total, task) => {
-      const priorityWeight = { 'A': 4, 'B': 3, 'C': 2, 'D': 1 }
-      const stageWeight = { 'DO': 1.5, 'CHECK': 1.2, 'PLAN': 1.0 }
-      
-      return total + (priorityWeight[task.priority] * stageWeight[task.stage])
-    }, 0)
-  },
-  
-  // チーム全体の負荷バランス
-  getTeamLoadBalance: (teamMembers) => {
-    const workloads = teamMembers.map(member => ({
-      userId: member.id,
-      name: member.name,
-      workload: WorkloadManager.calculateWorkload(member.id),
-      capacity: member.capacity || 10
-    }))
-    
-    const averageLoad = workloads.reduce((sum, w) => sum + w.workload, 0) / workloads.length
-    
-    return {
-      workloads,
-      averageLoad,
-      isBalanced: workloads.every(w => Math.abs(w.workload - averageLoad) < 2)
-    }
-  }
-}
-```
+#### ガントチャートビュー
+1. プロジェクト画面で「ガントチャート」タブを選択
+2. タスク間の依存関係を確認
+3. クリティカルパスの特定
+4. スケジュール調整が可能
 
 ---
 
-## AI機能連携
+## 検索・フィルタリング
 
-### 5.1 AI自動分類
+### 高度な検索機能
 
-```javascript
-// AIによるタスク自動分類
-const AITaskClassifier = {
-  classifyTask: async (taskData) => {
-    const classification = await callAI({
-      prompt: `
-        以下のタスクを分析して分類してください：
-        タイトル: ${taskData.title}
-        説明: ${taskData.description}
-        
-        以下の要素を判定してください：
-        1. カテゴリ（開発/マーケティング/営業/管理/その他）
-        2. 優先度（A/B/C/D）
-        3. 予想工数（時間）
-        4. 必要スキル
-        5. リスクレベル（高/中/低）
-      `,
-      model: 'text-classification'
-    })
-    
-    return {
-      category: classification.category,
-      suggestedPriority: classification.priority,
-      estimatedHours: classification.hours,
-      requiredSkills: classification.skills,
-      riskLevel: classification.risk
-    }
-  }
-}
-```
+#### キーワード検索
+1. 上部の検索バーにキーワードを入力
+2. 以下の項目から検索：
+   - タスク名
+   - 説明文
+   - コメント
+   - 添付ファイル名
 
-### 5.2 AI進捗予測
+#### 詳細検索
+1. 検索バー右の「詳細検索」をクリック
+2. 複数の条件を組み合わせ：
+   - 作成日・更新日の範囲
+   - 担当者
+   - 優先度
+   - 状態（進行中、完了など）
+   - タグ
 
-```javascript
-// AI による完了予測
-const AIProgressPredictor = {
-  predictCompletion: async (taskId) => {
-    const task = await getTask(taskId)
-    const historicalData = await getHistoricalTaskData(task.category)
-    
-    const prediction = await callAI({
-      prompt: `
-        タスクの完了予測を行ってください：
-        現在の進捗: ${task.progress}%
-        カテゴリ: ${task.category}
-        優先度: ${task.priority}
-        担当者: ${task.assignee}
-        過去データ: ${JSON.stringify(historicalData)}
-      `,
-      model: 'time-series-prediction'
-    })
-    
-    return {
-      estimatedCompletionDate: prediction.completionDate,
-      confidence: prediction.confidence,
-      bottlenecks: prediction.identifiedBottlenecks,
-      recommendations: prediction.recommendations
-    }
-  }
-}
-```
+### フィルタリング機能
 
-### 5.3 AI作業提案
+#### クイックフィルター
+- **自分のタスク**: 自分が担当するタスクのみ表示
+- **期限切れ**: 期限を過ぎたタスクを表示
+- **高優先度**: 優先度「高」のタスクのみ表示
+- **今週期限**: 今週中に期限を迎えるタスク
 
-```javascript
-// AIによる次のアクション提案
-const AIActionSuggester = {
-  suggestNextActions: async (userId) => {
-    const userTasks = await getUserTasks(userId)
-    const userProfile = await getUserProfile(userId)
-    const teamContext = await getTeamContext(userId)
-    
-    const suggestions = await callAI({
-      prompt: `
-        以下の情報から、最適な次のアクションを提案してください：
-        
-        ユーザータスク: ${JSON.stringify(userTasks)}
-        ユーザープロフィール: ${JSON.stringify(userProfile)}
-        チーム状況: ${JSON.stringify(teamContext)}
-        
-        提案内容：
-        1. 優先して取り組むべきタスク
-        2. 効率化のための工夫
-        3. 他メンバーとの連携提案
-      `,
-      model: 'action-recommendation'
-    })
-    
-    return suggestions
-  }
-}
-```
+#### カスタムフィルター
+1. 「フィルター」ボタンをクリック
+2. 条件を組み合わせて設定
+3. フィルター名を付けて保存
+4. 次回以降、保存したフィルターを選択するだけで適用
+
+### 並び替え機能
+
+#### 利用可能な並び替え項目
+- 作成日（新しい順・古い順）
+- 更新日（最新・過去）
+- 期限日（近い順・遠い順）
+- 優先度（高→低・低→高）
+- タスク名（あいうえお順・逆順）
 
 ---
 
-## 詳細操作ガイド
+## 通知・アラート機能
 
-### 6.1 タスク作成
+### 通知設定のカスタマイズ
 
-#### 基本的なタスク作成
-```javascript
-// 新規タスク作成
-const createNewTask = async (taskData) => {
-  // AI分類の実行
-  const aiSuggestions = await AITaskClassifier.classifyTask(taskData)
-  
-  const newTask = {
-    id: generateTaskId(),
-    title: taskData.title,
-    description: taskData.description,
-    stage: 'IDEA',
-    priority: aiSuggestions.suggestedPriority,
-    category: aiSuggestions.category,
-    estimatedHours: aiSuggestions.estimatedHours,
-    createdBy: taskData.userId,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    tags: extractTags(taskData.description),
-    status: 'ACTIVE'
-  }
-  
-  const createdTask = await saveTask(newTask)
-  
-  // 重複チェックの実行
-  const duplicateCheck = await detectSimilarTasks(newTask)
-  if (duplicateCheck.hasSimilar) {
-    await flagForDuplicateReview(createdTask.id, duplicateCheck.suggestions)
-  }
-  
-  return createdTask
-}
-```
+#### 基本通知設定
+1. 右上のプロフィールアイコンから「設定」
+2. 「通知設定」タブを選択
+3. 受け取りたい通知を選択：
+   - 新しいタスクが割り当てられた時
+   - タスクにコメントが追加された時
+   - タスクの期限が近づいた時
+   - プロジェクトに招待された時
 
-#### テンプレートからの作成
-```javascript
-// テンプレートベースのタスク作成
-const createTaskFromTemplate = async (templateId, customData) => {
-  const template = await getTaskTemplate(templateId)
-  
-  const taskData = {
-    ...template.defaultValues,
-    ...customData,
-    title: customData.title || template.defaultValues.title,
-    description: customData.description || template.defaultValues.description
-  }
-  
-  // サブタスクの自動生成
-  const parentTask = await createNewTask(taskData)
-  
-  if (template.subtasks) {
-    for (const subtaskTemplate of template.subtasks) {
-      await createNewTask({
-        ...subtaskTemplate,
-        parentId: parentTask.id,
-        createdBy: customData.userId
-      })
-    }
-  }
-  
-  return parentTask
-}
-```
+#### 通知方法の選択
+- **ブラウザ通知**: リアルタイムでポップアップ表示
+- **メール通知**: 指定したメールアドレスに送信
+- **LINE通知**: LINE Botを通じて通知（要設定）
 
-### 6.2 タスク更新操作
+### 期限アラート
 
-#### 進捗更新
-```javascript
-// 進捗更新機能
-const updateTaskProgress = async (taskId, progress, notes) => {
-  const task = await getTask(taskId)
-  
-  await updateTask(taskId, {
-    progress,
-    updatedAt: new Date(),
-    lastProgressUpdate: new Date()
-  })
-  
-  // 進捗コメント追加
-  await TaskComments.addProgressUpdate(taskId, task.assignee, progress, notes)
-  
-  // 完了予測の更新
-  const prediction = await AIProgressPredictor.predictCompletion(taskId)
-  await updateTask(taskId, {
-    estimatedCompletionDate: prediction.estimatedCompletionDate
-  })
-  
-  // 関係者への通知
-  await notifyTaskStakeholders(taskId, 'PROGRESS_UPDATE', {
-    progress,
-    notes,
-    prediction
-  })
-}
-```
+#### 自動アラート機能
+- 期限3日前: 「期限が近づいています」
+- 期限1日前: 「明日が期限です」
+- 期限当日: 「本日が期限です」
+- 期限超過: 「期限を過ぎています」
 
-#### 一括編集機能
-```javascript
-// 複数タスクの一括編集
-const bulkEditTasks = async (taskIds, updates) => {
-  const validUpdates = validateBulkUpdates(updates)
-  
-  const results = await Promise.all(
-    taskIds.map(async (taskId) => {
-      try {
-        await updateTask(taskId, {
-          ...validUpdates,
-          updatedAt: new Date()
-        })
-        return { taskId, success: true }
-      } catch (error) {
-        return { taskId, success: false, error: error.message }
-      }
-    })
-  )
-  
-  const successful = results.filter(r => r.success)
-  const failed = results.filter(r => !r.success)
-  
-  return {
-    successful: successful.length,
-    failed: failed.length,
-    details: results
-  }
-}
-```
+#### アラート設定のカスタマイズ
+1. 通知設定から「期限アラート」
+2. 通知タイミングを調整
+3. 通知方法を選択
+4. 緊急度別の設定も可能
 
-### 6.3 フィルタリング・検索
+---
 
-#### 高度なフィルタリング
-```javascript
-// 多条件フィルタリング
-const filterTasks = (tasks, filters) => {
-  return tasks.filter(task => {
-    // ステージフィルタ
-    if (filters.stages && !filters.stages.includes(task.stage)) {
-      return false
-    }
-    
-    // 優先度フィルタ
-    if (filters.priorities && !filters.priorities.includes(task.priority)) {
-      return false
-    }
-    
-    // 担当者フィルタ
-    if (filters.assignees && filters.assignees.length > 0) {
-      const taskAssignees = task.assignees.map(a => a.userId)
-      if (!filters.assignees.some(id => taskAssignees.includes(id))) {
-        return false
-      }
-    }
-    
-    // 期限フィルタ
-    if (filters.dueDateRange) {
-      const taskDate = new Date(task.deadline)
-      const startDate = new Date(filters.dueDateRange.start)
-      const endDate = new Date(filters.dueDateRange.end)
-      
-      if (taskDate < startDate || taskDate > endDate) {
-        return false
-      }
-    }
-    
-    // タグフィルタ
-    if (filters.tags && filters.tags.length > 0) {
-      if (!filters.tags.some(tag => task.tags.includes(tag))) {
-        return false
-      }
-    }
-    
-    // テキスト検索
-    if (filters.searchText) {
-      const searchLower = filters.searchText.toLowerCase()
-      const searchableText = `${task.title} ${task.description}`.toLowerCase()
-      if (!searchableText.includes(searchLower)) {
-        return false
-      }
-    }
-    
-    return true
-  })
-}
-```
+## 設定・カスタマイズ
 
-#### 保存済み検索・フィルタ
-```javascript
-// 検索条件の保存と読み込み
-const SavedFilters = {
-  save: async (userId, filterName, filterCriteria) => {
-    const savedFilter = {
-      id: generateFilterId(),
-      userId,
-      name: filterName,
-      criteria: filterCriteria,
-      createdAt: new Date(),
-      lastUsed: new Date()
-    }
-    
-    await saveSavedFilter(savedFilter)
-    return savedFilter
-  },
-  
-  load: async (userId, filterId) => {
-    const filter = await getSavedFilter(filterId)
-    
-    if (filter.userId !== userId) {
-      throw new Error('Access denied')
-    }
-    
-    // 最終使用日時を更新
-    await updateSavedFilter(filterId, { lastUsed: new Date() })
-    
-    return filter.criteria
-  },
-  
-  getRecentFilters: async (userId, limit = 5) => {
-    return await getSavedFilters(userId, {
-      orderBy: 'lastUsed',
-      direction: 'DESC',
-      limit
-    })
-  }
-}
-```
+### ワークスペースの設定
+
+#### 表示テーマの変更
+1. 設定メニューから「表示設定」
+2. テーマを選択：
+   - **ライトテーマ**: 明るい背景
+   - **ダークテーマ**: 暗い背景
+   - **オートテーマ**: 時間帯に応じて自動切り替え
+
+#### 言語設定
+- 日本語
+- English
+- 中文（簡体）
+- 한국어
+
+### タスクラベル・タグの管理
+
+#### カスタムラベルの作成
+1. 設定から「ラベル管理」
+2. 「新しいラベル」をクリック
+3. ラベル名と色を設定
+4. 用途に応じてアイコンも選択可能
+
+**ラベル活用例:**
+- 緊急（赤色）
+- 重要（オレンジ色）
+- アイデア（青色）
+- バグ修正（紫色）
+
+#### タグ機能の活用
+- `#マーケティング`
+- `#開発`
+- `#デザイン`
+- `#研究`
+
+### 自動化設定
+
+#### ルールベース自動化
+1. 設定から「自動化ルール」
+2. 「新しいルール」を作成
+3. 条件と動作を設定：
+
+**例: 期限切れタスクの自動移動**
+- 条件: 期限が過ぎたタスク
+- 動作: 「期限切れ」列に自動移動
+
+**例: 高優先度タスクの自動通知**
+- 条件: 優先度「高」のタスクが作成
+- 動作: チーム全体に即座に通知
 
 ---
 
 ## トラブルシューティング
 
-### 7.1 よくある問題
+### よくある問題と解決方法
 
-#### タスクが移動できない
-**症状**: ドラッグ&ドロップで移動できない
-**原因と対処法**:
-1. **権限不足**: タスクの編集権限を確認
-2. **ステージ遷移ルール違反**: 許可された遷移パスを確認
-3. **依存関係ブロック**: 前提タスクの完了状況を確認
+#### Q1: タスクが保存されない
+**原因と対処法:**
+- インターネット接続の問題
+  → 接続状況を確認し、再度保存を試行
+- ブラウザのキャッシュ問題
+  → ブラウザのキャッシュをクリア
 
-#### 優先度が自動変更される
-**症状**: 設定した優先度が勝手に変わる
-**原因と対処法**:
-1. **自動優先度更新が有効**: 設定で無効化可能
-2. **締切日の接近**: 緊急度による自動昇格
-3. **AI提案の自動適用**: AI提案設定を確認
+#### Q2: 通知が届かない
+**原因と対処法:**
+- 通知設定が無効になっている
+  → 設定画面で通知設定を確認
+- ブラウザの通知許可が無効
+  → ブラウザ設定で通知を許可
 
-### 7.2 パフォーマンス問題
+#### Q3: チームメンバーが表示されない
+**原因と対処法:**
+- プロジェクトに招待されていない
+  → プロジェクト管理者に招待を依頼
+- 権限が不足している
+  → 管理者に権限の確認を依頼
 
-#### 大量タスクの表示が遅い
-```javascript
-// 仮想化による大量データ対応
-const VirtualizedTaskList = {
-  // 表示領域のタスクのみレンダリング
-  renderVisibleTasks: (tasks, viewport) => {
-    const itemHeight = 80
-    const startIndex = Math.floor(viewport.scrollTop / itemHeight)
-    const endIndex = Math.min(
-      startIndex + Math.ceil(viewport.height / itemHeight),
-      tasks.length
-    )
-    
-    return tasks.slice(startIndex, endIndex)
-  },
-  
-  // 段階的読み込み
-  loadTasksInBatches: async (filters, batchSize = 50) => {
-    let offset = 0
-    let allTasks = []
-    
-    while (true) {
-      const batch = await getTasks(filters, offset, batchSize)
-      if (batch.length === 0) break
-      
-      allTasks = [...allTasks, ...batch]
-      offset += batchSize
-      
-      // UIの更新
-      updateTaskList(allTasks)
-    }
-    
-    return allTasks
-  }
-}
-```
+#### Q4: ファイルがアップロードできない
+**原因と対処法:**
+- ファイルサイズが上限を超えている
+  → ファイルサイズを確認し、必要に応じて圧縮
+- 対応していないファイル形式
+  → 対応形式でファイルを保存し直す
 
-### 7.3 データ整合性問題
+### パフォーマンス最適化
 
-#### 依存関係の循環参照
-```javascript
-// 循環依存の検出と修復
-const CircularDependencyResolver = {
-  detect: async (taskId) => {
-    const visited = new Set()
-    const stack = new Set()
-    
-    const hasCycle = async (currentTaskId) => {
-      if (stack.has(currentTaskId)) return true
-      if (visited.has(currentTaskId)) return false
-      
-      visited.add(currentTaskId)
-      stack.add(currentTaskId)
-      
-      const dependencies = await getTaskDependencies(currentTaskId)
-      
-      for (const dep of dependencies) {
-        if (await hasCycle(dep.dependsOnTaskId)) {
-          return true
-        }
-      }
-      
-      stack.delete(currentTaskId)
-      return false
-    }
-    
-    return await hasCycle(taskId)
-  },
-  
-  resolve: async (cyclicPath) => {
-    // 最も影響の少ない依存関係を削除
-    const leastCriticalDep = findLeastCriticalDependency(cyclicPath)
-    await removeTaskDependency(leastCriticalDep.source, leastCriticalDep.target)
-    
-    // 代替手段の提案
-    return {
-      removedDependency: leastCriticalDep,
-      alternatives: await suggestAlternativeDependencies(leastCriticalDep)
-    }
-  }
-}
-```
+#### 動作が重い場合の対処法
+- ブラウザのタブを整理
+- 不要な拡張機能を無効化
+- ブラウザの再起動
+- キャッシュのクリア
+
+#### 大量タスクの管理
+- 完了したタスクのアーカイブ化
+- プロジェクトの分割
+- フィルター機能の活用
+- 定期的なデータ整理
 
 ---
 
-## 統計・分析機能
+## まとめ
 
-### 8.1 タスク分析ダッシュボード
+タスク管理システムを効果的に活用することで、以下の効果が期待できます：
 
-```javascript
-// タスク完了率の分析
-const TaskAnalytics = {
-  getCompletionStats: async (userId, period) => {
-    const tasks = await getUserTasks(userId, period)
-    
-    return {
-      total: tasks.length,
-      completed: tasks.filter(t => t.stage === 'COMPLETE').length,
-      inProgress: tasks.filter(t => ['DO', 'CHECK'].includes(t.stage)).length,
-      planning: tasks.filter(t => ['IDEA', 'PLAN'].includes(t.stage)).length,
-      overdue: tasks.filter(t => isOverdue(t)).length,
-      
-      // 完了率
-      completionRate: tasks.length > 0 ? 
-        (tasks.filter(t => t.stage === 'COMPLETE').length / tasks.length) * 100 : 0,
-      
-      // 平均完了時間
-      averageCompletionTime: calculateAverageCompletionTime(tasks),
-      
-      // 優先度別分布
-      priorityDistribution: calculatePriorityDistribution(tasks)
-    }
-  },
-  
-  // 生産性トレンド分析
-  getProductivityTrend: async (userId, days = 30) => {
-    const endDate = new Date()
-    const startDate = new Date(endDate.getTime() - (days * 24 * 60 * 60 * 1000))
-    
-    const dailyStats = []
-    
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dayTasks = await getTasksCompletedOnDate(userId, d)
-      dailyStats.push({
-        date: new Date(d),
-        tasksCompleted: dayTasks.length,
-        totalHours: dayTasks.reduce((sum, t) => sum + (t.actualHours || 0), 0),
-        efficiency: calculateEfficiency(dayTasks)
-      })
-    }
-    
-    return dailyStats
-  }
-}
-```
+### 期待効果
+- **生産性の向上**: 明確な進捗把握による効率的な作業
+- **チーム協働の促進**: リアルタイム同期による情報共有
+- **プロジェクト成功率の向上**: 計画的な進捗管理
+- **ストレス軽減**: タスクの可視化による安心感
 
----
+### 継続的な改善のコツ
+- 定期的なタスクの整理
+- チームでのふりかえり実施
+- 自動化ルールの見直し
+- 個人・チームの作業パターンに合わせたカスタマイズ
 
-**最終更新日**: 2025-06-29  
-**対象バージョン**: Phase 4 完了版  
-**関連ドキュメント**: システム機能カテゴリ一覧、ユーザー操作完全リスト
+効果的なタスク管理により、個人とチームの両方でより良い成果を生み出すことができます。

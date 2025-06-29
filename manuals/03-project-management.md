@@ -2,1070 +2,399 @@
 
 ## 概要
 
-FIND to DO Management Appのプロジェクト管理システムは、プロジェクトライフサイクル全体を統合的に管理する高度なシステムです。AI予測・分析機能、テンプレート生成・適用、チーム最適化機能を組み合わせて、効率的なプロジェクト運営を支援します。
+FIND to DO Management Appのプロジェクト管理システムは、複数のプロジェクトを効率的に計画・実行・監視するための包括的な機能です。チーム協働、リソース管理、進捗追跡を通じて、プロジェクトの成功率向上とスケジュール通りの完了を支援します。
+
+### 主要特徴
+- 直感的なプロジェクト作成・設定機能
+- ガントチャートによるスケジュール可視化
+- チームメンバーの効率的な管理
+- リアルタイムでの進捗追跡
+- 予算・リソース管理機能
+
+---
 
 ## 目次
 
-1. [プロジェクトライフサイクル管理](#プロジェクトライフサイクル管理)
-2. [AI予測・分析機能](#ai予測分析機能)
-3. [テンプレート生成・適用](#テンプレート生成適用)
-4. [チーム最適化](#チーム最適化)
-5. [リスク管理](#リスク管理)
-6. [進捗追跡・レポート](#進捗追跡レポート)
-7. [トラブルシューティング](#トラブルシューティング)
+1. [プロジェクトの作成・設定](#プロジェクトの作成設定)
+2. [チームメンバー管理](#チームメンバー管理)
+3. [タスク・スケジュール管理](#タスクスケジュール管理)
+4. [ガントチャート活用](#ガントチャート活用)
+5. [進捗管理・監視](#進捗管理監視)
+6. [リソース・予算管理](#リソース予算管理)
+7. [レポート・分析](#レポート分析)
+8. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## プロジェクトライフサイクル管理
+## プロジェクトの作成・設定
 
-### 1.1 プロジェクトフェーズ
+### 新しいプロジェクトの作成
 
-| フェーズ | 英語名 | 説明 | 主な成果物 | 期間目安 |
-|---------|--------|------|------------|----------|
-| **企画** | PLANNING | プロジェクトの構想・企画 | 企画書、要件定義 | 1-2週間 |
-| **設計** | DESIGN | 詳細設計・アーキテクチャ | 設計書、プロトタイプ | 2-4週間 |
-| **開発** | DEVELOPMENT | 実装・開発作業 | プロダクト、コード | 4-12週間 |
-| **テスト** | TESTING | 品質保証・テスト | テスト結果、バグレポート | 1-3週間 |
-| **リリース** | RELEASE | 本番環境への展開 | リリースノート、運用手順 | 1週間 |
-| **運用** | MAINTENANCE | 保守・運用・改善 | 運用レポート、改善提案 | 継続 |
-| **完了** | COMPLETED | プロジェクト完了・総括 | 完了報告書、振り返り | 1週間 |
+#### 1. 基本的なプロジェクト作成
+1. メインダッシュボードから「新規プロジェクト」をクリック
+2. プロジェクト作成ウィザードが起動
+3. 基本情報を入力：
+   - **プロジェクト名**: 分かりやすい名前を設定
+   - **説明**: プロジェクトの目的と概要
+   - **開始日**: プロジェクト開始予定日
+   - **終了予定日**: 完了目標日
+   - **優先度**: 高・中・低から選択
 
-### 1.2 フェーズ遷移制御
+#### 2. プロジェクトテンプレートの活用
+**利用可能なテンプレート:**
+- **ソフトウェア開発**: 要件定義〜テスト〜リリース
+- **マーケティングキャンペーン**: 企画〜実行〜効果測定
+- **製品開発**: 調査〜設計〜製造〜販売
+- **イベント企画**: 準備〜実施〜振り返り
+- **建設・工事**: 計画〜施工〜検査〜引き渡し
 
-```javascript
-// プロジェクトフェーズ遷移の管理
-const ProjectPhaseManager = {
-  // フェーズ遷移の前提条件チェック
-  canMoveToNextPhase: async (projectId, targetPhase) => {
-    const project = await getProject(projectId)
-    const currentPhase = project.currentPhase
-    
-    const requirements = getPhaseRequirements(targetPhase)
-    const checkResults = await Promise.all([
-      checkTaskCompletion(projectId, currentPhase),
-      checkDeliverables(projectId, currentPhase),
-      checkQualityGates(projectId, currentPhase),
-      checkApprovals(projectId, currentPhase)
-    ])
-    
-    return {
-      canTransition: checkResults.every(result => result.passed),
-      blockers: checkResults.filter(result => !result.passed),
-      requirements
-    }
-  },
-  
-  // フェーズ移行実行
-  transitionPhase: async (projectId, targetPhase, approver) => {
-    const canTransition = await ProjectPhaseManager.canMoveToNextPhase(projectId, targetPhase)
-    
-    if (!canTransition.canTransition) {
-      throw new Error(`フェーズ移行できません: ${canTransition.blockers.map(b => b.reason).join(', ')}`)
-    }
-    
-    // フェーズ移行の実行
-    await updateProject(projectId, {
-      currentPhase: targetPhase,
-      phaseTransitionDate: new Date(),
-      approvedBy: approver,
-      phaseHistory: [...project.phaseHistory, {
-        fromPhase: project.currentPhase,
-        toPhase: targetPhase,
-        transitionDate: new Date(),
-        approver
-      }]
-    })
-    
-    // 次フェーズのタスク自動生成
-    await generatePhaseTask(projectId, targetPhase)
-    
-    // 関係者への通知
-    await notifyPhaseTransition(projectId, targetPhase)
-  }
-}
-```
+#### 3. カスタムプロジェクト設定
+1. 「カスタム設定」を選択
+2. 独自の段階・フェーズを定義
+3. 必要な承認フローを設定
+4. プロジェクト固有のフィールドを追加
 
-### 1.3 プロジェクト作成ウィザード
+### プロジェクト設定のカスタマイズ
 
-```javascript
-// ステップバイステップのプロジェクト作成
-const ProjectCreationWizard = {
-  step1_BasicInfo: (data) => ({
-    name: data.name,
-    description: data.description,
-    category: data.category,
-    priority: data.priority,
-    estimatedDuration: data.estimatedDuration
-  }),
-  
-  step2_TeamSetup: async (projectData, teamData) => {
-    // チームメンバーの最適な割り当て
-    const optimalTeam = await optimizeTeamAssignment({
-      requiredSkills: teamData.requiredSkills,
-      teamSize: teamData.preferredSize,
-      availableMembers: teamData.availableMembers,
-      projectComplexity: projectData.complexity
-    })
-    
-    return {
-      ...projectData,
-      team: optimalTeam.members,
-      projectManager: optimalTeam.recommendedPM,
-      teamComposition: optimalTeam.composition
-    }
-  },
-  
-  step3_Timeline: async (projectData) => {
-    // AI による工程予測
-    const timeline = await predictProjectTimeline({
-      category: projectData.category,
-      complexity: projectData.complexity,
-      teamSize: projectData.team.length,
-      historicalData: await getHistoricalProjectData(projectData.category)
-    })
-    
-    return {
-      ...projectData,
-      startDate: timeline.suggestedStartDate,
-      endDate: timeline.suggestedEndDate,
-      milestones: timeline.recommendedMilestones,
-      phases: timeline.phaseBreakdown
-    }
-  },
-  
-  step4_RiskAssessment: async (projectData) => {
-    // リスク評価の実行
-    const riskAssessment = await assessProjectRisks(projectData)
-    
-    return {
-      ...projectData,
-      risks: riskAssessment.identifiedRisks,
-      mitigationStrategies: riskAssessment.mitigationStrategies,
-      riskScore: riskAssessment.overallRiskScore
-    }
-  },
-  
-  finalizeProject: async (projectData) => {
-    // プロジェクトの最終作成
-    const project = await createProject(projectData)
-    
-    // 初期タスクの自動生成
-    await generateInitialTasks(project.id, projectData.category)
-    
-    // テンプレートの適用
-    if (projectData.templateId) {
-      await applyProjectTemplate(project.id, projectData.templateId)
-    }
-    
-    return project
-  }
-}
-```
+#### ワークフロー設定
+1. プロジェクト設定から「ワークフロー」タブ
+2. タスクの状態遷移ルールを設定：
+   - **未着手** → **進行中** → **レビュー** → **完了**
+   - **承認が必要**な段階を指定
+   - **自動移行**条件の設定
+
+#### 通知・アラート設定
+- **マイルストーン到達**: 重要な節目での通知
+- **期限切れ警告**: タスク期限の事前アラート
+- **予算超過警告**: コスト管理のアラート
+- **品質課題**: 品質基準を下回った場合の通知
 
 ---
 
-## AI予測・分析機能
+## チームメンバー管理
 
-### 2.1 プロジェクト成功率予測
+### メンバーの招待・追加
 
-```javascript
-// AI による成功率予測
-const ProjectSuccessPredictor = {
-  predictSuccess: async (projectId) => {
-    const project = await getProject(projectId)
-    const features = await extractProjectFeatures(project)
-    
-    const prediction = await callAI({
-      model: 'project-success-predictor',
-      input: {
-        teamSize: features.teamSize,
-        complexity: features.complexity,
-        budget: features.budget,
-        timeline: features.timeline,
-        teamExperience: features.teamExperience,
-        stakeholderCount: features.stakeholderCount,
-        changeRequestFrequency: features.changeRequestFrequency,
-        currentProgress: features.currentProgress
-      }
-    })
-    
-    return {
-      successProbability: prediction.probability,
-      confidence: prediction.confidence,
-      keyFactors: prediction.influencingFactors,
-      recommendations: prediction.recommendations,
-      riskAreas: prediction.identifiedRisks
-    }
-  },
-  
-  // 継続的な予測更新
-  updatePrediction: async (projectId) => {
-    const latestData = await getLatestProjectMetrics(projectId)
-    const newPrediction = await ProjectSuccessPredictor.predictSuccess(projectId)
-    
-    // 予測履歴の保存
-    await savePredictionHistory(projectId, {
-      timestamp: new Date(),
-      prediction: newPrediction,
-      actualMetrics: latestData
-    })
-    
-    // 大幅な変化がある場合はアラート
-    const previousPrediction = await getLatestPrediction(projectId)
-    if (Math.abs(newPrediction.successProbability - previousPrediction.successProbability) > 0.2) {
-      await sendPredictionAlert(projectId, newPrediction, previousPrediction)
-    }
-    
-    return newPredection
-  }
-}
-```
+#### 1. 内部メンバーの追加
+1. プロジェクト詳細画面の「メンバー」タブ
+2. 「メンバーを追加」ボタンをクリック
+3. 社内ユーザー一覧から選択
+4. 役割・権限を設定して追加
 
-### 2.2 リソース最適化AI
+#### 2. 外部メンバーの招待
+1. 「外部メンバーを招待」を選択
+2. メールアドレスを入力
+3. 権限レベルを設定：
+   - **プロジェクト管理者**: 全権限
+   - **チームリーダー**: チーム管理権限
+   - **メンバー**: 作業実行権限
+   - **閲覧者**: 情報確認のみ
 
-```javascript
-// AIによるリソース配分最適化
-const ResourceOptimizer = {
-  optimizeAllocation: async (projectId) => {
-    const project = await getProject(projectId)
-    const availableResources = await getAvailableResources(project.teamId)
-    const currentTasks = await getProjectTasks(projectId)
-    
-    const optimization = await callAI({
-      model: 'resource-optimizer',
-      input: {
-        tasks: currentTasks.map(task => ({
-          id: task.id,
-          estimatedHours: task.estimatedHours,
-          requiredSkills: task.requiredSkills,
-          priority: task.priority,
-          dependencies: task.dependencies
-        })),
-        resources: availableResources.map(resource => ({
-          id: resource.id,
-          skills: resource.skills,
-          capacity: resource.weeklyCapacity,
-          currentLoad: resource.currentLoad,
-          efficiency: resource.historicalEfficiency
-        })),
-        constraints: {
-          deadline: project.deadline,
-          budget: project.budget,
-          qualityRequirements: project.qualityGates
-        }
-      }
-    })
-    
-    return {
-      optimalAssignments: optimization.assignments,
-      expectedCompletion: optimization.projectedCompletion,
-      resourceUtilization: optimization.utilizationMetrics,
-      bottlenecks: optimization.identifiedBottlenecks,
-      alternatives: optimization.alternativeScenarios
-    }
-  }
-}
-```
+#### 3. 一括メンバー追加
+1. 「一括追加」機能を使用
+2. CSVファイルをアップロード
+3. メンバー情報と役割を一度に設定
+4. 招待メールの一括送信
 
-### 2.3 プロジェクト健康度スコア
+### 役割・権限管理
 
-```javascript
-// プロジェクトの健康状態を総合評価
-calculateProjectHealth = async (projectId) => {
-  const project = await getProject(projectId)
-  const metrics = await getProjectMetrics(projectId)
-  
-  const healthFactors = {
-    // スケジュール健康度 (0-100)
-    schedule: calculateScheduleHealth(project, metrics),
-    
-    // 予算健康度 (0-100)
-    budget: calculateBudgetHealth(project, metrics),
-    
-    // 品質健康度 (0-100)
-    quality: calculateQualityHealth(metrics),
-    
-    // チーム健康度 (0-100)
-    team: calculateTeamHealth(project.team, metrics),
-    
-    // ステークホルダー満足度 (0-100)
-    stakeholder: calculateStakeholderSatisfaction(project, metrics),
-    
-    // リスク健康度 (0-100)
-    risk: calculateRiskHealth(project.risks, metrics)
-  }
-  
-  // 重み付け平均で総合スコアを計算
-  const weights = {
-    schedule: 0.25,
-    budget: 0.20,
-    quality: 0.20,
-    team: 0.15,
-    stakeholder: 0.10,
-    risk: 0.10
-  }
-  
-  const overallHealth = Object.entries(healthFactors)
-    .reduce((total, [factor, score]) => total + (score * weights[factor]), 0)
-  
-  return {
-    overallHealth: Math.round(overallHealth),
-    factors: healthFactors,
-    status: getHealthStatus(overallHealth),
-    recommendations: generateHealthRecommendations(healthFactors),
-    trends: calculateHealthTrends(projectId, healthFactors)
-  }
-}
-```
+#### プロジェクト内の役割
+
+##### プロジェクトマネージャー
+- **権限範囲**: プロジェクト全体の管理
+- **主な機能**: スケジュール変更、メンバー管理、予算調整
+- **責任**: プロジェクト成功に対する全体責任
+
+##### チームリーダー
+- **権限範囲**: 担当チーム・エリアの管理
+- **主な機能**: タスク割り当て、進捗管理、品質確認
+- **責任**: チーム内の業務遂行と品質管理
+
+##### スペシャリスト
+- **権限範囲**: 専門分野での作業・助言
+- **主な機能**: 専門タスクの実行、技術指導
+- **責任**: 専門性を活かした業務遂行
+
+##### メンバー
+- **権限範囲**: 割り当てられたタスクの実行
+- **主な機能**: タスク完了、進捗報告、情報共有
+- **責任**: 個別タスクの確実な完了
+
+#### 権限の詳細設定
+1. メンバー一覧から設定したいユーザーを選択
+2. 「権限設定」をクリック
+3. 機能別に権限を調整：
+   - **タスク作成・編集・削除**
+   - **スケジュール変更**
+   - **予算情報へのアクセス**
+   - **レポート出力**
+   - **設定変更**
 
 ---
 
-## テンプレート生成・適用
+## タスク・スケジュール管理
 
-### 3.1 プロジェクトテンプレート構造
+### タスクの作成・管理
 
-```javascript
-// プロジェクトテンプレートの標準構造
-const ProjectTemplateStructure = {
-  basic: {
-    metadata: {
-      name: "基本プロジェクトテンプレート",
-      category: "GENERAL",
-      complexity: "MEDIUM",
-      estimatedDuration: "8週間"
-    },
-    phases: [
-      {
-        name: "企画フェーズ",
-        duration: "1週間",
-        tasks: [
-          { name: "要件定義", estimatedHours: 16, role: "ANALYST" },
-          { name: "ステークホルダー会議", estimatedHours: 4, role: "PM" }
-        ]
-      }
-    ],
-    team: {
-      requiredRoles: ["PM", "DEVELOPER", "DESIGNER"],
-      minSize: 3,
-      maxSize: 8
-    }
-  },
-  
-  // 開発プロジェクト用テンプレート
-  development: {
-    phases: [
-      {
-        name: "要件定義",
-        tasks: [
-          { name: "ユーザーストーリー作成", category: "ANALYSIS" },
-          { name: "技術調査", category: "RESEARCH" },
-          { name: "アーキテクチャ設計", category: "DESIGN" }
-        ]
-      },
-      {
-        name: "開発",
-        tasks: [
-          { name: "環境構築", category: "SETUP" },
-          { name: "機能実装", category: "CODING" },
-          { name: "単体テスト", category: "TESTING" }
-        ]
-      }
-    ]
-  }
-}
-```
+#### 1. 基本的なタスク作成
+1. プロジェクト内で「新規タスク」をクリック
+2. タスク詳細を入力：
+   - **タスク名**: 具体的で分かりやすい名前
+   - **説明**: 作業内容の詳細
+   - **担当者**: 責任者の指定
+   - **期限**: 完了予定日時
+   - **見積時間**: 作業時間の予測
 
-### 3.2 動的テンプレート生成
+#### 2. タスクの階層化
+- **親タスク**: 大きな作業単位
+- **子タスク**: 詳細な作業項目
+- **孫タスク**: さらに細かい作業
+- 最大5階層まで設定可能
 
-```javascript
-// AI による最適なテンプレート生成
-const TemplateGenerator = {
-  generateFromHistory: async (similarProjects) => {
-    // 過去の成功プロジェクトから学習
-    const patterns = await analyzeSuccessPatterns(similarProjects)
-    
-    return {
-      suggestedPhases: patterns.commonPhases,
-      recommendedTasks: patterns.criticalTasks,
-      optimalTeamSize: patterns.averageTeamSize,
-      estimatedTimeline: patterns.averageDuration,
-      riskMitigations: patterns.effectiveMitigations
-    }
-  },
-  
-  customizeTemplate: async (baseTemplate, projectRequirements) => {
-    const customizations = await callAI({
-      model: 'template-customizer',
-      input: {
-        baseTemplate,
-        requirements: projectRequirements,
-        constraints: projectRequirements.constraints
-      }
-    })
-    
-    return {
-      ...baseTemplate,
-      phases: customizations.adaptedPhases,
-      tasks: customizations.prioritizedTasks,
-      timeline: customizations.adjustedTimeline,
-      resources: customizations.optimizedResources
-    }
-  }
-}
-```
+#### 3. タスク間の依存関係
+1. タスク詳細画面で「依存関係」を設定
+2. 関係の種類を選択：
+   - **前後関係**: Aが完了したらBを開始
+   - **同時進行**: AとBを並行して実行
+   - **条件付き**: 特定条件でCを開始
 
-### 3.3 テンプレート適用プロセス
+### マイルストーン設定
 
-```javascript
-// テンプレートの段階的適用
-const applyProjectTemplate = async (projectId, templateId, customizations = {}) => {
-  const template = await getProjectTemplate(templateId)
-  const project = await getProject(projectId)
-  
-  // 1. プロジェクト基本情報の更新
-  await updateProject(projectId, {
-    phases: template.phases,
-    estimatedDuration: template.estimatedDuration,
-    complexity: template.complexity
-  })
-  
-  // 2. タスクの自動生成
-  for (const phase of template.phases) {
-    for (const taskTemplate of phase.tasks) {
-      const task = await createTask({
-        projectId,
-        ...taskTemplate,
-        ...customizations.taskOverrides?.[taskTemplate.name],
-        createdFromTemplate: true,
-        templateId: template.id
-      })
-      
-      // 依存関係の設定
-      if (taskTemplate.dependencies) {
-        await setTaskDependencies(task.id, taskTemplate.dependencies)
-      }
-    }
-  }
-  
-  // 3. チーム構成の提案
-  const teamSuggestions = await suggestTeamComposition(
-    template.team.requiredRoles,
-    project.availableMembers
-  )
-  
-  return {
-    appliedTemplate: template,
-    createdTasks: await getProjectTasks(projectId),
-    teamSuggestions,
-    nextSteps: generateNextSteps(template)
-  }
-}
-```
+#### マイルストーンの作成
+1. スケジュール画面で「マイルストーン追加」
+2. 重要な節目を設定：
+   - **要件確定**: 仕様書の承認完了
+   - **中間レビュー**: 進捗の中間確認
+   - **デリバリー**: 成果物の納品
+   - **プロジェクト完了**: 全作業の終了
+
+#### マイルストーン管理
+- **進捗状況の可視化**: マイルストーンまでの達成度
+- **遅延アラート**: 期限に間に合わない場合の警告
+- **関係者通知**: マイルストーン到達時の自動通知
 
 ---
 
-## チーム最適化
+## ガントチャート活用
 
-### 4.1 チーム編成アルゴリズム
+### ガントチャートの基本操作
 
-```javascript
-// 最適なチーム編成の計算
-const TeamOptimizer = {
-  optimizeTeamComposition: async (projectRequirements, availableMembers) => {
-    const optimization = await callAI({
-      model: 'team-optimizer',
-      input: {
-        projectSkills: projectRequirements.requiredSkills,
-        projectComplexity: projectRequirements.complexity,
-        projectDuration: projectRequirements.duration,
-        memberProfiles: availableMembers.map(member => ({
-          id: member.id,
-          skills: member.skills,
-          experience: member.experience,
-          availability: member.availability,
-          workload: member.currentWorkload,
-          teamCompatibility: member.teamworkScore,
-          performance: member.historicalPerformance
-        }))
-      }
-    })
-    
-    return {
-      optimalTeam: optimization.selectedMembers,
-      teamScore: optimization.teamEffectivenessScore,
-      skillCoverage: optimization.skillCoverageAnalysis,
-      potentialIssues: optimization.identifiedRisks,
-      alternatives: optimization.alternativeCompositions
-    }
-  },
-  
-  // チーム相性分析
-  analyzeTeamCompatibility: async (teamMembers) => {
-    const compatibilityMatrix = []
-    
-    for (let i = 0; i < teamMembers.length; i++) {
-      for (let j = i + 1; j < teamMembers.length; j++) {
-        const compatibility = await calculateMemberCompatibility(
-          teamMembers[i], 
-          teamMembers[j]
-        )
-        
-        compatibilityMatrix.push({
-          member1: teamMembers[i].id,
-          member2: teamMembers[j].id,
-          score: compatibility.score,
-          factors: compatibility.factors
-        })
-      }
-    }
-    
-    return {
-      overallCompatibility: calculateOverallCompatibility(compatibilityMatrix),
-      individualScores: compatibilityMatrix,
-      recommendations: generateCompatibilityRecommendations(compatibilityMatrix)
-    }
-  }
-}
-```
+#### 1. 表示・設定
+1. プロジェクト画面で「ガントチャート」タブを選択
+2. 表示期間を調整：
+   - **日単位**: 詳細なスケジュール確認
+   - **週単位**: 中期的な計画表示
+   - **月単位**: 長期プロジェクトの概要
 
-### 4.2 スキルギャップ分析
+#### 2. タスクバーの操作
+- **ドラッグで移動**: スケジュールの調整
+- **端をドラッグ**: 期間の変更
+- **右クリック**: コンテキストメニュー表示
+- **ダブルクリック**: タスク詳細の編集
 
-```javascript
-// チームのスキルギャップ分析と補強提案
-const SkillGapAnalyzer = {
-  analyzeGaps: async (projectId) => {
-    const project = await getProject(projectId)
-    const requiredSkills = await extractRequiredSkills(project)
-    const teamSkills = await getTeamSkills(project.team)
-    
-    const gaps = requiredSkills.map(skill => {
-      const teamCoverage = teamSkills.filter(ts => ts.skill === skill.name)
-      const totalLevel = teamCoverage.reduce((sum, ts) => sum + ts.level, 0)
-      const averageLevel = teamCoverage.length > 0 ? totalLevel / teamCoverage.length : 0
-      
-      return {
-        skill: skill.name,
-        required: skill.requiredLevel,
-        current: averageLevel,
-        gap: Math.max(0, skill.requiredLevel - averageLevel),
-        coverage: teamCoverage.length / project.team.length
-      }
-    })
-    
-    const criticalGaps = gaps.filter(gap => gap.gap > 2 || gap.coverage < 0.5)
-    
-    return {
-      allGaps: gaps,
-      criticalGaps,
-      recommendations: await generateSkillRecommendations(criticalGaps),
-      trainingPlan: await createTrainingPlan(criticalGaps, project.team)
-    }
-  },
-  
-  // スキル習得計画の作成
-  createSkillDevelopmentPlan: async (teamMember, targetSkills) => {
-    const currentSkills = teamMember.skills
-    const learningPath = []
-    
-    for (const targetSkill of targetSkills) {
-      const currentLevel = currentSkills.find(s => s.name === targetSkill.name)?.level || 0
-      const targetLevel = targetSkill.requiredLevel
-      
-      if (targetLevel > currentLevel) {
-        const plan = await generateLearningPath(targetSkill.name, currentLevel, targetLevel)
-        learningPath.push({
-          skill: targetSkill.name,
-          currentLevel,
-          targetLevel,
-          estimatedTime: plan.estimatedTime,
-          resources: plan.recommendedResources,
-          milestones: plan.milestones
-        })
-      }
-    }
-    
-    return {
-      memberId: teamMember.id,
-      learningPath,
-      totalEstimatedTime: learningPath.reduce((sum, path) => sum + path.estimatedTime, 0),
-      priority: calculateLearningPriority(learningPath)
-    }
-  }
-}
-```
+#### 3. 依存関係の可視化
+- **矢印線**: タスク間の依存関係を表示
+- **クリティカルパス**: 遅延が全体に影響するタスクをハイライト
+- **余裕時間**: 遅延可能な期間を色分け表示
 
-### 4.3 パフォーマンス追跡
+### スケジュール最適化
 
-```javascript
-// チームパフォーマンスの継続的追跡
-const TeamPerformanceTracker = {
-  trackPerformance: async (projectId, period = 'weekly') => {
-    const project = await getProject(projectId)
-    const metrics = await getTeamMetrics(project.team, period)
-    
-    return {
-      productivity: {
-        tasksCompleted: metrics.completedTasks,
-        velocityTrend: calculateVelocityTrend(metrics.taskHistory),
-        codeQuality: metrics.codeQualityMetrics,
-        bugRate: metrics.bugsIntroduced / metrics.tasksCompleted
-      },
-      collaboration: {
-        communicationFrequency: metrics.communicationCount,
-        knowledgeSharing: metrics.knowledgeSharingEvents,
-        conflictResolution: metrics.conflictResolutionTime,
-        pairProgramming: metrics.pairProgrammingHours
-      },
-      satisfaction: {
-        teamMorale: await surveyTeamMorale(project.team),
-        workLifeBalance: calculateWorkLifeBalance(metrics.workingHours),
-        jobSatisfaction: await getJobSatisfactionScores(project.team)
-      }
-    }
-  },
-  
-  // パフォーマンス改善提案
-  generateImprovementSuggestions: async (performanceData) => {
-    const lowPerformanceAreas = identifyLowPerformanceAreas(performanceData)
-    const suggestions = []
-    
-    for (const area of lowPerformanceAreas) {
-      const aiSuggestion = await callAI({
-        model: 'performance-advisor',
-        input: {
-          area: area.category,
-          currentMetrics: area.metrics,
-          teamContext: area.context
-        }
-      })
-      
-      suggestions.push({
-        area: area.category,
-        issue: area.issue,
-        recommendation: aiSuggestion.recommendation,
-        expectedImpact: aiSuggestion.expectedImpact,
-        implementationEffort: aiSuggestion.effort,
-        timeframe: aiSuggestion.timeframe
-      })
-    }
-    
-    return {
-      suggestions,
-      priorityOrder: suggestions.sort((a, b) => b.expectedImpact - a.expectedImpact),
-      quickWins: suggestions.filter(s => s.implementationEffort === 'LOW'),
-      longTermGoals: suggestions.filter(s => s.timeframe === 'LONG_TERM')
-    }
-  }
-}
-```
+#### 自動スケジューリング
+1. 「スケジュール最適化」機能を使用
+2. 以下の条件を自動調整：
+   - リソースの平準化
+   - 依存関係の最適化
+   - 期限内での最短ルート計算
+
+#### 手動調整
+- **バッファ時間**: 予期しない遅延への対応
+- **リソース配分**: メンバーの作業負荷調整
+- **並行作業**: 効率化可能な作業の特定
 
 ---
 
-## リスク管理
+## 進捗管理・監視
 
-### 5.1 リスク識別・評価
+### リアルタイム進捗確認
 
-```javascript
-// 包括的なリスク管理システム
-const ProjectRiskManager = {
-  identifyRisks: async (projectId) => {
-    const project = await getProject(projectId)
-    const historicalRisks = await getHistoricalRisks(project.category)
-    
-    // AI による潜在リスクの識別
-    const aiRisks = await callAI({
-      model: 'risk-identifier',
-      input: {
-        projectData: project,
-        teamComposition: project.team,
-        timeline: project.timeline,
-        budget: project.budget,
-        stakeholders: project.stakeholders,
-        historicalContext: historicalRisks
-      }
-    })
-    
-    const identifiedRisks = aiRisks.map(risk => ({
-      id: generateRiskId(),
-      category: risk.category,
-      description: risk.description,
-      probability: risk.probability, // 0.0 - 1.0
-      impact: risk.impact, // 1-5 scale
-      riskScore: risk.probability * risk.impact,
-      triggers: risk.identifiedTriggers,
-      earlyWarnings: risk.earlyWarningSignals
-    }))
-    
-    return {
-      risks: identifiedRisks,
-      highPriorityRisks: identifiedRisks.filter(r => r.riskScore >= 3.0),
-      riskCategories: categorizeRisks(identifiedRisks),
-      overallRiskLevel: calculateOverallRiskLevel(identifiedRisks)
-    }
-  },
-  
-  // リスク軽減策の策定
-  developMitigationStrategies: async (risks) => {
-    const strategies = []
-    
-    for (const risk of risks) {
-      const strategy = await callAI({
-        model: 'risk-mitigator',
-        input: {
-          risk: risk,
-          availableResources: await getAvailableResources(),
-          budgetConstraints: await getBudgetConstraints(),
-          timeConstraints: await getTimeConstraints()
-        }
-      })
-      
-      strategies.push({
-        riskId: risk.id,
-        preventionActions: strategy.preventionMeasures,
-        contingencyPlans: strategy.contingencyPlans,
-        monitoringIndicators: strategy.monitoringMetrics,
-        responsibleParty: strategy.assignedOwner,
-        cost: strategy.estimatedCost,
-        timeline: strategy.implementationTimeline
-      })
-    }
-    
-    return strategies
-  }
-}
-```
+#### 1. プロジェクトダッシュボード
+**表示される情報:**
+- **全体進捗率**: プロジェクト完了度の%表示
+- **期限までの残り日数**: カウントダウン表示
+- **完了・進行中・未着手**: タスク状況の概要
+- **リスク状況**: 注意が必要な項目
 
-### 5.2 リスク監視システム
+#### 2. 詳細進捗分析
+1. 「進捗詳細」画面にアクセス
+2. 以下の指標を確認：
+   - **タスク完了率**: 個別タスクの進捗
+   - **時間効率**: 予定vs実績時間
+   - **品質指標**: やり直し・修正の回数
+   - **チーム別進捗**: メンバーごとの状況
 
-```javascript
-// リアルタイムリスク監視
-const RiskMonitor = {
-  // 継続的リスク監視
-  monitorRisks: async (projectId) => {
-    const activeRisks = await getActiveRisks(projectId)
-    const alerts = []
-    
-    for (const risk of activeRisks) {
-      const currentIndicators = await collectRiskIndicators(risk.id)
-      const riskStatus = await evaluateRiskStatus(risk, currentIndicators)
-      
-      if (riskStatus.hasEscalated) {
-        alerts.push({
-          riskId: risk.id,
-          alertLevel: riskStatus.level,
-          message: riskStatus.message,
-          recommendedActions: riskStatus.actions,
-          urgency: riskStatus.urgency
-        })
-      }
-      
-      // リスク履歴の更新
-      await updateRiskHistory(risk.id, {
-        timestamp: new Date(),
-        indicators: currentIndicators,
-        status: riskStatus.status,
-        probability: riskStatus.updatedProbability,
-        impact: riskStatus.updatedImpact
-      })
-    }
-    
-    if (alerts.length > 0) {
-      await sendRiskAlerts(projectId, alerts)
-    }
-    
-    return {
-      monitoredRisks: activeRisks.length,
-      activeAlerts: alerts,
-      riskTrends: calculateRiskTrends(projectId)
-    }
-  },
-  
-  // 予兆検知システム
-  detectEarlyWarnings: async (projectId) => {
-    const project = await getProject(projectId)
-    const recentMetrics = await getRecentProjectMetrics(projectId, '7days')
-    
-    const warningSignals = []
-    
-    // スケジュール遅延の予兆
-    if (recentMetrics.velocityTrend < -0.2) {
-      warningSignals.push({
-        type: 'SCHEDULE_RISK',
-        severity: 'MEDIUM',
-        message: 'タスク完了速度が低下しています',
-        recommendation: 'リソース配分の見直しを検討してください'
-      })
-    }
-    
-    // 品質低下の予兆
-    if (recentMetrics.bugRate > recentMetrics.historicalAverage * 1.5) {
-      warningSignals.push({
-        type: 'QUALITY_RISK',
-        severity: 'HIGH',
-        message: 'バグ発生率が異常に高くなっています',
-        recommendation: 'コードレビュープロセスを強化してください'
-      })
-    }
-    
-    // チームモラール低下の予兆
-    if (recentMetrics.teamSatisfaction < 3.0) {
-      warningSignals.push({
-        type: 'TEAM_RISK',
-        severity: 'HIGH',
-        message: 'チームの満足度が低下しています',
-        recommendation: '個別面談とチームビルディングを実施してください'
-      })
-    }
-    
-    return warningSignals
-  }
-}
-```
+### アラート・通知機能
+
+#### 自動アラートの種類
+- **期限切れ**: タスクの期限超過
+- **遅延リスク**: 期限に間に合わない可能性
+- **依存関係**: 前工程の遅延による影響
+- **リソース不足**: 必要な人員・時間の不足
+
+#### 通知設定のカスタマイズ
+1. プロジェクト設定から「通知設定」
+2. 通知したい項目を選択
+3. 通知方法を設定：
+   - **メール**: 即座に関係者へ送信
+   - **LINE**: リアルタイム通知
+   - **ダッシュボード**: ログイン時に確認
 
 ---
 
-## 進捗追跡・レポート
+## リソース・予算管理
 
-### 6.1 マルチレベル進捗追跡
+### 人的リソース管理
 
-```javascript
-// プロジェクト進捗の多層的追跡
-const ProgressTracker = {
-  // 総合進捗計算
-  calculateOverallProgress: async (projectId) => {
-    const project = await getProject(projectId)
-    const tasks = await getProjectTasks(projectId)
-    const phases = project.phases
-    
-    // タスクレベル進捗
-    const taskProgress = tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length
-    
-    // フェーズレベル進捗
-    const phaseProgress = phases.map(phase => {
-      const phaseTasks = tasks.filter(task => task.phaseId === phase.id)
-      const phaseCompletion = phaseTasks.reduce((sum, task) => sum + task.progress, 0) / phaseTasks.length
-      
-      return {
-        phaseId: phase.id,
-        name: phase.name,
-        progress: phaseCompletion,
-        weight: phase.weight || 1
-      }
-    })
-    
-    const weightedPhaseProgress = phaseProgress.reduce(
-      (sum, phase) => sum + (phase.progress * phase.weight), 0
-    ) / phaseProgress.reduce((sum, phase) => sum + phase.weight, 0)
-    
-    // マイルストーン進捗
-    const milestones = await getProjectMilestones(projectId)
-    const completedMilestones = milestones.filter(m => m.status === 'COMPLETED').length
-    const milestoneProgress = (completedMilestones / milestones.length) * 100
-    
-    return {
-      overall: Math.round((taskProgress + weightedPhaseProgress + milestoneProgress) / 3),
-      breakdown: {
-        tasks: Math.round(taskProgress),
-        phases: Math.round(weightedPhaseProgress),
-        milestones: Math.round(milestoneProgress)
-      },
-      details: {
-        taskBreakdown: tasks.map(t => ({ id: t.id, progress: t.progress })),
-        phaseBreakdown: phaseProgress,
-        milestoneStatus: milestones
-      }
-    }
-  },
-  
-  // 進捗予測
-  predictFutureProgress: async (projectId) => {
-    const historicalProgress = await getProgressHistory(projectId)
-    const currentVelocity = calculateCurrentVelocity(historicalProgress)
-    const remainingWork = await calculateRemainingWork(projectId)
-    
-    const prediction = await callAI({
-      model: 'progress-predictor',
-      input: {
-        historicalData: historicalProgress,
-        currentVelocity,
-        remainingTasks: remainingWork.tasks,
-        teamCapacity: remainingWork.capacity,
-        externalFactors: await getExternalFactors(projectId)
-      }
-    })
-    
-    return {
-      estimatedCompletion: prediction.completionDate,
-      confidence: prediction.confidence,
-      scenarios: {
-        optimistic: prediction.optimisticDate,
-        realistic: prediction.realisticDate,
-        pessimistic: prediction.pessimisticDate
-      },
-      bottlenecks: prediction.identifiedBottlenecks,
-      accelerationOptions: prediction.accelerationSuggestions
-    }
-  }
-}
-```
+#### 1. 作業負荷の可視化
+1. 「リソース管理」画面にアクセス
+2. メンバー別の作業状況を確認：
+   - **稼働率**: 労働時間に対する作業時間比率
+   - **タスク数**: 同時進行しているタスク数
+   - **スキル適合度**: タスクとスキルのマッチング
 
-### 6.2 ダッシュボードレポート
+#### 2. リソース配分の最適化
+- **過負荷メンバー**: 作業の再配分
+- **空きリソース**: 追加タスクの割り当て
+- **スキルギャップ**: 不足スキルの特定と対応
 
-```javascript
-// エグゼクティブサマリー自動生成
-const ReportGenerator = {
-  generateExecutiveSummary: async (projectId) => {
-    const project = await getProject(projectId)
-    const progress = await ProgressTracker.calculateOverallProgress(projectId)
-    const health = await calculateProjectHealth(projectId)
-    const risks = await getActiveRisks(projectId)
-    
-    return {
-      projectName: project.name,
-      reportDate: new Date(),
-      executiveSummary: {
-        status: determineProjectStatus(progress, health),
-        keyMetrics: {
-          progressPercentage: progress.overall,
-          healthScore: health.overallHealth,
-          budget: {
-            used: project.budgetUsed,
-            total: project.totalBudget,
-            percentage: (project.budgetUsed / project.totalBudget) * 100
-          },
-          schedule: {
-            daysElapsed: calculateDaysElapsed(project.startDate),
-            totalDays: calculateTotalDays(project.startDate, project.endDate),
-            onTrack: progress.overall >= calculateExpectedProgress(project)
-          }
-        },
-        highlights: await generateHighlights(projectId),
-        concerns: await identifyTopConcerns(risks, health),
-        nextSteps: await generateNextSteps(projectId)
-      },
-      detailedMetrics: {
-        progress,
-        health,
-        team: await getTeamMetrics(project.team),
-        quality: await getQualityMetrics(projectId),
-        risks: risks.map(r => ({
-          description: r.description,
-          probability: r.probability,
-          impact: r.impact,
-          status: r.status
-        }))
-      }
-    }
-  },
-  
-  // ステークホルダー向けレポート生成
-  generateStakeholderReport: async (projectId, stakeholderType) => {
-    const baseReport = await ReportGenerator.generateExecutiveSummary(projectId)
-    
-    // ステークホルダータイプに応じてカスタマイズ
-    const customization = {
-      'EXECUTIVE': {
-        focus: ['status', 'budget', 'risks', 'timeline'],
-        detailLevel: 'summary'
-      },
-      'TECHNICAL': {
-        focus: ['quality', 'architecture', 'technical_debt', 'performance'],
-        detailLevel: 'detailed'
-      },
-      'CLIENT': {
-        focus: ['deliverables', 'milestones', 'user_value', 'timeline'],
-        detailLevel: 'summary'
-      }
-    }
-    
-    const config = customization[stakeholderType] || customization['EXECUTIVE']
-    
-    return {
-      ...baseReport,
-      customizedSections: await generateCustomizedSections(projectId, config),
-      recommendations: await generateStakeholderRecommendations(projectId, stakeholderType)
-    }
-  }
-}
-```
+### 予算・コスト管理
+
+#### 予算設定
+1. プロジェクト設定で「予算管理」を選択
+2. 予算項目を設定：
+   - **人件費**: メンバーの工数×単価
+   - **外注費**: 外部委託の費用
+   - **設備費**: 機器・ソフトウェアの費用
+   - **その他**: 旅費・雑費等
+
+#### コスト追跡
+- **実績入力**: 実際にかかった費用の記録
+- **予算比較**: 予定vs実績の比較表示
+- **予測計算**: 現在のペースでの最終コスト予測
+- **アラート**: 予算超過の早期警告
+
+---
+
+## レポート・分析
+
+### 標準レポートの活用
+
+#### 1. 進捗レポート
+**含まれる情報:**
+- プロジェクト全体の進捗状況
+- マイルストーンの達成状況
+- 遅延しているタスクの一覧
+- チーム別の進捗比較
+
+**生成方法:**
+1. 「レポート」メニューから「進捗レポート」
+2. 対象期間を選択
+3. 「生成」ボタンでレポート作成
+
+#### 2. リソース活用レポート
+- メンバー別の稼働状況
+- スキル活用度の分析
+- 過不足リソースの特定
+- 効率性改善の提案
+
+#### 3. 予算実績レポート
+- 予算項目別の実績
+- コスト効率の分析
+- 予算超過・節約の要因分析
+- 将来プロジェクトへの提言
+
+### カスタムレポート作成
+
+#### レポートビルダーの使用
+1. 「カスタムレポート」から「新規作成」
+2. 含める情報を選択：
+   - **データ期間**: 分析対象期間
+   - **対象項目**: 表示する指標
+   - **グループ化**: データの集計方法
+   - **比較軸**: 比較したい要素
+
+#### 定期レポートの自動化
+1. 作成したレポートを「定期配信」に設定
+2. 配信スケジュールを選択：
+   - 毎日の進捗サマリー
+   - 週次の詳細レポート
+   - 月次の総合分析
+3. 配信先を設定して自動化完了
 
 ---
 
 ## トラブルシューティング
 
-### 7.1 よくある問題と解決策
+### よくある問題と解決方法
 
-#### プロジェクトが予定通り進まない
-**原因分析アプローチ:**
-```javascript
-const diagnoseProblem = async (projectId) => {
-  const diagnostics = {
-    // リソース問題
-    resourceIssues: await checkResourceAvailability(projectId),
-    
-    // スキル不足
-    skillGaps: await SkillGapAnalyzer.analyzeGaps(projectId),
-    
-    // コミュニケーション問題
-    communicationIssues: await analyzeCommunicationPatterns(projectId),
-    
-    // プロセス問題
-    processBottlenecks: await identifyProcessBottlenecks(projectId),
-    
-    // 外部要因
-    externalBlockers: await identifyExternalBlockers(projectId)
-  }
-  
-  return generateDiagnosticReport(diagnostics)
-}
-```
+#### Q1: タスクの依存関係が正しく表示されない
+**原因と対処法:**
+- 依存関係の設定が不完全
+  → タスク詳細で依存関係を再設定
+- 循環依存が発生している
+  → 依存関係を見直して循環を解消
 
-#### チーム内の対立・コミュニケーション問題
-**解決アプローチ:**
-```javascript
-const resolveTeamConflict = async (projectId, conflictDescription) => {
-  const analysis = await callAI({
-    model: 'conflict-resolver',
-    input: {
-      conflictDescription,
-      teamDynamics: await getTeamDynamics(projectId),
-      projectPressure: await getProjectPressureLevel(projectId)
-    }
-  })
-  
-  return {
-    rootCause: analysis.identifiedCauses,
-    recommendedActions: analysis.resolutionSteps,
-    mediationPlan: analysis.mediationStrategy,
-    preventionMeasures: analysis.preventionSuggestions
-  }
-}
-```
+#### Q2: ガントチャートでスケジュール変更ができない
+**原因と対処法:**
+- 権限が不足している
+  → プロジェクト管理者に権限付与を依頼
+- 依存関係により制約されている
+  → 前工程のスケジュール調整が必要
 
-### 7.2 パフォーマンス最適化
+#### Q3: 進捗率が自動更新されない
+**原因と対処法:**
+- 子タスクの進捗が未入力
+  → 全ての子タスクの進捗を入力
+- 自動計算設定が無効
+  → プロジェクト設定で自動計算を有効化
 
-```javascript
-// プロジェクト実行の最適化
-const ProjectOptimizer = {
-  optimizePerformance: async (projectId) => {
-    const currentMetrics = await getProjectMetrics(projectId)
-    const optimization = await callAI({
-      model: 'project-optimizer',
-      input: currentMetrics
-    })
-    
-    return {
-      processImprovements: optimization.processChanges,
-      toolRecommendations: optimization.toolSuggestions,
-      workflowOptimizations: optimization.workflowChanges,
-      resourceReallocation: optimization.resourceChanges
-    }
-  }
-}
-```
+#### Q4: 予算管理で実績が反映されない
+**原因と対処法:**
+- 費用入力の権限がない
+  → 管理者に権限設定を確認
+- 承認待ちの状態
+  → 承認者に確認・承認を依頼
+
+### パフォーマンス最適化
+
+#### 大規模プロジェクトの管理
+- **階層化**: 適切なタスク分割で見通し改善
+- **フィルタリング**: 必要な情報のみを表示
+- **アーカイブ**: 完了タスクの整理
+- **分割**: 大プロジェクトの適切な分割
+
+#### チーム協働の改善
+- **定期ミーティング**: 進捗共有の場の設定
+- **ステータス更新**: リアルタイムでの情報共有
+- **ナレッジ共有**: 学習事項の蓄積・活用
+- **フィードバック**: 継続的な改善サイクル
 
 ---
 
-**最終更新日**: 2025-06-29  
-**対象バージョン**: Phase 4 完了版  
-**関連ドキュメント**: システム機能カテゴリ一覧、タスク管理システムマニュアル
+## まとめ
+
+プロジェクト管理システムを効果的に活用することで、以下の効果が期待できます：
+
+### 期待効果
+- **成功率の向上**: 計画的な進行による目標達成
+- **効率性の改善**: リソースの最適配分
+- **透明性の確保**: 進捗・状況の可視化
+- **リスク軽減**: 早期の問題発見・対応
+
+### 成功のためのポイント
+- **明確な目標設定**: 具体的で測定可能な目標
+- **適切な計画**: 現実的なスケジュールと予算
+- **継続的な監視**: 定期的な進捗確認
+- **柔軟な対応**: 変化に応じた計画調整
+- **チーム協働**: 効果的なコミュニケーション
+
+適切なプロジェクト管理により、より確実で効率的なプロジェクト遂行を実現できます。

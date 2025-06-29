@@ -1,675 +1,388 @@
-# スマートダッシュボード機能 マニュアル
+# スマートダッシュボード マニュアル
 
 ## 概要
 
-スマートダッシュボードは、AI機能を活用してユーザーの生産性を最大化する次世代ダッシュボードです。従来の情報表示機能に加え、**ゼロクリック操作**、**AI提案**、**音声入力**などの革新的機能を提供します。
+FIND to DO Management Appのスマートダッシュボードは、AI技術を活用してプロジェクトやタスクの状況を自動分析し、最適化された情報を提供するインテリジェントな管理画面です。リアルタイムデータ分析、予測機能、自動アラートにより、効率的な意思決定をサポートします。
 
 ### 主要特徴
-- **AI駆動の今日すべきこと提示**
-- **音声入力によるタスク作成**
-- **自動スケジュール生成**
-- **リアルタイム生産性スコア**
-- **ゼロクリック操作**
+- AI による自動データ分析と洞察提供
+- リアルタイムKPI監視とアラート
+- 予測分析による将来トレンド表示
+- パーソナライズされた推奨事項
+- インタラクティブな可視化とレポート
 
 ---
 
 ## 目次
 
-1. [基本アーキテクチャ](#基本アーキテクチャ)
-2. [AI機能](#ai機能)
-3. [ゼロクリック操作](#ゼロクリック操作)
-4. [生産性分析](#生産性分析)
-5. [音声入力システム](#音声入力システム)
-6. [自動スケジュール生成](#自動スケジュール生成)
-7. [実装例](#実装例)
-8. [カスタマイズ](#カスタマイズ)
-9. [トラブルシューティング](#トラブルシューティング)
+1. [ダッシュボードの基本操作](#ダッシュボードの基本操作)
+2. [AI分析機能](#ai分析機能)
+3. [KPI監視・アラート](#kpi監視アラート)
+4. [予測・トレンド分析](#予測トレンド分析)
+5. [パーソナライゼーション](#パーソナライゼーション)
+6. [レポート・エクスポート](#レポートエクスポート)
+7. [設定・カスタマイズ](#設定カスタマイズ)
+8. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
-## 基本アーキテクチャ
+## ダッシュボードの基本操作
 
-### コンポーネント構造
+### ダッシュボードへのアクセス
 
-```javascript
-// SmartDashboard.tsx の基本構造
-export default function SmartDashboard({ showAdvancedFeatures = false, onAdvancedToggle }) {
-  // データフック
-  const { tasks, loading: tasksLoading } = useTasks();
-  const { projects, loading: projectsLoading } = useProjects();
-  const { appointments, loading: appointmentsLoading } = useAppointments();
-  const { events, loading: eventsLoading } = useCalendarEvents();
-  
-  // AI分析結果のステート
-  const [todayEssentials, setTodayEssentials] = useState(null);
-  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
-  
-  return (
-    <div className="space-y-6">
-      {/* メインスマートカード */}
-      <SmartCard todayEssentials={todayEssentials} />
-      
-      {/* 高度な機能（条件付き表示） */}
-      {showAdvancedFeatures && <AdvancedFeatures />}
-    </div>
-  );
-}
-```
+#### 1. 初回アクセス
+1. メインメニューから「スマートダッシュボード」を選択
+2. 初回セットアップウィザードが起動
+3. 以下の設定を完了：
+   - 監視対象プロジェクトの選択
+   - 重要KPIの設定
+   - 通知設定の調整
 
-### データ統合パターン
+#### 2. 日常的なアクセス
+- ログイン後、自動的にダッシュボードが表示
+- サイドバーから「ダッシュボード」をクリック
+- ブックマークやショートカットでの直接アクセス
 
-```javascript
-// 複数データソースの統合処理
-useEffect(() => {
-  if (tasksLoading || projectsLoading || appointmentsLoading || eventsLoading) return;
+### 画面構成の理解
 
-  const today = new Date();
-  const todayString = today.toDateString();
-  
-  // 緊急タスクの抽出
-  const urgentTasks = tasks.filter(task => {
-    if (!task.dueDate) return false;
-    const dueDate = new Date(task.dueDate);
-    const isToday = dueDate.toDateString() === todayString;
-    const isOverdue = dueDate < today && task.status !== 'COMPLETE';
-    const isHighPriority = task.priority === 'A' || task.priority === 'B';
-    
-    return (isToday || isOverdue) && isHighPriority && task.status !== 'COMPLETE';
-  });
-  
-  // AI分析処理
-  const aiAnalysis = generateAISuggestion(urgentTasks, todayEvents);
-  setTodayEssentials(aiAnalysis);
-}, [tasks, projects, appointments, events]);
-```
+#### メイン要素
+- **ヘッダー**: 現在の日時、緊急アラート、クイックアクション
+- **サマリーカード**: 重要指標の概要表示
+- **チャートエリア**: グラフとビジュアル分析
+- **推奨事項パネル**: AIからの提案と改善案
+- **アクティビティフィード**: 最新の更新情報
+
+#### 操作方法
+- **ホバー**: 詳細情報をツールチップで表示
+- **クリック**: 詳細画面への移動
+- **ドラッグ**: パネルの配置変更
+- **右クリック**: コンテキストメニューの表示
+
+### レスポンシブ表示
+
+#### デバイス別最適化
+- **デスクトップ**: 全機能をフル表示
+- **タブレット**: 重要情報を優先表示
+- **スマートフォン**: コンパクトビューで必要最小限の情報
 
 ---
 
-## AI機能
+## AI分析機能
 
-### 今日すべきこと分析
+### 自動洞察生成
 
-スマートダッシュボードの中核となるAI機能です。
+#### 1. データパターン分析
+- **周期性検出**: 業務パターンの自動認識
+- **異常値検出**: 通常と異なるデータポイントの特定
+- **相関分析**: 項目間の関連性を自動発見
+- **トレンド分析**: 上昇・下降傾向の自動判定
 
-```javascript
-// AI分析エンジン
-const generateAISuggestion = (urgentTasks, todayEvents) => {
-  // 優先度計算アルゴリズム
-  let aiSuggestion = {
-    action: "今日のタスクを確認しましょう",
-    reasoning: "優先度の高いタスクから開始することをお勧めします",
-    estimatedTime: "30分"
-  };
+#### 2. 洞察の表示
+**表示される分析結果:**
+- 今週のパフォーマンス概要
+- 注意が必要な項目のハイライト
+- 改善機会の特定
+- 成功要因の分析
 
-  if (urgentTasks.length > 0) {
-    aiSuggestion = {
-      action: `「${urgentTasks[0].title}」から開始`,
-      reasoning: "最も緊急度の高いタスクです",
-      estimatedTime: calculateEstimatedTime(urgentTasks[0])
-    };
-  } else if (todayEvents.length > 0) {
-    aiSuggestion = {
-      action: `次の会議「${todayEvents[0].title}」の準備`,
-      reasoning: "今日の重要な予定に備えましょう",
-      estimatedTime: "15-30分"
-    };
-  }
-  
-  return aiSuggestion;
-};
-```
+#### 3. 洞察の活用方法
+1. ダッシュボード上部の「AI洞察」パネルを確認
+2. 重要度の高い洞察から順に表示
+3. 詳細分析が必要な場合は「詳細を見る」をクリック
+4. 推奨アクションがある場合は実行を検討
 
-### 生産性スコア計算
+### 予測モデリング
 
-```javascript
-// リアルタイム生産性分析
-const calculateProductivityScore = (tasks, completedToday) => {
-  const baseScore = completedToday * 25;
-  const bonusScore = urgentItems.length === 0 ? 20 : 0;
-  const finalScore = Math.min(100, baseScore + bonusScore);
-  
-  const productivity = {
-    score: finalScore,
-    trend: (completedToday > 2 ? 'up' : completedToday > 0 ? 'stable' : 'down'),
-    message: generateProductivityMessage(completedToday)
-  };
-  
-  return productivity;
-};
+#### パフォーマンス予測
+- **プロジェクト完了予測**: 現在の進捗率から完了日を算出
+- **リソース需要予測**: 将来の人員・時間需要を推定
+- **品質予測**: 潜在的な問題箇所を事前に特定
 
-const generateProductivityMessage = (completedCount) => {
-  if (completedCount > 2) return '素晴らしい進捗です！';
-  if (completedCount > 0) return '順調にタスクを進めています';
-  return '今日のタスクを開始しましょう';
-};
-```
+#### リスク予測
+- **期限遅延リスク**: 遅延する可能性のあるタスクを特定
+- **予算超過リスク**: コスト増加の可能性を早期警告
+- **品質リスク**: 品質低下の兆候を検出
+
+### 自動レコメンデーション
+
+#### 改善提案
+- **効率化提案**: ワークフローの最適化案
+- **リソース配分**: チームメンバーの最適配置
+- **優先度調整**: タスク優先度の見直し提案
+
+#### アクション提案
+1. 推奨事項パネルで提案を確認
+2. 各提案の根拠と期待効果を確認
+3. 「実行」ボタンで提案を適用
+4. 効果測定結果を後日確認
 
 ---
 
-## ゼロクリック操作
+## KPI監視・アラート
 
-### 音声タスク作成
+### リアルタイムKPI監視
 
-```javascript
-// 音声入力ハンドラー
-const handleVoiceInput = async () => {
-  setIsVoiceRecording(true);
-  
-  try {
-    // Web Speech API の利用（実装時）
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.lang = 'ja-JP';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      processVoiceCommand(transcript);
-    };
-    
-    recognition.start();
-    
-    // フォールバック処理
-    setTimeout(() => {
-      setIsVoiceRecording(false);
-      if (isVoiceRecording) {
-        alert('音声入力機能は開発中です。「明日までにA社の資料作成」のような形で話してください。');
-      }
-    }, 2000);
-  } catch (error) {
-    console.error('音声認識エラー:', error);
-    setIsVoiceRecording(false);
-  }
-};
+#### 1. 主要KPIの設定
+1. 設定メニューから「KPI設定」を選択
+2. 監視したい指標を選択：
+   - **進捗率**: プロジェクト全体の完了率
+   - **生産性**: 時間あたりの完了タスク数
+   - **品質スコア**: バグ・やり直し率
+   - **チーム満足度**: メンバー評価の平均
 
-// 音声コマンド処理
-const processVoiceCommand = async (transcript) => {
-  // AI解析でタスクを自動生成
-  const taskData = await analyzeVoiceCommand(transcript);
-  
-  if (taskData) {
-    await createTaskFromVoice(taskData);
-    showNotification('音声からタスクを作成しました');
-  }
-};
-```
+#### 2. 閾値の設定
+- **警告レベル**: 注意が必要な数値
+- **危険レベル**: 即座の対応が必要な数値
+- **目標値**: 達成したい理想的な数値
 
-### ボタンコンポーネント
+#### 3. KPIの可視化
+**表示形式:**
+- **メーターチャート**: 現在の達成度を一目で確認
+- **トレンドグラフ**: 時系列での変化を追跡
+- **比較チャート**: 目標値との差を表示
+- **ヒートマップ**: 複数KPIの状況を色分け表示
 
-```javascript
-// 音声入力ボタン
-<Button
-  onClick={handleVoiceInput}
-  disabled={isVoiceRecording}
-  className="flex items-center justify-center gap-3 h-16 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg"
->
-  <Mic className={`w-5 h-5 ${isVoiceRecording ? 'animate-pulse' : ''}`} />
-  <div className="text-left">
-    <div className="font-semibold">
-      {isVoiceRecording ? '音声を認識中...' : '話すだけでタスク作成'}
-    </div>
-    <div className="text-sm opacity-90">
-      「明日までにA社の資料作成」
-    </div>
-  </div>
-</Button>
-```
+### アラートシステム
+
+#### アラートの種類
+- **リアルタイムアラート**: 即座に通知が必要な状況
+- **定期アラート**: 日次・週次での状況報告
+- **予測アラート**: 将来の問題を事前警告
+- **傾向アラート**: 悪化トレンドの早期検出
+
+#### 通知方法の設定
+1. アラート設定から通知方法を選択：
+   - **ダッシュボード表示**: 画面上でのポップアップ
+   - **メール通知**: 指定アドレスへの送信
+   - **LINE通知**: LINE Botを通じた通知
+   - **Slack通知**: Slackチャンネルへの投稿
+
+#### アラート対応フロー
+1. アラート受信
+2. 重要度と内容の確認
+3. 推奨対応策の検討
+4. 対応実行
+5. 効果確認とフィードバック
 
 ---
 
-## 生産性分析
+## 予測・トレンド分析
 
-### リアルタイム分析
+### 将来予測機能
 
-```javascript
-// 生産性追跡システム
-const ProductivityTracker = {
-  // 本日完了タスク数の算出
-  getTodayCompletedTasks: (tasks) => {
-    const today = new Date().toDateString();
-    return tasks.filter(task => {
-      if (task.status !== 'COMPLETE') return false;
-      const updatedDate = new Date(task.updatedAt);
-      return updatedDate.toDateString() === today;
-    });
-  },
-  
-  // 効率性指標の計算
-  calculateEfficiency: (completedTasks, totalTimeSpent) => {
-    const avgTimePerTask = totalTimeSpent / completedTasks.length;
-    const efficiencyScore = Math.max(0, 100 - (avgTimePerTask - 30) * 2);
-    return Math.round(efficiencyScore);
-  },
-  
-  // トレンド分析
-  analyzeTrend: (recentData) => {
-    const weeklyAverage = recentData.slice(-7).reduce((sum, day) => sum + day.score, 0) / 7;
-    const previousWeekAverage = recentData.slice(-14, -7).reduce((sum, day) => sum + day.score, 0) / 7;
-    
-    if (weeklyAverage > previousWeekAverage * 1.1) return 'up';
-    if (weeklyAverage < previousWeekAverage * 0.9) return 'down';
-    return 'stable';
-  }
-};
-```
+#### 1. プロジェクト予測
+- **完了日予測**: 現在のペースでの完了予定日
+- **リソース予測**: 必要な追加人員・時間
+- **コスト予測**: 最終的な総コスト見積もり
 
-### 視覚的フィードバック
+#### 2. チーム分析
+- **パフォーマンストレンド**: チームの生産性変化
+- **ワークロード予測**: 将来の作業負荷分布
+- **スキル gap 分析**: 必要スキルと現在スキルの差
 
-```javascript
-// 生産性インジケーター
-const ProductivityIndicator = ({ productivity }) => (
-  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-    productivity.trend === 'up' ? 'bg-green-100 text-green-700' :
-    productivity.trend === 'stable' ? 'bg-blue-100 text-blue-700' :
-    'bg-gray-100 text-gray-700'
-  }`}>
-    <div className="flex items-center gap-2">
-      <TrendIcon trend={productivity.trend} />
-      <span>{productivity.message}</span>
-      <span className="font-bold">{productivity.score}%</span>
-    </div>
-  </div>
-);
-```
+#### 3. 市場・外部要因分析
+- **季節性考慮**: 季節による業務量変動
+- **外部イベント影響**: 休日・イベントによる影響
+- **業界トレンド**: 業界全体の動向反映
+
+### トレンド可視化
+
+#### インタラクティブチャート
+1. トレンドチャートで期間を選択：
+   - 過去1週間
+   - 過去1ヶ月
+   - 過去3ヶ月
+   - カスタム期間
+
+2. 表示項目のカスタマイズ：
+   - 表示する指標の選択
+   - グラフ種別の変更
+   - 比較対象の追加
+
+#### 予測精度の向上
+
+#### データ品質の維持
+- 正確なデータ入力の徹底
+- 欠損データの定期的な補完
+- 異常値のチェックと修正
+
+#### 学習データの蓄積
+- 長期間のデータ収集
+- 多様なプロジェクトデータの活用
+- 外部データとの照合
 
 ---
 
-## 音声入力システム
+## パーソナライゼーション
 
-### Web Speech API統合
+### 個人向けカスタマイズ
 
-```javascript
-// 音声認識セットアップ
-const setupSpeechRecognition = () => {
-  if (!('webkitSpeechRecognition' in window)) {
-    console.warn('このブラウザは音声認識をサポートしていません');
-    return null;
-  }
-  
-  const recognition = new window.webkitSpeechRecognition();
-  
-  // 設定
-  recognition.lang = 'ja-JP';
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-  
-  // イベントハンドラー
-  recognition.onstart = () => {
-    console.log('音声認識開始');
-    setIsVoiceRecording(true);
-  };
-  
-  recognition.onend = () => {
-    console.log('音声認識終了');
-    setIsVoiceRecording(false);
-  };
-  
-  recognition.onerror = (event) => {
-    console.error('音声認識エラー:', event.error);
-    setIsVoiceRecording(false);
-    handleSpeechError(event.error);
-  };
-  
-  return recognition;
-};
-```
+#### 1. マイダッシュボード
+1. 右上の「カスタマイズ」ボタンをクリック
+2. 表示したいウィジェットを選択：
+   - 自分のタスク進捗
+   - 担当プロジェクトの状況
+   - 今日の予定
+   - 重要アラート
 
-### 自然言語処理
+#### 2. レイアウト調整
+- ウィジェットのドラッグ&ドロップで配置変更
+- サイズの調整（小・中・大）
+- 表示・非表示の切り替え
 
-```javascript
-// 音声コマンド解析
-const parseVoiceCommand = (transcript) => {
-  const patterns = {
-    // タスク作成パターン
-    createTask: /(.+)までに(.+)/,
-    // 期限指定パターン
-    deadline: /(今日|明日|今週|来週|(\d+)日後)/,
-    // 優先度パターン
-    priority: /(重要|緊急|普通|低い)/
-  };
-  
-  let taskData = {
-    title: '',
-    dueDate: null,
-    priority: 'MEDIUM'
-  };
-  
-  // パターンマッチング
-  const taskMatch = transcript.match(patterns.createTask);
-  if (taskMatch) {
-    taskData.dueDate = parseDateFromText(taskMatch[1]);
-    taskData.title = taskMatch[2];
-  }
-  
-  // 優先度判定
-  if (transcript.includes('重要') || transcript.includes('緊急')) {
-    taskData.priority = 'HIGH';
-  }
-  
-  return taskData;
-};
-```
+#### 3. 通知設定
+- 受け取りたい通知の種類を選択
+- 通知頻度の調整
+- 優先度フィルターの設定
+
+### 役割別ビュー
+
+#### マネージャー向け
+- **チーム全体の概要**: メンバーの作業状況一覧
+- **プロジェクト進捗**: 全プロジェクトのステータス
+- **リソース管理**: 人員配置とワークロード
+- **予算管理**: コストと予算の消化状況
+
+#### 担当者向け
+- **自分のタスク**: 割り当てられたタスクの詳細
+- **今日の予定**: 本日完了予定のタスク
+- **進捗確認**: 個人の生産性指標
+- **学習提案**: スキル向上のための推奨事項
+
+#### 経営陣向け
+- **ハイレベル指標**: 全社的なKPI
+- **戦略的洞察**: 長期トレンドと予測
+- **ROI分析**: 投資対効果の測定
+- **競合比較**: 業界ベンチマークとの比較
 
 ---
 
-## 自動スケジュール生成
+## レポート・エクスポート
 
-### AI スケジューリング
+### 自動レポート生成
 
-```javascript
-// 自動スケジュール生成エンジン
-const AutoScheduler = {
-  // 最適スケジュール生成
-  generateOptimalSchedule: async (tasks, appointments, preferences) => {
-    const availableSlots = calculateAvailableTimeSlots();
-    const prioritizedTasks = sortTasksByPriority(tasks);
-    
-    const schedule = [];
-    
-    for (const task of prioritizedTasks) {
-      const optimalSlot = findBestTimeSlot(task, availableSlots, preferences);
-      if (optimalSlot) {
-        schedule.push({
-          task,
-          startTime: optimalSlot.start,
-          endTime: optimalSlot.end,
-          confidence: optimalSlot.confidence
-        });
-        
-        // 使用した時間帯を削除
-        removeUsedSlot(availableSlots, optimalSlot);
-      }
-    }
-    
-    return schedule;
-  },
-  
-  // 時間帯最適化
-  findBestTimeSlot: (task, availableSlots, preferences) => {
-    return availableSlots
-      .map(slot => ({
-        ...slot,
-        confidence: calculateSlotConfidence(task, slot, preferences)
-      }))
-      .sort((a, b) => b.confidence - a.confidence)[0];
-  }
-};
-```
+#### 1. 定期レポート設定
+1. レポート設定から「定期レポート」を選択
+2. レポート種別を選択：
+   - **日次レポート**: 当日の活動概要
+   - **週次レポート**: 週間の進捗と課題
+   - **月次レポート**: 月間実績と分析
+   - **プロジェクトレポート**: プロジェクト別詳細分析
 
-### スケジュール実行
+#### 2. 配信設定
+- 配信先メールアドレスの設定
+- 配信タイミングの設定（毎朝8時、毎週月曜日等）
+- レポート形式の選択（PDF、Excel、PowerPoint）
 
-```javascript
-// スケジュール生成ボタンハンドラー
-const generateAutoSchedule = async () => {
-  setAutoScheduleGenerated(true);
-  
-  try {
-    // AI スケジューリング実行
-    const schedule = await AutoScheduler.generateOptimalSchedule(
-      tasks,
-      appointments,
-      userPreferences
-    );
-    
-    // カレンダーに自動追加
-    await bulkCreateCalendarEvents(schedule);
-    
-    // 成功通知
-    showNotification('今日の最適スケジュールを生成しました！カレンダーで確認してください。');
-    
-    // 分析結果を更新
-    updateTodayEssentials();
-    
-  } catch (error) {
-    console.error('スケジュール生成エラー:', error);
-    showErrorNotification('スケジュール生成に失敗しました。');
-    setAutoScheduleGenerated(false);
-  }
-};
-```
+### カスタムレポート
+
+#### レポートビルダー
+1. 「カスタムレポート」タブを選択
+2. 含める情報を選択：
+   - データ期間
+   - 対象プロジェクト
+   - 分析項目
+   - グラフ種別
+
+3. プレビューで内容を確認
+4. レポート名を設定して保存
+
+#### テンプレート活用
+- **役員向けサマリー**: 経営指標中心の簡潔なレポート
+- **プロジェクト詳細版**: 技術的詳細を含む完全版
+- **顧客向けレポート**: 外部共有用の整理されたレポート
 
 ---
 
-## 実装例
+## 設定・カスタマイズ
 
-### 完全なコンポーネント例
+### ダッシュボード設定
 
-```javascript
-import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/Button';
-import { Mic, Play, ChevronRight, Settings, Zap } from 'lucide-react';
+#### 1. 表示設定
+- **更新頻度**: リアルタイム、5分毎、15分毎
+- **表示期間**: デフォルトで表示する期間
+- **色テーマ**: ライト、ダーク、カスタム
+- **アニメーション**: 有効・無効の切り替え
 
-const SmartDashboardExample = () => {
-  const [todayEssentials, setTodayEssentials] = useState(null);
-  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
-  
-  // AI分析とデータ統合
-  useEffect(() => {
-    const analyzeToday = async () => {
-      const analysis = await performAIAnalysis();
-      setTodayEssentials(analysis);
-    };
-    
-    analyzeToday();
-  }, []);
-  
-  return (
-    <Card variant="elevated" padding="normal" className="relative overflow-hidden">
-      {/* AI Glow Effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
-      
-      <div className="relative">
-        {/* ヘッダー */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <Zap className="w-7 h-7 text-yellow-500" />
-              今日すべきこと
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              AIが厳選した本日の重要タスク
-            </p>
-          </div>
-        </div>
-        
-        {/* ゼロクリック操作 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <VoiceInputButton 
-            isRecording={isVoiceRecording}
-            onVoiceInput={handleVoiceInput}
-          />
-          <AutoScheduleButton 
-            onGenerate={generateAutoSchedule}
-          />
-        </div>
-        
-        {/* AI提案 */}
-        <AIRecommendation suggestion={todayEssentials?.aiSuggestion} />
-      </div>
-    </Card>
-  );
-};
-```
+#### 2. データ設定
+- **データソース**: 取得するデータの範囲
+- **精度設定**: 計算精度と表示桁数
+- **キャッシュ設定**: データキャッシュの保持期間
 
----
+### AI設定
 
-## カスタマイズ
+#### 分析パラメータ
+1. AI設定メニューから調整：
+   - **学習期間**: 過去どの期間のデータを重視するか
+   - **感度設定**: 異常検出の感度レベル
+   - **予測期間**: どの程度先まで予測するか
 
-### テーマ設定
-
-```javascript
-// スマートダッシュボードテーマ
-const smartDashboardThemes = {
-  default: {
-    primaryGradient: 'from-blue-500 to-purple-600',
-    secondaryGradient: 'from-green-500 to-emerald-600',
-    aiCardBg: 'from-blue-50 to-purple-50',
-    urgentTaskBg: 'from-red-50 to-orange-50'
-  },
-  
-  professional: {
-    primaryGradient: 'from-slate-600 to-slate-800',
-    secondaryGradient: 'from-blue-600 to-blue-800',
-    aiCardBg: 'from-slate-50 to-blue-50',
-    urgentTaskBg: 'from-orange-50 to-red-50'
-  },
-  
-  energetic: {
-    primaryGradient: 'from-pink-500 to-orange-500',
-    secondaryGradient: 'from-purple-500 to-pink-500',
-    aiCardBg: 'from-pink-50 to-orange-50',
-    urgentTaskBg: 'from-red-50 to-pink-50'
-  }
-};
-```
-
-### 機能カスタマイズ
-
-```javascript
-// カスタマイズ可能な設定
-const smartDashboardConfig = {
-  // AI提案の頻度
-  aiSuggestionFrequency: 'realtime', // 'realtime' | 'hourly' | 'daily'
-  
-  // 音声認識言語
-  speechLanguage: 'ja-JP',
-  
-  // 生産性スコア計算方法
-  productivityCalculation: 'weighted', // 'simple' | 'weighted' | 'ai'
-  
-  // 表示するタスク数
-  maxUrgentTasks: 3,
-  
-  // 自動スケジュール設定
-  autoSchedulePreferences: {
-    workingHours: { start: 9, end: 18 },
-    breakDuration: 15,
-    taskMinDuration: 30
-  }
-};
-```
+#### 推奨事項の調整
+- 提案の頻度設定
+- 重要度フィルター
+- アクションの自動実行設定
 
 ---
 
 ## トラブルシューティング
 
-### よくある問題と解決策
+### よくある問題と解決方法
 
-#### 1. 音声認識が動作しない
+#### Q1: ダッシュボードの読み込みが遅い
+**原因と対処法:**
+- データ量が多すぎる
+  → 表示期間を短縮する
+- ブラウザのキャッシュ問題
+  → キャッシュをクリアして再読み込み
 
-```javascript
-// 音声認識対応チェック
-const checkSpeechSupport = () => {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    return {
-      supported: false,
-      message: 'このブラウザは音声認識をサポートしていません',
-      alternatives: ['テキスト入力を使用', 'Chrome/Edgeブラウザを使用']
-    };
-  }
-  
-  return { supported: true };
-};
+#### Q2: AI分析結果が表示されない
+**原因と対処法:**
+- データが不足している
+  → 最低1週間分のデータが必要
+- 分析処理中
+  → しばらく待ってから再確認
 
-// エラーハンドリング
-const handleSpeechError = (error) => {
-  const errorMessages = {
-    'no-speech': '音声が検出されませんでした。もう一度お試しください。',
-    'audio-capture': 'マイクへのアクセスが拒否されました。',
-    'not-allowed': 'マイクの使用許可が必要です。',
-    'network': 'ネットワークエラーが発生しました。'
-  };
-  
-  const message = errorMessages[error] || '音声認識でエラーが発生しました。';
-  showErrorNotification(message);
-};
-```
+#### Q3: アラートが多すぎる
+**原因と対処法:**
+- 閾値設定が厳しすぎる
+  → アラート設定で閾値を調整
+- 不要なアラートが有効
+  → アラート種別の見直し
 
-#### 2. AI分析が遅い
+#### Q4: 予測精度が低い
+**原因と対処法:**
+- データの品質が低い
+  → 入力データの精度向上
+- 学習データが不十分
+  → より多くのデータを蓄積
 
-```javascript
-// パフォーマンス最適化
-const optimizeAIAnalysis = {
-  // キャッシュ機能
-  cacheAnalysis: (key, result) => {
-    const cache = {
-      timestamp: Date.now(),
-      data: result,
-      expiry: 5 * 60 * 1000 // 5分
-    };
-    localStorage.setItem(`ai_analysis_${key}`, JSON.stringify(cache));
-  },
-  
-  // 並列処理
-  performParallelAnalysis: async (tasks, appointments, events) => {
-    const [urgentTasks, todayEvents, productivity] = await Promise.all([
-      analyzeUrgentTasks(tasks),
-      analyzeTodayEvents(events),
-      calculateProductivity(tasks)
-    ]);
-    
-    return { urgentTasks, todayEvents, productivity };
-  }
-};
-```
+### パフォーマンス最適化
 
-#### 3. レスポンシブ表示の問題
+#### 表示速度の向上
+- 不要なウィジェットの非表示
+- データ更新頻度の調整
+- ブラウザの最適化
 
-```javascript
-// レスポンシブ対応
-const responsiveConfig = {
-  // ブレークポイント別表示制御
-  getLayoutConfig: (screenWidth) => {
-    if (screenWidth < 768) {
-      return {
-        gridCols: 1,
-        hideAdvanced: true,
-        compactMode: true
-      };
-    } else if (screenWidth < 1024) {
-      return {
-        gridCols: 2,
-        hideAdvanced: false,
-        compactMode: false
-      };
-    } else {
-      return {
-        gridCols: 3,
-        hideAdvanced: false,
-        compactMode: false
-      };
-    }
-  }
-};
-```
-
-### デバッグ支援
-
-```javascript
-// デバッグ用ユーティリティ
-const SmartDashboardDebug = {
-  // AI分析結果の詳細ログ
-  logAnalysisDetails: (analysis) => {
-    console.group('🔍 Smart Dashboard AI Analysis');
-    console.log('緊急タスク数:', analysis.urgentTasks.length);
-    console.log('生産性スコア:', analysis.productivity.score);
-    console.log('AI提案:', analysis.aiSuggestion.action);
-    console.groupEnd();
-  },
-  
-  // パフォーマンス計測
-  measurePerformance: (operation, fn) => {
-    const start = performance.now();
-    const result = fn();
-    const end = performance.now();
-    console.log(`⏱️ ${operation}: ${end - start}ms`);
-    return result;
-  }
-};
-```
+#### 分析精度の向上
+- データ入力の標準化
+- 定期的なデータクレンジング
+- 外部データとの整合性確認
 
 ---
 
-このマニュアルは、スマートダッシュボードの包括的な実装ガイドです。AI機能とユーザビリティを両立させた次世代ダッシュボードの構築にご活用ください。
+## まとめ
+
+スマートダッシュボードを効果的に活用することで、以下の効果が期待できます：
+
+### 期待効果
+- **意思決定の高速化**: リアルタイム情報による迅速な判断
+- **問題の早期発見**: 予測機能による事前対応
+- **生産性の向上**: AI推奨事項による効率化
+- **戦略的思考の支援**: データドリブンな経営判断
+
+### 活用のコツ
+- **段階的導入**: 基本機能から徐々に高度な機能を活用
+- **継続的改善**: 定期的な設定見直しと最適化
+- **チーム教育**: メンバー全員がダッシュボードを理解
+- **フィードバック活用**: AI提案の効果測定と改善
+
+データと人工知能を活用して、より戦略的で効率的なプロジェクト管理を実現できます。
