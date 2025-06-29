@@ -7,6 +7,7 @@ import MobileLayout from '@/components/mobile/layout/MobileLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, Target, Calendar, ArrowLeft } from 'lucide-react';
+import QuickProjectCreator from '@/components/QuickProjectCreator';
 
 export default function MobileDashboard() {
   const router = useRouter();
@@ -119,6 +120,18 @@ export default function MobileDashboard() {
             ))}
           </div>
         </Card>
+
+        {/* Quick Project Creation */}
+        <QuickProjectCreator 
+          variant="mobile"
+          onProjectCreated={(project) => {
+            console.log('モバイルで新プロジェクト作成:', project);
+            // 成功時にプロジェクト一覧に移動
+            setTimeout(() => {
+              router.push('/mobile/projects');
+            }, 2000);
+          }}
+        />
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">

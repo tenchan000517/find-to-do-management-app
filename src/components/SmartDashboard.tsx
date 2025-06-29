@@ -8,6 +8,7 @@ import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import QuickProjectCreator from '@/components/QuickProjectCreator';
 
 interface TodayEssentials {
   urgentTasks: Array<{
@@ -196,7 +197,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
           </div>
 
           {/* Zero-Click Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             {/* Voice Task Creation */}
             <Button
               onClick={handleVoiceInput}
@@ -230,6 +231,18 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
                 </div>
               </div>
             </Button>
+
+            {/* Quick Project Creation - NEW! */}
+            <div className="lg:col-span-1">
+              <QuickProjectCreator 
+                variant="dashboard"
+                onProjectCreated={(project) => {
+                  console.log('新プロジェクト作成:', project);
+                  // プロジェクト作成成功時の処理
+                }}
+                className="h-full"
+              />
+            </div>
           </div>
 
           {/* Today's Essentials */}

@@ -574,7 +574,7 @@ export class SuccessProbabilityEngine {
    */
   async getAllPredictions(): Promise<SuccessPrediction[]> {
     try {
-      // 今後予定されているカレンダーイベントから関連するアポイントメントを取得
+      // 今後予定されているカレンダーイベントのアポイントメントIDを取得
       const futureCalendarEvents = await prisma.calendar_events.findMany({
         where: {
           appointmentId: {
@@ -584,16 +584,24 @@ export class SuccessProbabilityEngine {
             gte: new Date().toISOString().split('T')[0] // 今日以降
           }
         },
-        include: {
-          appointments: true
+        select: {
+          appointmentId: true
         },
         take: 50 // 最大50件
       });
 
-      // アポイントメントが存在するイベントのみ抽出
-      const appointments = futureCalendarEvents
-        .filter(event => event.appointments)
-        .map(event => event.appointments!);
+      // アポイントメントIDからアポイントメントを取得
+      const appointmentIds = futureCalendarEvents
+        .map(event => event.appointmentId)
+        .filter(id => id !== null) as string[];
+
+      const appointments = await prisma.appointments.findMany({
+        where: {
+          id: {
+            in: appointmentIds
+          }
+        }
+      });
 
       const predictions: SuccessPrediction[] = [];
       
