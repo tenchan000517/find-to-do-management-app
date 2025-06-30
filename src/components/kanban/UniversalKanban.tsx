@@ -310,6 +310,33 @@ export function UniversalKanban({
       }
     }
     
+    // ナレッジ昇華カンバン内のアクション
+    if (item.type === 'task') {
+      const taskItem = item as TaskKanbanItem;
+      
+      if (action === 'archive_knowledge' && taskItem.status === 'KNOWLEDGE') {
+        // ナレッジアーカイブ - COMPLETEに移動
+        setTargetTask(taskItem);
+        setPendingMoveRequest({
+          itemType: 'task',
+          itemId: taskItem.id,
+          sourceColumn: 'KNOWLEDGE',
+          targetColumn: 'COMPLETE',
+          kanbanType: 'status',
+          newStatus: 'COMPLETE'
+        });
+        setShowCompletionModal(true);
+        return;
+      }
+      
+      if (action === 'share_knowledge' && taskItem.status === 'KNOWLEDGE') {
+        // ナレッジ共有機能（将来拡張用）
+        console.log('ナレッジ共有アクション:', taskItem);
+        // TODO: ナレッジ共有モーダルまたは機能を実装
+        return;
+      }
+    }
+    
     onQuickAction?.(action, item);
   }, [onQuickAction]);
 

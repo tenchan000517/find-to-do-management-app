@@ -247,7 +247,31 @@ export function KanbanItemCard({
     
     if (item.type === 'task') {
       const task = item as TaskKanbanItem;
-      if (task.status !== 'COMPLETE') {
+      
+      // ナレッジ昇華カンバン内でのアクション
+      if (task.status === 'KNOWLEDGE') {
+        actions.push(
+          <button
+            key="archive"
+            onClick={(e) => handleQuickAction('archive_knowledge', e)}
+            className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+            title="ナレッジアーカイブ"
+          >
+            🧠
+          </button>
+        );
+        actions.push(
+          <button
+            key="share_knowledge"
+            onClick={(e) => handleQuickAction('share_knowledge', e)}
+            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+            title="ナレッジ共有"
+          >
+            📤
+          </button>
+        );
+      } else if (task.status !== 'COMPLETE') {
+        // 通常の完了ボタン（KNOWLEDGE以外）
         actions.push(
           <button
             key="complete"
@@ -259,6 +283,7 @@ export function KanbanItemCard({
           </button>
         );
       }
+      
       if (task.status === 'DO') {
         actions.push(
           <button
