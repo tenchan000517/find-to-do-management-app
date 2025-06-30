@@ -27,14 +27,15 @@ export async function GET(request: NextRequest) {
     const projectRoot = process.cwd();
     let filePath: string;
 
-    if (file.startsWith('manuals/')) {
-      // マニュアルファイルの場合
-      filePath = join(projectRoot, file);
-    } else if (file.startsWith('docs/')) {
+    // 動的読み込みに対応した新しいパス解決ロジック
+    if (file.startsWith('docs/')) {
       // docsで始まる場合はそのまま使用
       filePath = join(projectRoot, file);
+    } else if (file.includes('/')) {
+      // サブディレクトリが含まれる場合はdocs配下として扱う
+      filePath = join(projectRoot, 'docs', file);
     } else {
-      // それ以外はdocsディレクトリ配下として扱う
+      // それ以外はdocsディレクトリ直下として扱う
       filePath = join(projectRoot, 'docs', file);
     }
 

@@ -4,14 +4,22 @@ import { useState, useEffect } from 'react';
 import { BookOpen, Search, ArrowLeft, ExternalLink, FileText, Users, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { LoadingCenter } from '@/components/ui/Loading';
 import MarkdownContent from '@/components/MarkdownContent';
+
+interface DocFile {
+  name: string;
+  path: string;
+  title: string;
+  description: string;
+}
 
 interface DocSection {
   id: string;
   title: string;
   description: string;
   icon: any;
-  files: string[];
+  files: DocFile[];
 }
 
 interface FileMetadata {
@@ -22,70 +30,10 @@ interface FileMetadata {
   error?: string;
 }
 
-const docSections: DocSection[] = [
-  {
-    id: 'quick-start',
-    title: 'クイックスタート',
-    description: '15分で体験開始 - 基本セットアップから最初の価値体験まで',
-    icon: BookOpen,
-    files: ['OFFICIAL_DOCUMENTATION.md', 'MERMAID_TEST.md']
-  },
-  {
-    id: 'user-flows',
-    title: 'ユーザーフロー・活用ガイド',
-    description: '段階別学習パス - Level 1から限界突破まで',
-    icon: Users,
-    files: [
-      'user-flows/README.md',
-      'user-flows/01_BASIC_USER_FLOWS.md',
-      'user-flows/02_INTEGRATION_FLOWS.md',
-      'user-flows/03_ADVANCED_FLOWS.md',
-      'user-flows/04_BUSINESS_SCENARIOS.md',
-      'user-flows/ULTIMATE_POTENTIAL_GUIDE.md',
-      'user-flows/DAILY_OPTIMIZATION_CHECKLIST.md',
-      'user-flows/VISUAL_FLOW_DIAGRAMS.md'
-    ]
-  },
-  {
-    id: 'manuals',
-    title: '機能別マニュアル',
-    description: '詳細な操作方法・設定ガイド',
-    icon: FileText,
-    files: [
-      'docs/manuals/01-authentication-authorization.md',
-      'docs/manuals/02-task-management-system.md',
-      'docs/manuals/03-project-management.md',
-      'docs/manuals/04-appointment-management.md',
-      'docs/manuals/05-calendar-schedule-management.md',
-      'docs/manuals/06-knowledge-management.md',
-      'docs/manuals/07-ai-machine-learning.md',
-      'docs/manuals/08-1-smart-dashboard.md',
-      'docs/manuals/09-social-external-integration.md',
-      'docs/manuals/10-financial-ltv-management.md',
-      'docs/manuals/11-hr-resource-management.md',
-      'docs/manuals/12-realtime-notification.md',
-      'docs/manuals/13-mobile-support.md',
-      'docs/manuals/14-system-management.md',
-      'docs/manuals/15-line-integration-complete.md'
-    ]
-  },
-  {
-    id: 'specifications',
-    title: '技術仕様・API',
-    description: '開発者・上級者向け技術情報',
-    icon: Settings,
-    files: [
-      'specifications/00_SYSTEM_OVERVIEW.md',
-      'specifications/01_DATABASE_SPECIFICATIONS.md',
-      'specifications/02_API_SPECIFICATIONS.md',
-      'specifications/03_FRONTEND_SPECIFICATIONS.md',
-      'specifications/04_INTEGRATION_SPECIFICATIONS.md',
-      'specifications/05_OPERATIONS_SPECIFICATIONS.md'
-    ]
-  }
-];
+// Dynamic loading - sections will be loaded from API
 
 export default function HelpPage() {
+  const [docSections, setDocSections] = useState<DocSection[]>([]);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [content, setContent] = useState<string>('');
@@ -93,6 +41,45 @@ export default function HelpPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [fileMetadata, setFileMetadata] = useState<{[key: string]: FileMetadata}>({});
+  const [sectionsLoading, setSectionsLoading] = useState(true);
+
+  // アイコンコンポーネントをマッピング
+  const getIconComponent = (iconName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'BookOpen': BookOpen,
+      'Users': Users,
+      'FileText': FileText,
+      'Settings': Settings,
+      'File': FileText // フォールバック
+    };
+    return iconMap[iconName] || FileText;
+  };
+
+  // 初期化時にドキュメントセクションを動的に読み込み
+  useEffect(() => {
+    const loadDocSections = async () => {
+      try {
+        setSectionsLoading(true);
+        const response = await fetch('/api/help/docs');
+        if (response.ok) {
+          const data = await response.json();
+          const mappedSections = data.sections.map((section: any) => ({
+            ...section,
+            icon: getIconComponent(section.icon)
+          }));
+          setDocSections(mappedSections);
+        } else {
+          console.error('Failed to load document sections');
+        }
+      } catch (error) {
+        console.error('Error loading document sections:', error);
+      } finally {
+        setSectionsLoading(false);
+      }
+    };
+
+    loadDocSections();
+  }, []);
 
   // セクション選択時にファイルメタデータを取得
   useEffect(() => {
@@ -103,10 +90,11 @@ export default function HelpPage() {
 
     const loadMetadata = async () => {
       try {
+        const fileNames = section.files.map(f => f.path);
         const response = await fetch('/api/help/metadata', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files: section.files })
+          body: JSON.stringify({ files: fileNames })
         });
 
         if (response.ok) {
@@ -283,19 +271,17 @@ export default function HelpPage() {
 
           <div className="grid gap-4">
             {section.files.map((file, index) => {
-              const metadata = fileMetadata[file];
-              const fileName = file.replace(/^docs\//, '').replace('.md', '');
-              const isManual = file.includes('/manuals/');
+              const metadata = fileMetadata[file.path];
               
-              // タイトルと説明を取得（メタデータがあれば使用、なければフォールバック）
-              const displayTitle = metadata?.title || fileName;
-              const displayDescription = metadata?.description || (isManual ? '機能別マニュアル' : 'ガイドドキュメント');
+              // タイトルと説明を取得（ファイル情報を優先、メタデータをフォールバック）
+              const displayTitle = file.title || metadata?.title || file.name.replace('.md', '');
+              const displayDescription = file.description || metadata?.description || 'ドキュメント';
               
               return (
                 <div
                   key={index}
                   className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedFile(file)}
+                  onClick={() => setSelectedFile(file.path)}
                 >
                   <div className="p-6">
                     <div className="flex items-center justify-between">
@@ -331,9 +317,8 @@ export default function HelpPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <BookOpen className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Find To Do Management App</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">公式ドキュメント・ヘルプ</h1>
           </div>
-          <h2 className="text-xl text-gray-600 mb-6">公式ドキュメント・ヘルプセンター</h2>
           
           <div className="max-w-md mx-auto mb-8">
             <div className="relative">
@@ -349,38 +334,39 @@ export default function HelpPage() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {filteredSections.map((section) => (
-            <div
-              key={section.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedSection(section.id)}
-            >
-              <div className="p-6">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <section.icon className="h-6 w-6 text-blue-600" />
+        {sectionsLoading ? (
+          <LoadingCenter message="ドキュメントを読み込み中..." size="lg" />
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {filteredSections.map((section) => (
+              <div
+                key={section.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => setSelectedSection(section.id)}
+              >
+                <div className="p-6">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <section.icon className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
+                      <p className="text-sm text-gray-500">{section.files.length}個のドキュメント</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
-                    <p className="text-sm text-gray-500">{section.files.length}個のドキュメント</p>
+                  <p className="text-gray-600 mb-4">{section.description}</p>
+                  <div className="flex items-center text-blue-600 text-sm font-medium">
+                    <span>詳細を見る</span>
+                    <ExternalLink className="h-4 w-4 ml-1" />
                   </div>
-                </div>
-                <p className="text-gray-600 mb-4">{section.description}</p>
-                <div className="flex items-center text-blue-600 text-sm font-medium">
-                  <span>詳細を見る</span>
-                  <ExternalLink className="h-4 w-4 ml-1" />
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {loading && (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">読み込み中...</p>
-          </div>
+          <LoadingCenter message="読み込み中..." size="lg" />
         )}
 
         {error && (
@@ -397,19 +383,23 @@ export default function HelpPage() {
             初めての方は「クイックスタート」から、既存ユーザーは「ユーザーフロー・活用ガイド」ご覧ください。
           </p>
           <div className="flex space-x-4">
-            <Button
-              onClick={() => setSelectedSection('quick-start')}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              クイックスタート
-            </Button>
-            <Button
-              onClick={() => setSelectedSection('user-flows')}
-              variant="outline"
-              className="border-blue-300 text-blue-600 hover:bg-blue-50"
-            >
-              活用ガイド
-            </Button>
+            {!sectionsLoading && docSections.length > 0 && (
+              <>
+                <Button
+                  onClick={() => setSelectedSection('quick-start')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  クイックスタート
+                </Button>
+                <Button
+                  onClick={() => setSelectedSection('user-flows')}
+                  variant="outline"
+                  className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                >
+                  活用ガイド
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

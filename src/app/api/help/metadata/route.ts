@@ -23,13 +23,16 @@ export async function POST(request: NextRequest) {
             return { file, error: '無効なファイルパス' };
           }
 
-          // ファイルパスを構築
+          // ファイルパスを構築（content APIと同じロジック）
           let filePath: string;
-          if (file.startsWith('manuals/')) {
+          if (file.startsWith('docs/')) {
+            // docsで始まる場合はそのまま使用
             filePath = join(projectRoot, file);
-          } else if (file.startsWith('docs/')) {
-            filePath = join(projectRoot, file);
+          } else if (file.includes('/')) {
+            // サブディレクトリが含まれる場合はdocs配下として扱う
+            filePath = join(projectRoot, 'docs', file);
           } else {
+            // それ以外はdocsディレクトリ直下として扱う
             filePath = join(projectRoot, 'docs', file);
           }
 
