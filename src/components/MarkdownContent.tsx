@@ -4,7 +4,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import MermaidDiagram from './MermaidDiagram';
+import MermaidContainer from './MermaidContainer';
 
 interface MarkdownContentProps {
   content: string;
@@ -73,10 +73,8 @@ export function MarkdownContent({ content, className = "", onInternalLinkClick }
             );
 
             if (isInternalDoc && onInternalLinkClick) {
-              const { ref, ...buttonProps } = props;
               return (
                 <button
-                  {...buttonProps}
                   onClick={(e) => {
                     e.preventDefault();
                     onInternalLinkClick(href || '');
@@ -162,8 +160,8 @@ export function MarkdownContent({ content, className = "", onInternalLinkClick }
             // Mermaidコードブロックの場合
             if (language === 'mermaid') {
               const code = String(children).replace(/\n$/, '');
-              console.log('Rendering Mermaid diagram with code:', code);
-              return <MermaidDiagram chart={code} className="my-4" />;
+              console.log('🎯 Rendering Mermaid diagram in isolated container with code:', code);
+              return <MermaidContainer chart={code} className="my-4" />;
             }
             
             return (
@@ -176,14 +174,14 @@ export function MarkdownContent({ content, className = "", onInternalLinkClick }
           pre: ({ children, ...props }: any) => {
             // 子要素がcodeでmermaidクラスを持つかチェック
             if (React.isValidElement(children) && children.props) {
-              const codeProps = children.props;
-              const className = codeProps.className || '';
+              const codeProps = children.props as any;
+              const className = codeProps?.className || '';
               const match = /language-(\w+)/.exec(className);
               const language = match ? match[1] : '';
               
               if (language === 'mermaid') {
-                const code = String(codeProps.children).replace(/\n$/, '');
-                return <MermaidDiagram chart={code} className="my-4" />;
+                const code = String(codeProps?.children || '').replace(/\n$/, '');
+                return <MermaidContainer chart={code} className="my-4" />;
               }
             }
             
