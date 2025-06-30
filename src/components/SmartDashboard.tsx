@@ -177,11 +177,11 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
         <div className="relative">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3 whitespace-nowrap">
                 <Zap className="w-7 h-7 text-yellow-500" />
                 今日すべきこと
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 mt-1 whitespace-nowrap">
                 AIが厳選した本日の重要タスク
               </p>
             </div>
@@ -206,10 +206,10 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
             >
               <Mic className={`w-5 h-5 ${isVoiceRecording ? 'animate-pulse' : ''}`} />
               <div className="text-left">
-                <div className="font-semibold">
+                <div className="font-semibold whitespace-nowrap">
                   {isVoiceRecording ? '音声を認識中...' : '話すだけでタスク作成'}
                 </div>
-                <div className="text-sm opacity-90">
+                <div className="text-sm opacity-90 whitespace-nowrap">
                   「明日までにA社の資料作成」
                 </div>
               </div>
@@ -223,10 +223,10 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
             >
               <Play className="w-5 h-5" />
               <div className="text-left">
-                <div className="font-semibold">
+                <div className="font-semibold whitespace-nowrap">
                   {autoScheduleGenerated ? '✓ スケジュール生成済み' : '今日の予定を自動生成'}
                 </div>
-                <div className="text-sm opacity-90">
+                <div className="text-sm opacity-90 whitespace-nowrap">
                   最適な順序で自動配置
                 </div>
               </div>
@@ -248,7 +248,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
           {/* Today's Essentials */}
           {todayEssentials.urgentTasks.length > 0 ? (
             <div className="space-y-3 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
                 緊急タスク {todayEssentials.urgentTasks.length}件
               </h3>
               {todayEssentials.urgentTasks.map((task) => (
@@ -273,10 +273,10 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
           ) : (
             <div className="text-center py-8 bg-green-50 rounded-lg mb-6">
               <div className="text-4xl mb-2">🎉</div>
-              <h3 className="text-lg font-semibold text-green-800 mb-1">
+              <h3 className="text-lg font-semibold text-green-800 mb-1 whitespace-nowrap">
                 緊急タスクはありません！
               </h3>
-              <p className="text-green-600">余裕のある一日をお過ごしください</p>
+              <p className="text-green-600 whitespace-nowrap">余裕のある一日をお過ごしください</p>
             </div>
           )}
 
@@ -287,7 +287,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
                 <span className="text-white text-sm font-bold">AI</span>
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-blue-900 mb-1">今日のおすすめアクション</h4>
+                <h4 className="font-semibold text-blue-900 mb-1 whitespace-nowrap">今日のおすすめアクション</h4>
                 <p className="text-blue-800 mb-2">{todayEssentials.aiSuggestion.action}</p>
                 <div className="flex items-center gap-4 text-sm text-blue-600">
                   <span>理由: {todayEssentials.aiSuggestion.reasoning}</span>
@@ -301,18 +301,18 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
           <div className="flex flex-wrap gap-3">
             <Link href="/tasks" className="flex-1 min-w-[120px]">
               <Button variant="outline" className="w-full">
-                タスク詳細
+                <span className="whitespace-nowrap">タスク詳細</span>
               </Button>
             </Link>
             <Link href="/calendar" className="flex-1 min-w-[120px]">
               <Button variant="outline" className="w-full">
-                カレンダー
+                <span className="whitespace-nowrap">カレンダー</span>
               </Button>
             </Link>
             {showAdvancedFeatures && (
               <Link href="/projects" className="flex-1 min-w-[120px]">
                 <Button variant="outline" className="w-full">
-                  プロジェクト
+                  <span className="whitespace-nowrap">プロジェクト</span>
                 </Button>
               </Link>
             )}
@@ -323,7 +323,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
                 className="flex-1 min-w-[120px] text-blue-600 border-blue-300"
               >
                 <Settings className="w-4 h-4 mr-2" />
-                詳細機能
+                <span className="whitespace-nowrap">詳細機能</span>
               </Button>
             )}
           </div>
@@ -334,7 +334,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
       {showAdvancedFeatures && (
         <Card variant="elevated" padding="normal" className="border-l-4 border-l-blue-500">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 whitespace-nowrap">
               高度な機能
             </h3>
             <Button
@@ -343,21 +343,21 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
               size="sm"
               className="text-gray-600"
             >
-              シンプル表示に戻る
+              <span className="whitespace-nowrap">シンプル表示に戻る</span>
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link href="/dashboard/mbti" className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-              <h4 className="font-medium text-purple-900 mb-1">チーム編成最適化</h4>
-              <p className="text-sm text-purple-700">MBTI分析で最適チーム構成</p>
+              <h4 className="font-medium text-purple-900 mb-1 whitespace-nowrap">チーム編成最適化</h4>
+              <p className="text-sm text-purple-700 whitespace-nowrap">MBTI分析で最適チーム構成</p>
             </Link>
             <Link href="/dashboard/financial" className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-              <h4 className="font-medium text-green-900 mb-1">収益予測</h4>
-              <p className="text-sm text-green-700">LTV分析で収益最大化</p>
+              <h4 className="font-medium text-green-900 mb-1 whitespace-nowrap">収益予測</h4>
+              <p className="text-sm text-green-700 whitespace-nowrap">LTV分析で収益最大化</p>
             </Link>
             <Link href="/dashboard/analytics" className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-              <h4 className="font-medium text-orange-900 mb-1">成果分析</h4>
-              <p className="text-sm text-orange-700">AI分析で成功パターン発見</p>
+              <h4 className="font-medium text-orange-900 mb-1 whitespace-nowrap">成果分析</h4>
+              <p className="text-sm text-orange-700 whitespace-nowrap">AI分析で成功パターン発見</p>
             </Link>
           </div>
         </Card>

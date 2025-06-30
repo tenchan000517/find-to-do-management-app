@@ -439,19 +439,20 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   return (
     <div className="min-h-screen bg-gray-50 py-4 md:py-8">
       <div className="mx-auto px-4 lg:px-8">
-        {/* ヘッダー */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-lg md:text-2xl font-bold text-gray-900">ダッシュボード</h1>
-            <p className="text-sm md:text-base text-gray-600 mt-1">
+        {/* ヘッダー - 常に左右配置 */}
+        <div className="flex justify-between items-start mb-6 gap-2">
+          {/* 左カラム: タイトル部分 */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base sm:text-lg md:text-2xl font-bold text-gray-900 whitespace-nowrap">ダッシュボード</h1>
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 whitespace-nowrap">
               {isSimpleMode ? '今日のタスクを確認' : '詳細分析とインサイト'}
             </p>
           </div>
           
-          {/* Dashboard Mode Toggle */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border">
-              <span className={`text-sm font-medium ${isSimpleMode ? 'text-blue-600' : 'text-gray-500'}`}>
+          {/* 右カラム: Dashboard Mode Toggle */}
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 bg-white p-1.5 sm:p-2 rounded-lg shadow-sm border w-fit ml-auto">
+              <span className={`text-xs font-medium whitespace-nowrap ${isSimpleMode ? 'text-blue-600' : 'text-gray-500'}`}>
                 シンプル
               </span>
               <button
@@ -459,20 +460,20 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
                 className="relative inline-flex items-center"
               >
                 {isSimpleMode ? (
-                  <ToggleLeft className="w-8 h-8 text-blue-600" />
+                  <ToggleLeft className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600" />
                 ) : (
-                  <ToggleRight className="w-8 h-8 text-blue-600" />
+                  <ToggleRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600" />
                 )}
               </button>
-              <span className={`text-sm font-medium ${!isSimpleMode ? 'text-blue-600' : 'text-gray-500'}`}>
+              <span className={`text-xs font-medium whitespace-nowrap ${!isSimpleMode ? 'text-blue-600' : 'text-gray-500'}`}>
                 詳細
               </span>
             </div>
             
             {isSimpleMode && (
-              <div className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full">
-                <Sparkles className="w-4 h-4" />
-                <span className="text-sm font-medium">スマートモード</span>
+              <div className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full w-fit ml-auto">
+                <Sparkles className="w-3 h-3" />
+                <span className="text-xs font-medium whitespace-nowrap">スマートモード</span>
               </div>
             )}
           </div>

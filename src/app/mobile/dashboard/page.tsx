@@ -49,13 +49,13 @@ export default function MobileDashboard() {
       <div className="space-y-4">
         {/* Header with mode switch */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">モバイルダッシュボード</h1>
+          <h1 className="text-2xl font-bold whitespace-nowrap">モバイルダッシュボード</h1>
           <Button 
             onClick={handleSwitchToDesktop}
             className="text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
-            デスクトップ版へ
+            <span className="whitespace-nowrap">デスクトップ版へ</span>
           </Button>
         </div>
 
@@ -66,7 +66,7 @@ export default function MobileDashboard() {
               <CheckCircle className="w-8 h-8 text-blue-600" />
               <div>
                 <p className="text-2xl font-bold text-blue-900">{stats.completedToday}</p>
-                <p className="text-sm text-blue-700">今日完了</p>
+                <p className="text-sm text-blue-700 whitespace-nowrap">今日完了</p>
               </div>
             </div>
           </Card>
@@ -76,7 +76,7 @@ export default function MobileDashboard() {
               <Target className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-2xl font-bold text-green-900">{stats.todayTasks}</p>
-                <p className="text-sm text-green-700">今日のタスク</p>
+                <p className="text-sm text-green-700 whitespace-nowrap">今日のタスク</p>
               </div>
             </div>
           </Card>
@@ -86,7 +86,7 @@ export default function MobileDashboard() {
               <Calendar className="w-8 h-8 text-purple-600" />
               <div>
                 <p className="text-2xl font-bold text-purple-900">{stats.activeProjects}</p>
-                <p className="text-sm text-purple-700">進行中プロジェクト</p>
+                <p className="text-sm text-purple-700 whitespace-nowrap">進行中プロジェクト</p>
               </div>
             </div>
           </Card>
@@ -96,7 +96,7 @@ export default function MobileDashboard() {
               <Target className="w-8 h-8 text-red-600" />
               <div>
                 <p className="text-2xl font-bold text-red-900">{stats.urgentTasks}</p>
-                <p className="text-sm text-red-700">緊急タスク</p>
+                <p className="text-sm text-red-700 whitespace-nowrap">緊急タスク</p>
               </div>
             </div>
           </Card>
@@ -104,7 +104,7 @@ export default function MobileDashboard() {
 
         {/* Recent Tasks Preview */}
         <Card className="p-4">
-          <h2 className="text-lg font-semibold mb-3">最近のタスク</h2>
+          <h2 className="text-lg font-semibold mb-3 whitespace-nowrap">最近のタスク</h2>
           <div className="space-y-2">
             {tasks?.slice(0, 3).map(task => (
               <div key={task.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
@@ -139,19 +139,19 @@ export default function MobileDashboard() {
             onClick={() => router.push('/mobile/tasks')}
             className="h-12 bg-blue-600 hover:bg-blue-700 text-white"
           >
-            タスク管理
+            <span className="whitespace-nowrap">タスク管理</span>
           </Button>
           <Button 
             onClick={() => router.push('/mobile/projects')}
             className="h-12 bg-green-600 hover:bg-green-700 text-white"
           >
-            プロジェクト
+            <span className="whitespace-nowrap">プロジェクト</span>
           </Button>
         </div>
 
         {/* Gesture Instructions */}
         <Card className="p-4 bg-yellow-50 border-yellow-200">
-          <h3 className="font-semibold text-yellow-800 mb-2">ジェスチャー操作</h3>
+          <h3 className="font-semibold text-yellow-800 mb-2 whitespace-nowrap">ジェスチャー操作</h3>
           <div className="text-xs text-yellow-700 space-y-1">
             <p>• 右スワイプ: タスク完了</p>
             <p>• 左スワイプ: タスク延期</p>
