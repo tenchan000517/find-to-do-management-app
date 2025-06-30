@@ -432,7 +432,7 @@ model appointment_details {
   processingStatus   appointment_processing @default(PENDING)
   relationshipStatus relationship_status    @default(FIRST_CONTACT)
   phaseStatus        appointment_phase      @default(LEAD)
-  sourceType         appointment_source     @default(REFERRAL)
+  sourceType         appointment_source     @default(COLD_OUTREACH)
   sourceDetails      String                 @default("")
   importance         Float                  @default(0.0)
   businessValue      Float                  @default(0.0)
