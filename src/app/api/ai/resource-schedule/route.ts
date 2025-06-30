@@ -8,7 +8,7 @@ import {
 } from '@/lib/demo/demo-data';
 
 // Core scheduling engines
-import { ResourceConstraintEngine } from '@/lib/scheduling/resource-constraint-engine';
+import { ResourceConstraintEngine, TaskWithWeight } from '@/lib/scheduling/resource-constraint-engine';
 import { WeightBasedScheduler } from '@/lib/scheduling/weight-based-scheduler';
 import { FuturePredictionEngine } from '@/lib/scheduling/future-prediction-engine';
 
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     );
 
     // ウエイト・リソースベーススケジューリング実行
-    const scheduleResult = generateResourceBasedSchedule(
+    const scheduleResult = await generateResourceBasedSchedule(
       tasks,
       events || [],
       taskWeightProfiles,
@@ -156,42 +156,281 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateResourceBasedSchedule(
+async function generateResourceBasedSchedule(
   tasks: Task[], 
   events: Event[], 
   taskWeightProfiles: TaskWeightProfile[],
   userProfile: UserResourceProfile,
   preferences: any,
   date: string
-): ResourceScheduleResult {
+): Promise<ResourceScheduleResult> {
   
-  // タスクをウエイトプロファイルと統合
-  const tasksWithWeight = tasks.map(task => {
-    const weightProfile = taskWeightProfiles.find(wp => wp.taskId === task.id);
-    return {
-      ...task,
-      taskTitle: task.title,
-      weight: weightProfile?.estimatedWeight || 5,
-      canSplit: weightProfile?.canSplit || false,
-      weightProfile
-    };
-  });
+  // コアエンジン初期化
+  const constraintEngine = new ResourceConstraintEngine(
+    userProfile,
+    [], // personalSchedules
+    calendarEvents
+  );
+  
+  const schedulingConfig = {
+    targetDays: 7,
+    startDate: date,
+    allowSplitting: true,
+    allowRescheduling: true,
+    priorityWeighting: 0.8,
+    balanceMode: 'hybrid' as const,
+    riskTolerance: 'moderate' as const,
+    splitPreferences: {
+      minimumSplitDuration: 30,
+      maxSplitsPerTask: 3,
+      preferConsecutive: true
+    },
+    optimizationGoals: {
+      maximizeProductivity: 0.8,
+      minimizeStress: 0.6,
+      respectDeadlines: 0.9,
+      balanceWorkload: 0.7
+    }
+  };
+  
+  const scheduler = new WeightBasedScheduler(
+    userProfile,
+    constraintEngine,
+    schedulingConfig
+  );
+  
+  const predictionParams = {
+    userId: userProfile.userId,
+    analysisDepth: 'standard' as const,
+    forecastPeriod: 4,
+    includeSeasonalFactors: true,
+    includePersonalEvents: true,
+    riskTolerance: 'moderate' as const,
+    weights: {
+      historicalData: 0.4,
+      currentTrends: 0.4,
+      externalFactors: 0.2
+    }
+  };
+  
+  const predictionEngine = new FuturePredictionEngine(
+    userProfile,
+    constraintEngine,
+    scheduler,
+    predictionParams
+  );
 
-  // シンプルなスケジュール生成（コアエンジンの代替実装）
+  try {
+    // 1. リソース制約分析
+    const calendarEvents = events.map(event => ({
+      id: event.id,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      title: event.title,
+      type: 'meeting'
+    }));
+
+    const availableSlots = constraintEngine.calculateAvailableSlots(date);
+
+    const capacityStatus = constraintEngine.checkDailyCapacity(
+      date,
+      [] // 既存タスク（初回は空）
+    );
+
+    // 2. ウエイトベーススケジューリング実行
+    const tasksWithWeight = tasks.map(task => {
+      const weightProfile = taskWeightProfiles.find(wp => wp.taskId === task.id);
+      return {
+        ...weightProfile,
+        taskId: task.id,
+        taskTitle: task.title,
+        taskDescription: task.description,
+        dueDate: task.dueDate,
+        status: task.status
+      } as TaskWithWeight;
+    }).filter(task => task.status !== 'COMPLETE');
+
+    const scheduleConfig = {
+      optimizationMode: preferences.optimizationMode || 'balanced',
+      allowTaskSplitting: preferences.allowTaskSplitting !== false,
+      prioritizeHighWeight: preferences.prioritizeHighWeight !== false,
+      energyBasedScheduling: preferences.energyBasedScheduling !== false
+    };
+
+    const scheduleResult = await scheduler.generateSchedule(
+      tasksWithWeight,
+      [] // 既存スケジュール（初回は空）
+    );
+
+    // 3. 先読み予測生成
+    const predictionParams = {
+      userId: userProfile.userId,
+      analysisDepth: 'standard' as const,
+      forecastPeriod: 4,
+      includeSeasonalFactors: true,
+      includePersonalEvents: true,
+      riskTolerance: preferences.riskTolerance || 'moderate' as const,
+      weights: {
+        historicalData: 0.4,
+        currentTrends: 0.4,
+        externalFactors: 0.2
+      }
+    };
+
+    const futurePrediction = await predictionEngine.generateFuturePrediction(
+      tasksWithWeight,
+      scheduleResult.scheduledTasks,
+      [], // 履歴データ（デモ時は空）
+      []  // 外部要因（デモ時は空）
+    );
+
+    // 4. 結果変換（APIレスポンス形式に合わせる）
+    const schedule: ScheduledTask[] = [
+      // 既存イベント
+      ...events.map(event => {
+        const startTime = new Date(event.startTime);
+        const endTime = event.endTime ? new Date(event.endTime) : 
+                       new Date(startTime.getTime() + 60 * 60 * 1000);
+        return {
+          id: `meeting-${event.id}`,
+          startTime: formatTime(startTime),
+          endTime: formatTime(endTime),
+          title: event.title,
+          type: 'meeting' as const,
+          priority: 'high' as const,
+          estimatedProductivity: 85
+        };
+      }),
+      // スケジュール済みタスク
+      ...scheduleResult.scheduledTasks.map(scheduledTask => ({
+        id: `task-${scheduledTask.task.id}`,
+        startTime: scheduledTask.scheduledTime,
+        endTime: scheduledTask.scheduledEndTime,
+        title: scheduledTask.task.taskTitle,
+        type: 'task' as const,
+        priority: mapPriority(scheduledTask.task.priorityMatrix || 'urgent-important'),
+        estimatedProductivity: Math.round(scheduledTask.confidence * 100),
+        weight: scheduledTask.actualWeight,
+        canBeSplit: scheduledTask.task.canSplit,
+        splitInfo: scheduledTask.splitInfo ? {
+          partNumber: scheduledTask.splitInfo.splitNumber,
+          totalParts: scheduledTask.splitInfo.totalSplits,
+          originalTaskId: scheduledTask.splitInfo.originalTaskId
+        } : undefined
+      }))
+    ];
+
+    // 時間順ソート
+    schedule.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    // 容量利用率計算
+    const totalWeight = taskWeightProfiles.reduce((sum, profile) => sum + profile.estimatedWeight, 0);
+    const capacityUtilization = capacityStatus.totalAvailableHours > 0 ? 
+      capacityStatus.scheduledHours / capacityStatus.totalAvailableHours : 0;
+
+    return {
+      schedule,
+      metadata: {
+        totalTasks: tasks.length,
+        scheduledTasks: scheduleResult.scheduledTasks.length,
+        estimatedProductivity: Math.round(
+          schedule.reduce((sum, task) => sum + task.estimatedProductivity, 0) / Math.max(schedule.length, 1)
+        ),
+        isDemoMode: false, // Will be set by caller
+        totalWeight,
+        capacityUtilization: Math.round(capacityUtilization * 100) / 100
+      },
+      futurePrediction: {
+        weeklyCapacity: [
+          {
+            week: 1,
+            capacityStatus: mapCapacityStatus(futurePrediction.weeklyCapacityPrediction.week1.availableCapacity),
+            estimatedWorkload: futurePrediction.weeklyCapacityPrediction.week1.scheduledWeight
+          },
+          {
+            week: 2,
+            capacityStatus: mapCapacityStatus(futurePrediction.weeklyCapacityPrediction.week2.availableCapacity),
+            estimatedWorkload: futurePrediction.weeklyCapacityPrediction.week2.scheduledWeight
+          },
+          {
+            week: 3,
+            capacityStatus: mapCapacityStatus(futurePrediction.weeklyCapacityPrediction.week3.availableCapacity),
+            estimatedWorkload: futurePrediction.weeklyCapacityPrediction.week3.scheduledWeight
+          },
+          {
+            week: 4,
+            capacityStatus: mapCapacityStatus(futurePrediction.weeklyCapacityPrediction.week4.availableCapacity),
+            estimatedWorkload: futurePrediction.weeklyCapacityPrediction.week4.scheduledWeight
+          }
+        ],
+        riskAlerts: generateRiskAlerts(futurePrediction.riskAlerts),
+        recommendations: futurePrediction.recommendations.map(rec => rec.description)
+      },
+      userProfile,
+      date,
+      generatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error('Core engine error, falling back to simple scheduling:', error);
+    
+    // フォールバック：簡易スケジューリング
+    return generateSimpleFallbackSchedule(tasks, events, taskWeightProfiles, userProfile, date);
+  }
+}
+
+// ユーティリティ関数
+function formatTime(date: Date): string {
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function mapPriority(priorityMatrix: string): 'high' | 'medium' | 'low' {
+  return priorityMatrix === 'urgent-important' ? 'high' : 
+         priorityMatrix === 'urgent-not-important' || priorityMatrix === 'not-urgent-important' ? 'medium' : 'low';
+}
+
+function generateRiskAlerts(riskAlerts: any): string[] {
+  const alerts: string[] = [];
+  if (riskAlerts.overloadRisk !== 'low') {
+    alerts.push(`容量超過リスク: ${riskAlerts.overloadRisk}`);
+  }
+  if (riskAlerts.burnoutRisk !== 'low') {
+    alerts.push(`バーンアウトリスク: ${riskAlerts.burnoutRisk}`);
+  }
+  if (riskAlerts.deadlineMissRisk !== 'low') {
+    alerts.push(`締切逸失リスク: ${riskAlerts.deadlineMissRisk}`);
+  }
+  return alerts;
+}
+
+function mapCapacityStatus(level: number): 'low' | 'medium' | 'high' | 'overload' {
+  if (level < 0.3) return 'low';
+  if (level < 0.7) return 'medium';
+  if (level < 0.9) return 'high';
+  return 'overload';
+}
+
+// フォールバック用簡易スケジューリング
+function generateSimpleFallbackSchedule(
+  tasks: Task[], 
+  events: Event[], 
+  taskWeightProfiles: TaskWeightProfile[],
+  userProfile: UserResourceProfile,
+  date: string
+): ResourceScheduleResult {
   const schedule: ScheduledTask[] = [];
   let currentTime = 540; // 09:00 in minutes
   const workEndTime = 1080; // 18:00 in minutes
 
-  // 既存イベントを追加
+  // 既存イベント追加
   events.forEach(event => {
     const startTime = new Date(event.startTime);
     const endTime = event.endTime ? new Date(event.endTime) : 
                    new Date(startTime.getTime() + 60 * 60 * 1000);
-    
     schedule.push({
       id: `meeting-${event.id}`,
-      startTime: `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`,
-      endTime: `${endTime.getHours().toString().padStart(2, '0')}:${endTime.getMinutes().toString().padStart(2, '0')}`,
+      startTime: formatTime(startTime),
+      endTime: formatTime(endTime),
       title: event.title,
       type: 'meeting',
       priority: 'high',
@@ -199,58 +438,40 @@ function generateResourceBasedSchedule(
     });
   });
 
-  // タスクを重要度順にソート
-  const sortedTasks = tasksWithWeight
-    .filter(task => task.status !== 'COMPLETE')
+  // 簡易タスク配置
+  const pendingTasks = tasks.filter(task => task.status !== 'COMPLETE')
     .sort((a, b) => {
       const priorityA = a.priority === 'HIGH' ? 3 : a.priority === 'MEDIUM' ? 2 : 1;
       const priorityB = b.priority === 'HIGH' ? 3 : b.priority === 'MEDIUM' ? 2 : 1;
       return priorityB - priorityA;
-    });
+    })
+    .slice(0, 6);
 
-  // タスクを時間枠に配置
-  sortedTasks.slice(0, 6).forEach((task, index) => {
+  pendingTasks.forEach(task => {
     const duration = (task.estimatedHours || 1) * 60;
     const endTime = currentTime + duration;
     
     if (endTime <= workEndTime) {
+      const weightProfile = taskWeightProfiles.find(wp => wp.taskId === task.id);
       schedule.push({
         id: `task-${task.id}`,
         startTime: minutesToTime(currentTime),
         endTime: minutesToTime(endTime),
         title: task.title,
         type: 'task',
-        priority: task.priority.toLowerCase() as 'high' | 'medium' | 'low',
-        estimatedProductivity: 80,
-        weight: task.weight,
-        canBeSplit: task.canSplit
+        priority: mapPriority(task.priority),
+        estimatedProductivity: 75,
+        weight: weightProfile?.estimatedWeight || 5,
+        canBeSplit: weightProfile?.canSplit || false
       });
-      
-      currentTime = endTime + 15; // 15分休憩
+      currentTime = endTime + 15;
     }
   });
 
-  // 時間順ソート
   schedule.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  // 容量利用率計算
   const totalWeight = taskWeightProfiles.reduce((sum, profile) => sum + profile.estimatedWeight, 0);
   const capacityUtilization = totalWeight / userProfile.dailyCapacity.totalWeightLimit;
-
-  // 簡単な先読み予測
-  const futurePrediction = {
-    weeklyCapacity: [
-      { week: 1, capacityStatus: 'medium' as const, estimatedWorkload: 12 },
-      { week: 2, capacityStatus: 'low' as const, estimatedWorkload: 8 },
-      { week: 3, capacityStatus: 'high' as const, estimatedWorkload: 16 },
-      { week: 4, capacityStatus: 'medium' as const, estimatedWorkload: 10 }
-    ],
-    riskAlerts: capacityUtilization > 0.8 ? ['容量超過のリスクがあります'] : [],
-    recommendations: [
-      'リソースベーススケジューリングが適用されました',
-      `現在の容量利用率: ${Math.round(capacityUtilization * 100)}%`
-    ]
-  };
 
   return {
     schedule,
@@ -258,13 +479,25 @@ function generateResourceBasedSchedule(
       totalTasks: tasks.length,
       scheduledTasks: schedule.filter(s => s.type === 'task').length,
       estimatedProductivity: Math.round(
-        schedule.reduce((sum, task) => sum + task.estimatedProductivity, 0) / schedule.length
+        schedule.reduce((sum, task) => sum + task.estimatedProductivity, 0) / Math.max(schedule.length, 1)
       ),
-      isDemoMode: false, // Will be set by caller
+      isDemoMode: false,
       totalWeight,
       capacityUtilization: Math.round(capacityUtilization * 100) / 100
     },
-    futurePrediction,
+    futurePrediction: {
+      weeklyCapacity: [
+        { week: 1, capacityStatus: 'medium', estimatedWorkload: 12 },
+        { week: 2, capacityStatus: 'low', estimatedWorkload: 8 },
+        { week: 3, capacityStatus: 'high', estimatedWorkload: 16 },
+        { week: 4, capacityStatus: 'medium', estimatedWorkload: 10 }
+      ],
+      riskAlerts: capacityUtilization > 0.8 ? ['容量超過のリスクがあります（フォールバック）'] : [],
+      recommendations: [
+        '簡易スケジューリングが適用されました',
+        `現在の容量利用率: ${Math.round(capacityUtilization * 100)}%`
+      ]
+    },
     userProfile,
     date,
     generatedAt: new Date().toISOString()
@@ -321,3 +554,6 @@ function prepareUserResourceProfile(
     updatedAt: now
   };
 }
+
+// 初期化時にcalendarEventsを定義
+const calendarEvents: any[] = [];

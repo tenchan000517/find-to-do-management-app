@@ -126,7 +126,8 @@ export class ResourceConstraintEngine {
     task: TaskWithWeight,
     timeSlot: TimeSlot,
     date: string,
-    existingTasks: TaskWithWeight[] = []
+    existingTasks: TaskWithWeight[] = [],
+    skipAlternatives: boolean = false // 無限ループ防止フラグ
   ): TaskPlacementResult {
     const reasons: string[] = [];
     const suggestions: string[] = [];
@@ -227,8 +228,9 @@ export class ResourceConstraintEngine {
     // スコア正規化
     score = Math.max(0, Math.min(100, score));
 
-    // 代替時間枠の提案
-    const alternativeSlots = score < 70 ? this.findAlternativeSlots(task, date, existingTasks) : undefined;
+    // 代替時間枠の提案（無限ループ防止）
+    const alternativeSlots = (!skipAlternatives && score < 70) ? 
+      this.findAlternativeSlots(task, date, existingTasks) : undefined;
 
     return {
       canPlace: score >= 50, // 50点以上で配置可能
@@ -470,14 +472,42 @@ export class ResourceConstraintEngine {
   }
 
   private findAlternativeSlots(task: TaskWithWeight, date: string, existingTasks: TaskWithWeight[]): TimeSlot[] {
-    const allSlots = this.calculateAvailableSlots(date);
+    // 無限ループ防止: 代替案検索は基本的な時間枠のみ返す
+    const basicSlots = this.getBasicTimeSlots(date);
     
-    return allSlots
+    return basicSlots
       .filter(slot => {
-        const result = this.canScheduleTask(task, slot, date, existingTasks);
+        // 無限ループ防止: skipAlternatives = true で代替案検索をスキップ
+        const result = this.canScheduleTask(task, slot, date, existingTasks, true);
         return result.score > 70; // より高いスコアの枠のみ
       })
       .slice(0, 3); // 上位3つの代替案
+  }
+
+  /**
+   * 基本的な時間枠を取得（無限ループ防止用）
+   */
+  private getBasicTimeSlots(date: string): TimeSlot[] {
+    const workingHours = this.getWorkingHours();
+    const basicSlots: TimeSlot[] = [];
+    
+    // 単純に1時間刻みの基本枠を作成
+    for (let hour = workingHours.start; hour < workingHours.end; hour++) {
+      const startTime = `${hour.toString().padStart(2, '0')}:00`;
+      const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
+      
+      basicSlots.push({
+        startTime,
+        endTime,
+        availableWeight: 5, // 基本容量
+        slotType: 'mixed',
+        energyLevel: 'medium',
+        isOptimal: false,
+        conflictRisk: 'low'
+      });
+    }
+    
+    return basicSlots;
   }
 
   private checkResourceAvailability(resources: string[], timeSlot: TimeSlot, date: string): string[] {
