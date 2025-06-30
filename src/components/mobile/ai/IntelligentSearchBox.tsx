@@ -62,7 +62,7 @@ export default function IntelligentSearchBox({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   
   const inputRef = useRef<HTMLInputElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     if (query.length > 0) {
@@ -451,13 +451,13 @@ export default function IntelligentSearchBox({
                       {/* メタデータ */}
                       <div className="flex items-center space-x-2">
                         {result.metadata.status && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="secondary" className="text-xs">
                             {result.metadata.status}
                           </Badge>
                         )}
                         {result.metadata.priority && (
                           <Badge 
-                            variant="outline" 
+                            variant="secondary" 
                             className={`text-xs ${getPriorityColor(result.metadata.priority)}`}
                           >
                             {result.metadata.priority}

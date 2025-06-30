@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
-import { Mic, Play, ChevronRight, Settings, Zap } from 'lucide-react';
+import { Mic, Play, ChevronRight, Settings, Zap, Lock } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useAuth } from '@/lib/auth/client';
 import QuickProjectCreator from '@/components/QuickProjectCreator';
 
 interface TodayEssentials {
@@ -40,6 +41,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
   const { projects, loading: projectsLoading } = useProjects();
   const { appointments, loading: appointmentsLoading } = useAppointments();
   const { events, loading: eventsLoading } = useCalendarEvents();
+  const { isAuthenticated } = useAuth();
   
   const [todayEssentials, setTodayEssentials] = useState<TodayEssentials | null>(null);
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -218,16 +220,25 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
             {/* Auto Schedule Generation */}
             <Button
               onClick={generateAutoSchedule}
-              disabled={autoScheduleGenerated}
-              className="flex items-center justify-center gap-3 h-16 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium rounded-xl shadow-lg"
+              disabled={autoScheduleGenerated || !isAuthenticated}
+              className={`flex items-center justify-center gap-3 h-16 ${
+                !isAuthenticated 
+                  ? 'bg-gray-400 hover:bg-gray-500 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
+              } text-white font-medium rounded-xl shadow-lg`}
             >
-              <Play className="w-5 h-5" />
+              {!isAuthenticated ? <Lock className="w-5 h-5" /> : <Play className="w-5 h-5" />}
               <div className="text-left">
                 <div className="font-semibold whitespace-nowrap">
-                  {autoScheduleGenerated ? '✓ スケジュール生成済み' : '今日の予定を自動生成'}
+                  {!isAuthenticated 
+                    ? 'ログイン後に利用可能' 
+                    : autoScheduleGenerated 
+                      ? '✓ スケジュール生成済み' 
+                      : '今日の予定を自動生成'
+                  }
                 </div>
                 <div className="text-sm opacity-90 whitespace-nowrap">
-                  最適な順序で自動配置
+                  {!isAuthenticated ? 'ログインが必要です' : '最適な順序で自動配置'}
                 </div>
               </div>
             </Button>

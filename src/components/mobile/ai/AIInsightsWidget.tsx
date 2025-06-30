@@ -222,7 +222,7 @@ export default function AIInsightsWidget({
                       信頼度: {Math.round(insight.confidence * 100)}%
                     </div>
                     {insight.actionable && (
-                      <Button size="sm" variant="outline" className="text-xs">
+                      <Button size="sm" variant="secondary" className="text-xs">
                         詳細を見る
                       </Button>
                     )}

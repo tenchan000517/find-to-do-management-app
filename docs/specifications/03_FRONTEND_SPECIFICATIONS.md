@@ -854,4 +854,252 @@ const useKeyboardNavigation = (items: any[], onSelect: (item: any) => void) => {
 
 ---
 
-*このフロントエンド仕様書は、実装されているコンポーネントとページ構成に基づいて作成されており、新機能追加に伴い継続的に更新されます。*
+## 8. モバイルAI機能コンポーネント仕様
+
+### 8.1 AI機能コンポーネント概要
+
+**実装場所**: `/src/components/mobile/ai/`
+**技術スタック**: React 19 + TypeScript + Tailwind CSS + shadcn/ui
+**対応デバイス**: モバイル最適化（タッチ操作・レスポンシブ）
+
+### 8.2 コンポーネント詳細仕様
+
+#### 8.2.1 AIInsightsWidget.tsx
+```tsx
+interface ProductivityInsight {
+  id: string;
+  type: 'efficiency' | 'peak_time' | 'completion_rate' | 'suggestion';
+  title: string;
+  description: string;
+  value: string | number;
+  trend: 'up' | 'down' | 'stable';
+  confidence: number;
+  actionable: boolean;
+}
+
+interface AIInsightsWidgetProps {
+  className?: string;
+  compact?: boolean;
+}
+```
+
+**主要機能**:
+- 作業効率パターンの分析・可視化
+- 最適作業時間帯の提案
+- タスク完了予測とトレンド表示
+- AI信頼度付きの洞察提供
+
+**UI特徴**:
+- コンパクト/詳細モード切り替え
+- トレンドアイコン表示（上昇・下降・安定）
+- 信頼度バッジ（高精度・中精度・低精度）
+
+#### 8.2.2 IntelligentSearchBox.tsx
+```tsx
+interface SearchSuggestion {
+  id: string;
+  type: 'task' | 'project' | 'date' | 'status' | 'priority' | 'natural';
+  query: string;
+  description: string;
+  count?: number;
+  confidence: number;
+}
+
+interface SearchResult {
+  id: string;
+  type: 'task' | 'project' | 'event';
+  title: string;
+  description: string;
+  relevance: number;
+  metadata: {
+    status?: string;
+    priority?: string;
+    dueDate?: string;
+    project?: string;
+  };
+}
+```
+
+**主要機能**:
+- 自然言語検索・セマンティック検索
+- AI検索候補自動補完
+- 音声検索対応（Web Speech API）
+- 検索結果の関連度評価
+
+**モバイル最適化**:
+- キーボードナビゲーション（矢印キー）
+- タッチ操作対応
+- 音声認識インターフェース
+
+#### 8.2.3 SmartScheduleViewer.tsx
+```tsx
+interface ScheduleItem {
+  id: string;
+  type: 'task' | 'meeting' | 'break' | 'focus' | 'review';
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  aiOptimized: boolean;
+  productivityScore?: number;
+  suggestions?: string[];
+}
+
+interface OptimizationSuggestion {
+  id: string;
+  type: 'reorder' | 'reschedule' | 'break' | 'focus';
+  title: string;
+  description: string;
+  impact: number;
+  confidence: number;
+}
+```
+
+**主要機能**:
+- AI最適化スケジュールの表示
+- タイムライン/リスト表示モード
+- リアルタイム現在時刻表示
+- 最適化提案とその適用
+
+**UI特徴**:
+- スクロール可能タイムライン
+- 現在時刻線の表示
+- AI最適化項目の視覚的強調
+
+#### 8.2.4 AIAssistantPanel.tsx
+```tsx
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  actions?: MessageAction[];
+  suggestions?: string[];
+}
+
+interface MessageAction {
+  id: string;
+  type: 'create_task' | 'schedule_event' | 'set_reminder' | 'search' | 'optimize';
+  label: string;
+  data?: any;
+}
+```
+
+**主要機能**:
+- チャットベースのAI対話
+- タスク作成・編集の自動化
+- 音声入力・出力対応
+- アクション実行機能
+
+**インタラクション**:
+- 最小化/最大化切り替え
+- 音声認識（Web Speech API）
+- タイピングインジケーター
+- 提案チップ表示
+
+#### 8.2.5 ContextAwareHelper.tsx
+```tsx
+interface ContextualHint {
+  id: string;
+  type: 'tip' | 'warning' | 'suggestion' | 'insight' | 'shortcut';
+  title: string;
+  content: string;
+  context: string;
+  priority: 'high' | 'medium' | 'low';
+  actionable: boolean;
+  action?: {
+    label: string;
+    callback: () => void;
+  };
+  dismissible: boolean;
+  confidence: number;
+}
+
+interface UserContext {
+  currentPage: string;
+  timeOfDay: 'morning' | 'afternoon' | 'evening';
+  taskCount: number;
+  completionRate: number;
+  lastActivity: string;
+  strugglingWith?: string[];
+}
+```
+
+**主要機能**:
+- コンテキスト認識ヒント生成
+- 時間帯・完了率・作業パターン分析
+- 個人化された提案・警告
+- 設定カスタマイズ機能
+
+### 8.3 共通技術仕様
+
+#### 8.3.1 型安全性
+- **TypeScript Strict Mode**: 全コンポーネント対応
+- **Props型定義**: 完全な型注釈
+- **Error Boundary**: エラーハンドリング
+
+#### 8.3.2 パフォーマンス最適化
+- **React.memo**: 不要な再レンダリング防止
+- **useCallback/useMemo**: 関数・値のメモ化
+- **Lazy Loading**: 重いコンポーネントの遅延読み込み
+
+#### 8.3.3 アクセシビリティ
+- **ARIA属性**: スクリーンリーダー対応
+- **キーボードナビゲーション**: 全機能対応
+- **コントラスト比**: WCAG 2.1 AA準拠
+
+#### 8.3.4 レスポンシブデザイン
+- **Mobile First**: モバイル優先設計
+- **Touch Friendly**: 44px以上のタッチターゲット
+- **Gesture Support**: スワイプ・ピンチ対応
+
+#### 8.3.5 PWA対応
+- **Service Worker**: オフライン機能
+- **App Manifest**: インストール可能
+- **Push Notifications**: プッシュ通知対応
+
+### 8.4 API統合仕様
+
+#### 8.4.1 既存API活用
+```typescript
+// 予測エンジン連携
+import { predictiveEngine } from '@/lib/mobile/predictiveEngine';
+
+// APIエンドポイント
+- `/api/ai/parse-task` - タスク解析
+- `/api/ai/generate-schedule` - スケジュール生成
+- `/api/user/progress` - ユーザー進捗
+```
+
+#### 8.4.2 データフロー
+```typescript
+// データフェッチング
+const { data, loading, error } = useAIInsights();
+
+// エラーハンドリング
+try {
+  const result = await aiService.generateSchedule(params);
+} catch (error) {
+  console.error('AI service error:', error);
+  fallbackToDefaultSchedule();
+}
+```
+
+### 8.5 テスト仕様
+
+#### 8.5.1 単体テスト
+- **Jest + React Testing Library**: コンポーネントテスト
+- **カバレッジ**: 80%以上維持
+- **Mock**: API・外部サービスのモック化
+
+#### 8.5.2 統合テスト
+- **E2E テスト**: Playwright使用
+- **ユーザーフロー**: 主要機能の動作確認
+- **クロスブラウザ**: Chrome・Safari・Firefox対応
+
+---
+
+*このモバイルAI機能仕様書は、実装済みコンポーネントの技術詳細と品質要件を定義し、継続的なメンテナンス・拡張のガイドラインを提供します。*

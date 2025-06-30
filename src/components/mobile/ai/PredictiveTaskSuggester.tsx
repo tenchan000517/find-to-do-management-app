@@ -181,7 +181,7 @@ export default function PredictiveTaskSuggester({
             あなたの作業パターンを学習して、より良い提案を準備しています
           </p>
           <Button 
-            variant="outline" 
+            variant="secondary" 
             size="sm" 
             className="mt-4"
             onClick={loadSuggestions}
@@ -267,7 +267,7 @@ export default function PredictiveTaskSuggester({
           {/* アクションボタン */}
           <div className="flex space-x-3">
             <Button
-              variant="outline"
+              variant="secondary"
               size="lg"
               className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
               onClick={() => handleReject(currentSuggestion)}

@@ -106,12 +106,12 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   
   // Smart Dashboard state
   const [isSimpleMode, setIsSimpleMode] = useState(() => {
-    // Default to simple mode for new users
+    // Default to detailed mode for new users
     if (typeof window !== 'undefined') {
       const savedMode = localStorage.getItem('dashboard-mode');
-      return savedMode !== null ? savedMode === 'simple' : true;
+      return savedMode !== null ? savedMode === 'simple' : false;
     }
-    return true;
+    return false;
   });
   
   const [stats, setStats] = useState<DashboardStats>({

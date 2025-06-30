@@ -420,7 +420,7 @@ export default function AIAssistantPanel({
                       <Button
                         key={action.id}
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => handleActionClick(action)}
                         className="w-full text-xs justify-start"
                       >

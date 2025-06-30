@@ -395,7 +395,7 @@ export default function SmartScheduleViewer({
                   
                   <div className="flex items-center space-x-1">
                     {getStatusIcon(item.status)}
-                    <Badge variant="outline" className={`text-xs ${
+                    <Badge variant="secondary" className={`text-xs ${
                       item.priority === 'high' ? 'bg-red-100 text-red-800' :
                       item.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
@@ -444,7 +444,7 @@ export default function SmartScheduleViewer({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Badge variant="outline" className={`text-xs ${
+              <Badge variant="secondary" className={`text-xs ${
                 item.priority === 'high' ? 'bg-red-100 text-red-800' :
                 item.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                 'bg-green-100 text-green-800'
@@ -538,7 +538,7 @@ export default function SmartScheduleViewer({
               <h4 className="font-medium text-sm text-blue-800">AI最適化提案</h4>
               <Button
                 size="sm"
-                variant="outline"
+                variant="secondary"
                 onClick={() => onOptimizationApply?.(optimizationSuggestions)}
                 className="text-xs"
               >
