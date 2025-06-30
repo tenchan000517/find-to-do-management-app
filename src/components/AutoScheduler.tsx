@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/card';
-import { Calendar, Clock, Zap, Settings, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Zap, Settings, RefreshCw, Info } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface ScheduleBlock {
   id: string;
@@ -24,6 +25,13 @@ interface AutoSchedulerProps {
 export default function AutoScheduler({ onScheduleGenerated, className }: AutoSchedulerProps) {
   const { tasks } = useTasks();
   const { events } = useCalendarEvents();
+  const { 
+    isDemoMode, 
+    getDemoMessage, 
+    getTasksWithDemo, 
+    getEventsWithDemo,
+    getPreferencesWithDemo 
+  } = useDemoMode();
   
   const [todaySchedule, setTodaySchedule] = useState<ScheduleBlock[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,6 +44,7 @@ export default function AutoScheduler({ onScheduleGenerated, className }: AutoSc
     personalityType: 'balanced' // morning, afternoon, balanced
   });
   const [scheduleGenerated, setScheduleGenerated] = useState(false);
+  const [isDemoResult, setIsDemoResult] = useState(false);
 
   useEffect(() => {
     // Auto-generate schedule at 7 AM or when component loads
@@ -64,14 +73,19 @@ export default function AutoScheduler({ onScheduleGenerated, className }: AutoSc
         (!task.dueDate || new Date(task.dueDate) >= new Date())
       );
 
+      // デモモード対応
+      const tasksToUse = getTasksWithDemo(pendingTasks);
+      const eventsToUse = getEventsWithDemo(todayEvents);
+      const preferencesToUse = getPreferencesWithDemo(userPreferences);
+
       // Call AI scheduling API
       const response = await fetch('/api/ai/generate-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tasks: pendingTasks,
-          events: todayEvents,
-          preferences: userPreferences,
+          tasks: tasksToUse,
+          events: eventsToUse,
+          preferences: preferencesToUse,
           date: today
         })
       });
@@ -80,6 +94,7 @@ export default function AutoScheduler({ onScheduleGenerated, className }: AutoSc
         const result = await response.json();
         setTodaySchedule(result.schedule);
         setScheduleGenerated(true);
+        setIsDemoResult(result.isDemoMode || false);
         
         if (onScheduleGenerated) {
           onScheduleGenerated(result.schedule);
@@ -280,6 +295,19 @@ export default function AutoScheduler({ onScheduleGenerated, className }: AutoSc
             <div className="text-sm text-gray-500 mt-1">
               タスクの優先度、期限、あなたの生産性パターンを分析しています
             </div>
+          </div>
+        )}
+
+        {/* Demo Mode Banner */}
+        {(isDemoMode || isDemoResult) && (
+          <div className="demo-banner bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 text-blue-800">
+              <Info className="w-5 h-5" />
+              <span className="font-medium">{getDemoMessage()}</span>
+            </div>
+            <p className="text-sm text-blue-600 mt-1">
+              ログインすると実際のタスクで最適化できます
+            </p>
           </div>
         )}
 

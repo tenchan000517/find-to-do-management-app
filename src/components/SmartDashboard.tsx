@@ -9,7 +9,9 @@ import { useProjects } from '@/hooks/useProjects';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useAuth } from '@/lib/auth/client';
+import { useScheduleGenerator } from '@/hooks/useScheduleGenerator';
 import QuickProjectCreator from '@/components/QuickProjectCreator';
+import AutoScheduler from '@/components/AutoScheduler';
 
 interface TodayEssentials {
   urgentTasks: Array<{
@@ -46,6 +48,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
   const [todayEssentials, setTodayEssentials] = useState<TodayEssentials | null>(null);
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [autoScheduleGenerated, setAutoScheduleGenerated] = useState(false);
+  const { generatedSchedule, generateSchedule, isGenerating } = useScheduleGenerator();
 
   // Calculate today's essentials using AI-like logic
   useEffect(() => {
@@ -151,12 +154,13 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
   };
 
   // Generate auto schedule
-  const generateAutoSchedule = async () => {
-    setAutoScheduleGenerated(true);
-    // This would call AI scheduling API
-    setTimeout(() => {
-      alert('今日の最適スケジュールを生成しました！カレンダーで確認してください。');
-    }, 1000);
+  const handleAutoScheduleGenerate = async () => {
+    try {
+      await generateSchedule();
+      setAutoScheduleGenerated(true);
+    } catch (error) {
+      console.error('スケジュール生成エラー:', error);
+    }
   };
 
   // Show advanced features based on toggle
@@ -219,8 +223,8 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
 
             {/* Auto Schedule Generation */}
             <Button
-              onClick={generateAutoSchedule}
-              disabled={autoScheduleGenerated || !isAuthenticated}
+              onClick={handleAutoScheduleGenerate}
+              disabled={autoScheduleGenerated || !isAuthenticated || isGenerating}
               className={`flex items-center justify-center gap-3 h-16 ${
                 !isAuthenticated 
                   ? 'bg-gray-400 hover:bg-gray-500 cursor-not-allowed' 
@@ -232,9 +236,11 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
                 <div className="font-semibold whitespace-nowrap">
                   {!isAuthenticated 
                     ? 'ログイン後に利用可能' 
-                    : autoScheduleGenerated 
-                      ? '✓ スケジュール生成済み' 
-                      : '今日の予定を自動生成'
+                    : isGenerating 
+                      ? '生成中...' 
+                      : autoScheduleGenerated 
+                        ? '✓ スケジュール生成済み' 
+                        : '今日の予定を自動生成'
                   }
                 </div>
                 <div className="text-sm opacity-90 whitespace-nowrap">
@@ -307,6 +313,18 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
               </div>
             </div>
           </div>
+
+          {/* Generated Schedule Display */}
+          {(autoScheduleGenerated || generatedSchedule) && (
+            <div className="mt-6">
+              <AutoScheduler 
+                onScheduleGenerated={(schedule) => {
+                  console.log('スケジュール生成完了:', schedule);
+                }}
+                className="rounded-lg border border-gray-200"
+              />
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-3">

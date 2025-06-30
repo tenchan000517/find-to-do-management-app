@@ -18,8 +18,10 @@ import {
   RefreshCw,
   Settings,
   Eye,
-  EyeOff
+  EyeOff,
+  Info
 } from 'lucide-react';
+import { useDemoMode } from '@/hooks/useDemoMode';
 
 interface ScheduleItem {
   id: string;
@@ -60,6 +62,8 @@ export default function SmartScheduleViewer({
   onItemClick,
   onOptimizationApply
 }: SmartScheduleViewerProps) {
+  const { isDemoMode, getDemoMessage } = useDemoMode();
+  
   const [selectedDate, setSelectedDate] = useState(date);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
   const [optimizationSuggestions, setOptimizationSuggestions] = useState<OptimizationSuggestion[]>([]);
@@ -501,6 +505,16 @@ export default function SmartScheduleViewer({
             </Button>
           </div>
         </div>
+
+        {/* デモモード表示 */}
+        {isDemoMode && (
+          <div className="demo-indicator bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+            <div className="flex items-center gap-2 text-amber-800">
+              <Info className="w-4 h-4" />
+              <span className="text-sm font-medium">📝 デモモード - サンプルデータで機能体験中</span>
+            </div>
+          </div>
+        )}
 
         {/* 日付ナビゲーション */}
         <div className="flex items-center justify-between">

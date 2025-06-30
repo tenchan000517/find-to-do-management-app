@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth/config';
+import { 
+  DEMO_TASKS, 
+  DEMO_EVENTS, 
+  DEMO_USER_PREFERENCES 
+} from '@/lib/demo/demo-data';
 
 interface Task {
   id: string;
@@ -37,7 +44,18 @@ interface ScheduleBlock {
 
 export async function POST(request: NextRequest) {
   try {
-    const { tasks, events, preferences, date } = await request.json();
+    const session = await getServerSession(authOptions);
+    let { tasks, events, preferences, date } = await request.json();
+
+    // デモモード処理: 未ログイン時またはデータが空の場合
+    const isDemoMode = !session || !tasks || tasks.length === 0;
+    
+    if (isDemoMode) {
+      // デモデータを使用
+      tasks = tasks?.length > 0 ? tasks : DEMO_TASKS;
+      events = events?.length > 0 ? events : DEMO_EVENTS;
+      preferences = preferences || DEMO_USER_PREFERENCES;
+    }
 
     if (!tasks || !Array.isArray(tasks)) {
       return NextResponse.json({ error: 'Tasks array is required' }, { status: 400 });
@@ -49,12 +67,14 @@ export async function POST(request: NextRequest) {
       success: true,
       schedule,
       date,
+      isDemoMode,
       metadata: {
         totalTasks: tasks.length,
         scheduledTasks: schedule.filter(s => s.type === 'task').length,
         estimatedProductivity: Math.round(
           schedule.reduce((sum, s) => sum + s.estimatedProductivity, 0) / schedule.length
-        )
+        ),
+        message: isDemoMode ? 'デモデータを使用したスケジュールです' : null
       }
     });
 
