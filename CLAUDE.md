@@ -30,22 +30,22 @@
 
 ### **読み込み順序（厳守）**
 ```bash
-1. CLAUDE.md                           # この絶対ルール（CEO Level）
-2. DEV_RULES.md                        # 汎用開発ルール（CTO Level）
-3. PROJECT_SPECIFIC_RULES.md           # プロジェクト固有ルール（Project Level）
-4. phases/current/PHASE_PLAN.md       # 現在フェーズ計画
-5. phases/current/PROGRESS_REPORT.md  # 進捗状況
-6. phases/current/HANDOVER.md         # 引き継ぎ（存在時のみ）
-7. TodoRead                           # Todo状況確認
+1. CLAUDE.md                               # この絶対ルール（CEO Level）
+2. dev/rules/DEV_RULES.md                  # 汎用開発ルール（CTO Level）
+3. dev/rules/PROJECT_SPECIFIC_RULES.md     # プロジェクト固有ルール（Project Level）
+4. dev/phases/current/PHASE_PLAN.md       # 現在フェーズ計画
+5. dev/phases/current/PROGRESS_REPORT.md  # 進捗状況
+6. dev/phases/current/HANDOVER.md         # 引き継ぎ（存在時のみ）
+7. TodoRead                               # Todo状況確認
 ```
 
 ### **ドキュメント管理責任**
 ```
-🟢 CLAUDE.md                    # CEO Level - 絶対不変（プレジデントのみ変更可）
-🟡 DEV_RULES.md                 # CTO Level - 汎用技術標準（技術方針変更時のみ）
-🔵 PROJECT_SPECIFIC_RULES.md    # Project Level - プロジェクト固有（仕様変更時のみ）
-🟠 phases/                      # PM Level - フェーズ管理（進捗に応じて更新）
-🟣 issues/                      # Team Level - Issue管理（随時更新・解決時削除）
+🟢 CLAUDE.md                        # CEO Level - 絶対不変（プレジデントのみ変更可）
+🟡 dev/rules/DEV_RULES.md           # CTO Level - 汎用技術標準（技術方針変更時のみ）
+🔵 dev/rules/PROJECT_SPECIFIC_RULES.md  # Project Level - プロジェクト固有（仕様変更時のみ）
+🟠 dev/phases/                      # PM Level - フェーズ管理（進捗に応じて更新）
+🟣 dev/issues/                      # Team Level - Issue管理（随時更新・解決時削除）
 ```
 
 ---
@@ -56,11 +56,11 @@
 ```bash
 # 絶対に省略不可・順序変更不可
 cat CLAUDE.md
-cat DEV_RULES.md  
-cat PROJECT_SPECIFIC_RULES.md
-cat phases/current/PHASE_PLAN.md
-cat phases/current/PROGRESS_REPORT.md
-cat phases/current/HANDOVER.md  # 存在する場合のみ
+cat dev/rules/DEV_RULES.md  
+cat dev/rules/PROJECT_SPECIFIC_RULES.md
+cat dev/phases/current/PHASE_PLAN.md
+cat dev/phases/current/PROGRESS_REPORT.md
+cat dev/phases/current/HANDOVER.md  # 存在する場合のみ
 TodoRead
 ```
 
@@ -73,8 +73,8 @@ echo "現在の状況を5分以内で把握完了"
 ### **Step 3: 作業開始準備**
 ```bash
 # HANDOVER.md削除（存在する場合）
-if [ -f "phases/current/HANDOVER.md" ]; then
-  rm phases/current/HANDOVER.md
+if [ -f "dev/phases/current/HANDOVER.md" ]; then
+  rm dev/phases/current/HANDOVER.md
 fi
 echo "作業開始準備完了"
 ```
@@ -118,7 +118,7 @@ find src/ -name "*関連*.ts" -o -name "*関連*.tsx"
 
 ### **フェーズディレクトリ構造（固定）**
 ```
-phases/
+dev/phases/
 ├── current/              # 現在進行中
 │   ├── PHASE_PLAN.md    # フェーズ計画（変更不可）
 │   ├── PROGRESS_REPORT.md # 進捗管理（随時更新）
@@ -138,8 +138,8 @@ phases/
 
 ### **Issue発生時の基本方針**
 ```
-✅ Issue記録は必須（issues/[TYPE]_[TOPIC].md）
-✅ PROGRESS_REPORT.mdに追加
+✅ Issue記録は必須（dev/issues/[TYPE]_[TOPIC].md）
+✅ dev/phases/current/PROGRESS_REPORT.mdに追加
 ✅ TodoWriteでトラッキング開始
 ❌ フェーズ計画への自動変更禁止
 
@@ -155,7 +155,7 @@ phases/
 実装完了 = コード完成 + ドキュメント更新完了
 
 必須更新対象:
-- manuals/[該当ファイル].md
+- docs/manuals/[該当ファイル].md
 - docs/user-flows/[該当ファイル].md  
 - docs/specifications/[該当ファイル].md
 
