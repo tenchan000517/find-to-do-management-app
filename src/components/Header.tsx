@@ -18,7 +18,8 @@ import {
   TrendingUp,
   FileBarChart,
   PieChart,
-  Twitter
+  Twitter,
+  HelpCircle
 } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 import AuthButton from './auth/AuthButton';
@@ -137,6 +138,17 @@ export default function Header() {
               <BarChart3 className="mr-2 h-4 w-4" />
               Discord インサイト
             </Link>
+            <Link
+              href="/help"
+              className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                pathname === '/help'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span>ヘルプ</span>
+            </Link>
             <Button 
               onClick={() => setNotificationCenterOpen(true)}
               variant="ghost"
@@ -228,6 +240,20 @@ export default function Header() {
                 <span>SNSアナリティクス</span>
               </Link>
             </div>
+            
+            {/* Help for Mobile */}
+            <Link
+              href="/help"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${
+                pathname === '/help'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <HelpCircle className="h-5 w-5" />
+              <span>ヘルプ</span>
+            </Link>
             
             {/* Discord Insights for Mobile */}
             <Link
