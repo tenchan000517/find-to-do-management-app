@@ -103,7 +103,7 @@ export default function TasksPage() {
     <div className="min-h-screen bg-gray-50 py-4 md:py-8">
       <div className="mx-auto px-4 lg:px-8">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6 md:mb-8 gap-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">タスク管理</h1>
+          <h1 className="text-lg md:text-2xl font-bold text-gray-900">タスク管理</h1>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex gap-2">
               <button

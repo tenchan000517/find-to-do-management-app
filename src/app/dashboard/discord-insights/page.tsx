@@ -187,7 +187,7 @@ export default function DiscordInsights() {
         <div className="mb-6 md:mb-8">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Discord インサイト</h1>
+              <h1 className="text-lg md:text-2xl font-bold text-gray-900">Discord インサイト</h1>
               <p className="text-gray-600 mt-2 text-sm md:text-base">サーバーのKPI分析ダッシュボード</p>
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">

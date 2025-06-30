@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, Target, Calendar, Handshake, Clock, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
 import SmartDashboard from '@/components/SmartDashboard';
-import { SystemIntegrator } from '@/services/SystemIntegrator';
+// SystemIntegrator moved to API endpoints to avoid Prisma browser error
 // Removed unused imports
 
 // 型定義
@@ -102,7 +102,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   // Phase 5: 統合システム状態
   const [integratedSystemStatus, setIntegratedSystemStatus] = useState<any>(null);
   const [systemStatusLoading, setSystemStatusLoading] = useState(true);
-  const [systemIntegrator] = useState(() => SystemIntegrator.getInstance());
+  // const [systemIntegrator] = useState(() => SystemIntegrator.getInstance()); // Moved to API
   
   // Smart Dashboard state
   const [isSimpleMode, setIsSimpleMode] = useState(() => {
@@ -374,7 +374,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs sm:text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl md:text-3xl font-bold text-gray-900">{value}</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900">{value}</p>
           <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>
         </div>
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${color} flex items-center justify-center`}>
@@ -402,16 +402,20 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
   };
 
   // ローディング状態の確認
-  // SystemIntegratorからシステム状態を取得
+  // SystemIntegratorからシステム状態を取得 (APIエンドポイント経由に変更)
   useEffect(() => {
     const fetchSystemStatus = async () => {
       try {
         setSystemStatusLoading(true);
-        const systemStatus = await systemIntegrator.getSystemStatus();
-        setIntegratedSystemStatus({
-          ...integratedSystemStatus,
-          systemIntegrator: systemStatus
-        });
+        // API経由でシステム状態を取得
+        const response = await fetch('/api/system/integration');
+        if (response.ok) {
+          const systemStatus = await response.json();
+          setIntegratedSystemStatus({
+            ...integratedSystemStatus,
+            systemIntegrator: systemStatus
+          });
+        }
       } catch (error) {
         console.error('Failed to fetch system status:', error);
       } finally {
@@ -424,7 +428,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
     // 5分ごとにシステム状態を更新
     const interval = setInterval(fetchSystemStatus, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [systemIntegrator]);
+  }, []); // systemIntegrator dependency removed
 
   const isLoading = tasksLoading || projectsLoading || connectionsLoading || appointmentsLoading || eventsLoading || systemStatusLoading;
 
@@ -438,9 +442,9 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">ダッシュボード</h1>
-            <p className="text-gray-600 mt-1">
-              {isSimpleMode ? '今日すべきことを一目で確認' : '詳細な分析とインサイト'}
+            <h1 className="text-lg md:text-2xl font-bold text-gray-900">ダッシュボード</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1">
+              {isSimpleMode ? '今日のタスクを確認' : '詳細分析とインサイト'}
             </p>
           </div>
           
@@ -712,7 +716,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* プロジェクト進捗状況 */}
           <Card variant="elevated" padding="normal">
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">プロジェクト進捗状況</h2>
+            <h2 className="text-base md:text-lg font-semibold text-gray-900 mb-4">プロジェクト進捗状況</h2>
             <div className="space-y-4">
               {projects.slice(0, 5).map((project, index) => {
                 const colors = ['bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-yellow-600', 'bg-red-600'];
@@ -740,7 +744,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* 今日のタスク */}
           <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">今日のタスク</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">今日のタスク</h2>
               <Link href="/tasks" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 すべて見る
               </Link>
@@ -792,7 +796,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* SystemIntegrator 統合状況 */}
           <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">🚀 システム統合状況</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">🚀 システム統合状況</h2>
               <div className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${
                   integratedSystemStatus?.systemIntegrator?.health > 0.8 ? 'bg-green-500' :
@@ -913,7 +917,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* カレンダー */}
           <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">カレンダー</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">カレンダー</h2>
               <Link href="/calendar" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 カレンダーを見る
               </Link>
@@ -941,7 +945,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* 今後の予定 */}
           <Card variant="elevated" padding="normal">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">今後の予定</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">今後の予定</h2>
               <Link href="/calendar" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 カレンダーを見る
               </Link>
@@ -1131,7 +1135,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* AIレコメンデーション機能サマリー */}
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <h2 className="text-base md:text-lg font-semibold text-gray-900 flex items-center gap-2">
                 🤖 AIレコメンデーション
               </h2>
               <Link href="/dashboard/google-docs" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
@@ -1204,7 +1208,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* 進行中のプロジェクト */}
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">進行中のプロジェクト</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">進行中のプロジェクト</h2>
               <Link href="/projects" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 すべて見る
               </Link>
@@ -1237,7 +1241,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* 最近のアクティビティ */}
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">最近のアクティビティ</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">最近のアクティビティ</h2>
               <Link href="/activity" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 すべて見る
               </Link>
@@ -1265,7 +1269,7 @@ export default function Dashboard({ onDataRefresh }: DashboardProps = {}) {
           {/* 週間サマリー */}
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-900">週間サマリー</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-900">週間サマリー</h2>
             </div>
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">

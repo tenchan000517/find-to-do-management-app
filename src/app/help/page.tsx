@@ -317,7 +317,7 @@ export default function HelpPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <BookOpen className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">公式ドキュメント・ヘルプ</h1>
+            <h1 className="text-lg md:text-2xl font-bold text-gray-900">公式ドキュメント・ヘルプ</h1>
           </div>
           
           <div className="max-w-md mx-auto mb-8">

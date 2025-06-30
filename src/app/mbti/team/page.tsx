@@ -51,8 +51,8 @@ export default function MBTITeamPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-600" />
+          <h1 className="text-lg md:text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <Users className="w-6 h-6 text-blue-600" />
             チーム相性分析
           </h1>
           <p className="text-gray-600 mt-2">

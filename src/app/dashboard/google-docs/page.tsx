@@ -204,7 +204,7 @@ export default function GoogleDocsDashboard() {
       {/* ヘッダー */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Google Docs AI分析ダッシュボード</h1>
+          <h1 className="text-lg md:text-2xl font-bold text-gray-900">Google Docs AI分析ダッシュボード</h1>
           <p className="text-gray-600 mt-1">リアルタイム監視・制御システム</p>
         </div>
         

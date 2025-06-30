@@ -90,7 +90,11 @@ export class SystemIntegrator {
     }
     SystemIntegrator.instance = this;
     this.securityManager = IntegratedSecurityManager.getInstance();
-    this.operationalReadiness = OperationalReadiness.getInstance();
+    
+    // OperationalReadinessはサーバーサイドでのみ初期化
+    if (typeof window === 'undefined') {
+      this.operationalReadiness = OperationalReadiness.getInstance();
+    }
   }
 
   static getInstance(): SystemIntegrator {

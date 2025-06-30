@@ -148,7 +148,7 @@ export default function ResourcesPage() {
     <div className="container mx-auto p-6 max-w-7xl">
       {/* ヘッダー */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">メンバーリソース管理</h1>
+        <h1 className="text-lg md:text-2xl font-bold mb-2">メンバーリソース管理</h1>
         <p className="text-gray-600">チームメンバーの作業負荷と最適化</p>
       </div>
 

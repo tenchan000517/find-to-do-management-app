@@ -94,7 +94,7 @@ export default function ProjectAnalyticsPage({ params }: ProjectAnalyticsPagePro
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-lg md:text-2xl font-bold text-gray-900">
                 📊 プロジェクト分析
               </h1>
               <p className="text-gray-600 mt-2">

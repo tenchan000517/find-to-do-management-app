@@ -83,7 +83,7 @@ export default function LineTestPage() {
             <Link href="/" className="text-blue-600 hover:text-blue-800">
               ← ホーム
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">LINE Bot テスト</h1>
+            <h1 className="text-lg md:text-2xl font-bold text-gray-900">LINE Bot テスト</h1>
           </div>
           <p className="text-gray-600">
             LINE Botの機能をローカル環境でテストできます
