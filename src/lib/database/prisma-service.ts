@@ -170,7 +170,7 @@ class PrismaDataService {
       return {
         ...updatedProject,
         status: reverseProjectStatusMap[updatedProject.status] || 'planning',
-        priority: reversePriorityMap[updatedProject.priority] || 'medium',
+        priority: reversePriorityMap[updatedProject.priority] || 'C',
         startDate: updatedProject.startDate,
         endDate: updatedProject.endDate || undefined,
         createdAt: updatedProject.createdAt.toISOString(),
@@ -755,7 +755,7 @@ class PrismaDataService {
         ...a,
         assignedToId: a.assignedTo || '', // Use actual assignedTo value
         status: reverseAppointmentStatusMap[a.status] || 'pending',
-        priority: reversePriorityMap[a.priority] || 'medium',
+        priority: reversePriorityMap[a.priority] || 'C',
         lastContact: a.lastContact || undefined,
         meetingUrl: a.meetingUrl || undefined,
         informationUrl: a.informationUrl || undefined,
@@ -795,7 +795,7 @@ class PrismaDataService {
       ...newAppointment,
       assignedToId: appointment.assignedToId || '', // Include assignedToId
       status: reverseAppointmentStatusMap[newAppointment.status] || 'pending',
-      priority: reversePriorityMap[newAppointment.priority] || 'medium',
+      priority: reversePriorityMap[newAppointment.priority] || 'C',
       lastContact: newAppointment.lastContact || undefined,
       meetingUrl: newAppointment.meetingUrl || undefined,
       informationUrl: newAppointment.informationUrl || undefined,
@@ -823,7 +823,7 @@ class PrismaDataService {
         ...updatedAppointment,
         assignedToId: updatedAppointment.assignedTo || '', // Map assignedTo to assignedToId for compatibility
         status: reverseAppointmentStatusMap[updatedAppointment.status] || 'pending',
-        priority: reversePriorityMap[updatedAppointment.priority] || 'medium',
+        priority: reversePriorityMap[updatedAppointment.priority] || 'C',
         lastContact: updatedAppointment.lastContact || undefined,
         meetingUrl: updatedAppointment.meetingUrl || undefined,
         informationUrl: updatedAppointment.informationUrl || undefined,
@@ -863,7 +863,7 @@ class PrismaDataService {
         ...appointment,
         assignedToId: '', // Add default assignedToId for compatibility
         status: reverseAppointmentStatusMap[appointment.status] || 'pending',
-        priority: reversePriorityMap[appointment.priority] || 'medium',
+        priority: reversePriorityMap[appointment.priority] || 'C',
         lastContact: appointment.lastContact || undefined,
         meetingUrl: appointment.meetingUrl || undefined,
         informationUrl: appointment.informationUrl || undefined,

@@ -233,8 +233,8 @@ export const KANBAN_COLUMN_CONFIGS: Record<KanbanViewType, KanbanColumnConfig[]>
   ],
   
   source: [
+    { id: 'COLD_OUTREACH', title: 'アウトバウンド', color: '#dbeafe', icon: '🧊', acceptedItemTypes: ['appointment'], validTargetStatuses: ['COLD_OUTREACH'], allowDropFromExternal: true },
     { id: 'REFERRAL', title: '紹介', color: '#dcfce7', icon: '🤝', acceptedItemTypes: ['appointment'], validTargetStatuses: ['REFERRAL'], allowDropFromExternal: true },
-    { id: 'COLD_OUTREACH', title: '新規開拓', color: '#dbeafe', icon: '🧊', acceptedItemTypes: ['appointment'], validTargetStatuses: ['COLD_OUTREACH'], allowDropFromExternal: true },
     { id: 'NETWORKING_EVENT', title: 'イベント', color: '#fef3c7', icon: '🎉', acceptedItemTypes: ['appointment'], validTargetStatuses: ['NETWORKING_EVENT'], allowDropFromExternal: true },
     { id: 'INBOUND_INQUIRY', title: 'インバウンド', color: '#fed7aa', icon: '📨', acceptedItemTypes: ['appointment'], validTargetStatuses: ['INBOUND_INQUIRY'], allowDropFromExternal: true },
     { id: 'SOCIAL_MEDIA', title: 'SNS', color: '#e0e7ff', icon: '📱', acceptedItemTypes: ['appointment'], validTargetStatuses: ['SOCIAL_MEDIA'], allowDropFromExternal: true },

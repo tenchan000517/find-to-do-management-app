@@ -308,7 +308,9 @@ function extractTitle(text: string, command?: string): string {
   // コンテキストを考慮した除去ロジック
   for (const pattern of dateTimePatterns) {
     // 日時表現が文の最初にある場合のみ除去
-    if (title.match(new RegExp(`^${pattern.source.replace(/\\b/g, '').replace(/\//g, '\\/')}`))) {
+    const escapedSource = pattern.source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const startPattern = new RegExp(`^${escapedSource.replace(/\\\\b/g, '')}`);
+    if (title.match(startPattern)) {
       title = title.replace(pattern, '').trim();
     }
   }

@@ -98,6 +98,9 @@ model connections {
   phone        String?
   assignee     users?          @relation("ConnectionAssignee", fields: [assignedTo], references: [id])
   creator      users?          @relation("ConnectionCreator", fields: [createdBy], references: [id])
+  
+  // Phase 2: LTV Analysis Relations
+  ltv_analysis customer_ltv_analysis[]
 
   @@index([type], map: "idx_connections_type")
   @@index([createdBy], map: "idx_connections_created_by")
@@ -124,6 +127,9 @@ model knowledge_items {
   createdBy          String?
   assignee           users?             @relation("KnowledgeAssignee", fields: [assignedTo], references: [id])
   creator            users?             @relation("KnowledgeCreator", fields: [createdBy], references: [id])
+  
+  // Phase 2: Knowledge Automation Relations
+  automation_history knowledge_automation_history[]
 
   @@index([category], map: "idx_knowledge_category")
   @@index([createdAt], map: "idx_knowledge_created")
@@ -179,6 +185,16 @@ model projects {
   creator               users?                  @relation("ProjectCreator", fields: [createdBy], references: [id])
   task_relationships    task_relationships[]
   tasks                 tasks[]
+  
+  // Phase 1: Student Resource Management Relations
+  resource_allocations  project_resource_allocation[]
+  team_analyses         mbti_team_analysis[]
+  optimization_history  resource_optimization_history[]
+  
+  // Phase 2: Financial Management & LTV Analysis Relations
+  financial_details     project_financial_details[]
+  template_source       project_templates[]
+  revenue_tracking      project_revenue_tracking[]
 
   @@index([status], map: "idx_projects_status")
   @@index([createdBy], map: "idx_projects_created_by")
@@ -232,6 +248,9 @@ model tasks {
   creator             users?               @relation("TaskCreator", fields: [createdBy], references: [id])
   projects            projects?            @relation(fields: [projectId], references: [id])
   users               users                @relation("TaskUser", fields: [userId], references: [id])
+  
+  // Phase 2: Knowledge Automation Relations
+  knowledge_automation knowledge_automation_history[]
 
   @@index([dueDate], map: "idx_tasks_due")
   @@index([userId, isArchived, status], map: "idx_tasks_filter")
@@ -255,6 +274,12 @@ model users {
   skills                Json                    @default("{}")
   preferences           Json                    @default("{}")
   workStyle             Json                    @default("{}")
+  
+  // Phase 1: Student Resource Management
+  weeklyCommitHours     Int?                    @default(20)
+  currentLoadPercentage Float?                  @default(0.0)
+  mbtiType              String?                 @map("mbti_type")
+  studentResourceData   Json                    @default("{}") @map("student_resource_data")
   
   // 新規追加: ロールベースアクセス制御
   role                  UserRole                @default(MEMBER)
@@ -282,6 +307,25 @@ model users {
   created_tasks         tasks[]                 @relation("TaskCreator")
   tasks                 tasks[]                 @relation("TaskUser")
   user_alerts           user_alerts[]
+  
+  // Phase 1: Student Resource Management Relations
+  student_resource      student_resources?
+  created_optimizations resource_optimization_history[] @relation("OptimizationCreator")
+  
+  // Phase 2: Financial Management & LTV Analysis Relations
+  created_financial_details    project_financial_details[]    @relation("FinancialCreator")
+  created_ltv_analysis         customer_ltv_analysis[]        @relation("LTVAnalysisCreator")
+  created_templates            project_templates[]            @relation("TemplateCreator")
+  created_knowledge_automation knowledge_automation_history[] @relation("KnowledgeAutomationCreator")
+  
+  // Phase 4: Sales Automation Relations
+  managed_customers            customers[]                    @relation("CustomerAccountManager")
+  assigned_opportunities       sales_opportunities[]          @relation("OpportunityAssignee")
+  created_sales_activities     sales_activities[]             @relation("SalesActivityUser")
+  created_contracts            contracts[]                    @relation("ContractCreator")
+  executed_ai_analysis         ai_analysis_history[]          @relation("AIAnalysisExecutor")
+  executed_predictions         conversion_predictions[]       @relation("ConversionPredictionExecutor")
+  calculated_metrics           sales_metrics_history[]        @relation("SalesMetricsCalculator")
 }
 
 model discord_metrics {
@@ -388,7 +432,7 @@ model appointment_details {
   processingStatus   appointment_processing @default(PENDING)
   relationshipStatus relationship_status    @default(FIRST_CONTACT)
   phaseStatus        appointment_phase      @default(LEAD)
-  sourceType         appointment_source     @default(REFERRAL)
+  sourceType         appointment_source     @default(COLD_OUTREACH)
   sourceDetails      String                 @default("")
   importance         Float                  @default(0.0)
   businessValue      Float                  @default(0.0)
@@ -604,6 +648,154 @@ model task_relationships {
   @@map("task_relationships")
 }
 
+// Phase 1: Student Resource Management Models
+
+model student_resources {
+  id                     String                        @id @default(cuid())
+  userId                 String                        @unique @map("user_id")
+  
+  // Time Management
+  weeklyCommitHours      Int                          @default(20) @map("weekly_commit_hours")
+  currentLoadPercentage  Float                        @default(0.0) @map("current_load_percentage")
+  semesterAvailability   Json                         @default("{}") @map("semester_availability")
+  emergencyAvailableHours Json                        @default("{}") @map("emergency_available_hours")
+  
+  // Skills and Aptitude
+  technicalSkills        Json                         @default("[]") @map("technical_skills")
+  softSkills             Json                         @default("[]") @map("soft_skills")
+  learningPreferences    Json                         @default("{}") @map("learning_preferences")
+  projectExperience      Json                         @default("[]") @map("project_experience")
+  
+  // Performance Metrics
+  taskCompletionRate     Float                        @default(1.0) @map("task_completion_rate")
+  qualityScore           Float                        @default(1.0) @map("quality_score")
+  collaborationScore     Float                        @default(1.0) @map("collaboration_score")
+  
+  // MBTI Integration
+  mbtiAnalysis           Json                         @default("{}") @map("mbti_analysis")
+  personalityStrengths   Json                         @default("[]") @map("personality_strengths")
+  optimalRoles           Json                         @default("[]") @map("optimal_roles")
+  stressFactors          Json                         @default("[]") @map("stress_factors")
+  motivationFactors      Json                         @default("[]") @map("motivation_factors")
+  
+  // Metadata
+  createdAt              DateTime                     @default(now()) @map("created_at")
+  updatedAt              DateTime                     @updatedAt @map("updated_at")
+  
+  // Relations
+  user                   users                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project_allocations    project_resource_allocation[]
+  
+  @@index([userId], map: "idx_student_resources_user_id")
+  @@index([currentLoadPercentage], map: "idx_student_resources_load")
+  @@map("student_resources")
+}
+
+model project_resource_allocation {
+  id                      String               @id @default(cuid())
+  projectId               String               @map("project_id")
+  studentResourceId       String               @map("student_resource_id")
+  
+  // Allocation Information
+  allocatedHours          Int                  @map("allocated_hours")
+  roleInProject           String               @map("role_in_project")
+  responsibilityLevel     String               @default("MEMBER") @map("responsibility_level")
+  
+  // Performance Tracking
+  effectivenessScore      Float                @default(1.0) @map("effectiveness_score")
+  contributionScore       Float                @default(1.0) @map("contribution_score")
+  satisfactionScore       Float                @default(1.0) @map("satisfaction_score")
+  
+  // MBTI Team Dynamics
+  teamCompatibilityScore  Float                @default(0.0) @map("team_compatibility_score")
+  roleAptitudeScore       Float                @default(0.0) @map("role_aptitude_score")
+  predictedPerformance    Float                @default(0.0) @map("predicted_performance")
+  
+  // Timeline
+  startDate               DateTime             @default(now()) @map("start_date")
+  endDate                 DateTime?            @map("end_date")
+  
+  // Metadata
+  createdAt               DateTime             @default(now()) @map("created_at")
+  updatedAt               DateTime             @updatedAt @map("updated_at")
+  
+  // Relations
+  project                 projects             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  studentResource         student_resources    @relation(fields: [studentResourceId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId], map: "idx_project_allocation_project")
+  @@index([studentResourceId], map: "idx_project_allocation_student")
+  @@index([endDate], map: "idx_project_allocation_active")
+  @@index([teamCompatibilityScore], map: "idx_project_allocation_compatibility")
+  @@map("project_resource_allocation")
+}
+
+model mbti_team_analysis {
+  id                        String    @id @default(cuid())
+  projectId                 String    @map("project_id")
+  
+  // Team Composition
+  teamMembers               Json      @default("[]") @map("team_members")
+  teamCompatibilityScore    Float     @default(0.0) @map("team_compatibility_score")
+  
+  // Analysis Results
+  predictedDynamics         String    @default("") @map("predicted_dynamics")
+  potentialChallenges       Json      @default("[]") @map("potential_challenges")
+  managementTips            Json      @default("[]") @map("management_tips")
+  
+  // Success Predictions
+  successProbability        Float     @default(0.0) @map("success_probability")
+  riskFactors               Json      @default("[]") @map("risk_factors")
+  optimizationRecommendations Json    @default("[]") @map("optimization_recommendations")
+  
+  // Metadata
+  analysisDate              DateTime  @default(now()) @map("analysis_date")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                   projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId], map: "idx_mbti_team_analysis_project")
+  @@index([teamCompatibilityScore], map: "idx_mbti_team_analysis_score")
+  @@index([analysisDate], map: "idx_mbti_team_analysis_date")
+  @@map("mbti_team_analysis")
+}
+
+model resource_optimization_history {
+  id                      String    @id @default(cuid())
+  projectId               String    @map("project_id")
+  
+  // Optimization Request
+  optimizationRequest     Json      @default("{}") @map("optimization_request")
+  
+  // AI Recommendations
+  aiRecommendations       Json      @default("{}") @map("ai_recommendations")
+  recommendedAllocations  Json      @default("[]") @map("recommended_allocations")
+  
+  // Decision Tracking
+  selectedAllocation      Json      @default("{}") @map("selected_allocation")
+  decisionRationale       String    @default("") @map("decision_rationale")
+  
+  // Outcome Tracking
+  actualPerformance       Json      @default("{}") @map("actual_performance")
+  lessonsLearned          Json      @default("[]") @map("lessons_learned")
+  
+  // Metadata
+  createdBy               String?   @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                 projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator                 users?    @relation("OptimizationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  
+  @@index([projectId], map: "idx_optimization_history_project")
+  @@index([createdBy], map: "idx_optimization_history_created_by")
+  @@index([createdAt], map: "idx_optimization_history_date")
+  @@map("resource_optimization_history")
+}
+
 enum appointment_status {
   PENDING
   CONTACTED
@@ -793,4 +985,507 @@ enum UserRole {
   GUEST
   STUDENT
   ENTERPRISE
+}
+
+// Phase 2: Financial Management & LTV Analysis Models
+
+model project_financial_details {
+  id                              String    @id @default(cuid())
+  projectId                       String    @map("project_id")
+  
+  // Basic Contract Information
+  baseContractValue               Decimal   @default(0) @map("base_contract_value") @db.Decimal(12,2)
+  contractType                    String    @default("FIXED") @map("contract_type")
+  paymentSchedule                 Json      @default("{}") @map("payment_schedule")
+  
+  // Revenue Prediction
+  additionalWorkProbability       Float     @default(0.3) @map("additional_work_probability")
+  additionalWorkExpectedValue     Decimal   @default(0) @map("additional_work_expected_value") @db.Decimal(12,2)
+  maintenanceContractProbability  Float     @default(0.5) @map("maintenance_contract_probability")
+  maintenanceAnnualValue          Decimal   @default(0) @map("maintenance_annual_value") @db.Decimal(12,2)
+  referralProbability             Float     @default(0.2) @map("referral_probability")
+  referralExpectedValue           Decimal   @default(0) @map("referral_expected_value") @db.Decimal(12,2)
+  
+  // Cost Details
+  directLaborCost                 Decimal   @default(0) @map("direct_labor_cost") @db.Decimal(12,2)
+  indirectLaborCost               Decimal   @default(0) @map("indirect_labor_cost") @db.Decimal(12,2)
+  externalContractorCost          Decimal   @default(0) @map("external_contractor_cost") @db.Decimal(12,2)
+  toolLicenseCost                 Decimal   @default(0) @map("tool_license_cost") @db.Decimal(12,2)
+  infrastructureCost              Decimal   @default(0) @map("infrastructure_cost") @db.Decimal(12,2)
+  
+  // Risk & Quality Management
+  riskBufferPercentage            Float     @default(0.15) @map("risk_buffer_percentage")
+  qualityAssuranceCost            Decimal   @default(0) @map("quality_assurance_cost") @db.Decimal(12,2)
+  contingencyReserve              Decimal   @default(0) @map("contingency_reserve") @db.Decimal(12,2)
+  
+  // Prediction Accuracy & Metadata
+  confidenceLevel                 Float     @default(0.8) @map("confidence_level")
+  predictionModelVersion          String    @default("v1.0") @map("prediction_model_version")
+  lastUpdatedAt                   DateTime  @default(now()) @map("last_updated_at")
+  createdBy                       String?   @map("created_by")
+  
+  createdAt                       DateTime  @default(now()) @map("created_at")
+  updatedAt                       DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                         projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator                         users?    @relation("FinancialCreator", fields: [createdBy], references: [id])
+  
+  @@index([projectId], map: "idx_project_financial_project_id")
+  @@index([baseContractValue], map: "idx_project_financial_contract_value")
+  @@map("project_financial_details")
+}
+
+model customer_ltv_analysis {
+  id                        String    @id @default(cuid())
+  connectionId              String    @map("connection_id")
+  
+  // LTV Components
+  initialProjectValue       Decimal   @default(0) @map("initial_project_value") @db.Decimal(12,2)
+  continuationProbability   Float     @default(0.7) @map("continuation_probability")
+  averageProjectsPerYear    Float     @default(1.5) @map("average_projects_per_year")
+  priceGrowthRate           Float     @default(0.1) @map("price_growth_rate")
+  relationshipDurationYears Int       @default(5) @map("relationship_duration_years")
+  
+  // Referral Value
+  referralProbability       Float     @default(0.3) @map("referral_probability")
+  referralAverageValue      Decimal   @default(0) @map("referral_average_value") @db.Decimal(12,2)
+  referralMultiplier        Float     @default(1.0) @map("referral_multiplier")
+  
+  // Calculation Results
+  totalLtv                  Decimal   @default(0) @map("total_ltv") @db.Decimal(12,2)
+  discountedLtv             Decimal   @default(0) @map("discounted_ltv") @db.Decimal(12,2)
+  discountRate              Float     @default(0.1) @map("discount_rate")
+  
+  // Analysis Results
+  riskFactors               Json      @default("[]") @map("risk_factors")
+  opportunities             Json      @default("[]") @map("opportunities")
+  recommendedActions        Json      @default("[]") @map("recommended_actions")
+  confidenceScore           Float     @default(0.8) @map("confidence_score")
+  
+  // Metadata
+  analysisDate              DateTime  @default(now()) @map("analysis_date")
+  predictionModelVersion    String    @default("v1.0") @map("prediction_model_version")
+  createdBy                 String?   @map("created_by")
+  
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  connection                connections @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  creator                   users?      @relation("LTVAnalysisCreator", fields: [createdBy], references: [id])
+  
+  @@index([connectionId], map: "idx_customer_ltv_connection_id")
+  @@index([totalLtv], map: "idx_customer_ltv_total")
+  @@map("customer_ltv_analysis")
+}
+
+model project_templates {
+  id                      String    @id @default(cuid())
+  
+  // Template Basic Information
+  name                    String    @map("name")
+  description             String?   @map("description")
+  templateType            String    @map("template_type") // 'EVENT', 'DEVELOPMENT', 'CUSTOM'
+  complexityLevel         Int       @default(1) @map("complexity_level") // 1-10
+  
+  // Template Structure
+  phases                  Json      @default("[]") @map("phases") // Phase details
+  budgetBreakdown         Json      @default("{}") @map("budget_breakdown")
+  riskFactors             Json      @default("[]") @map("risk_factors")
+  successMetrics          Json      @default("[]") @map("success_metrics")
+  resources               Json      @default("{}") @map("resources")
+  
+  // Application Conditions
+  targetScaleMin          Int       @default(0) @map("target_scale_min")
+  targetScaleMax          Int       @default(999999) @map("target_scale_max")
+  durationWeeksMin        Int       @default(1) @map("duration_weeks_min")
+  durationWeeksMax        Int       @default(52) @map("duration_weeks_max")
+  requiredTechnologies    Json      @default("[]") @map("required_technologies")
+  
+  // Usage & Evaluation
+  usageCount              Int       @default(0) @map("usage_count")
+  successRate             Float     @default(0.8) @map("success_rate")
+  averageSatisfaction     Float     @default(4.0) @map("average_satisfaction")
+  lastUsedAt              DateTime? @map("last_used_at")
+  
+  // Auto Generation Information
+  autoGenerated           Boolean   @default(false) @map("auto_generated")
+  sourceProjectId         String?   @map("source_project_id")
+  aiConfidence            Float     @default(0.8) @map("ai_confidence")
+  generationPrompt        String?   @map("generation_prompt")
+  
+  // Metadata
+  createdBy               String?   @map("created_by")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  sourceProject           projects? @relation(fields: [sourceProjectId], references: [id], onDelete: SetNull)
+  creator                 users?    @relation("TemplateCreator", fields: [createdBy], references: [id])
+  
+  @@index([templateType], map: "idx_project_templates_type")
+  @@index([complexityLevel], map: "idx_project_templates_complexity")
+  @@map("project_templates")
+}
+
+model knowledge_automation_history {
+  id                        String    @id @default(cuid())
+  
+  // Source Task Information
+  taskId                    String    @map("task_id")
+  taskTitle                 String?   @map("task_title")
+  completionData            Json      @default("{}") @map("completion_data")
+  
+  // Automation Decision Result
+  shouldGenerateKnowledge   Boolean   @default(false) @map("should_generate_knowledge")
+  knowledgeTypes            Json      @default("[]") @map("knowledge_types")
+  priorityLevel             String    @default("LOW") @map("priority_level")
+  estimatedValue            Int       @default(1) @map("estimated_value") // 1-10
+  
+  // Generated Knowledge
+  generatedKnowledgeId      String?   @map("generated_knowledge_id")
+  knowledgeTitle            String?   @map("knowledge_title")
+  knowledgeCategory         String?   @map("knowledge_category")
+  knowledgeContent          String?   @map("knowledge_content")
+  knowledgeTags             Json      @default("[]") @map("knowledge_tags")
+  
+  // Quality Evaluation
+  initialQualityScore       Float     @default(5.0) @map("initial_quality_score")
+  aiConfidence              Float     @default(0.8) @map("ai_confidence")
+  processingTimeMs          Int       @default(0) @map("processing_time_ms")
+  
+  // Usage & Improvement History
+  viewCount                 Int       @default(0) @map("view_count")
+  applicationCount          Int       @default(0) @map("application_count")
+  feedbackCount             Int       @default(0) @map("feedback_count")
+  improvementSuggestions    Json      @default("[]") @map("improvement_suggestions")
+  
+  // Metadata
+  automationDate            DateTime  @default(now()) @map("automation_date")
+  createdBy                 String?   @map("created_by")
+  
+  // Relations
+  task                      tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  generatedKnowledge        knowledge_items? @relation(fields: [generatedKnowledgeId], references: [id], onDelete: SetNull)
+  creator                   users?    @relation("KnowledgeAutomationCreator", fields: [createdBy], references: [id])
+  
+  @@index([taskId], map: "idx_knowledge_automation_task_id")
+  @@index([generatedKnowledgeId], map: "idx_knowledge_automation_generated_id")
+  @@map("knowledge_automation_history")
+}
+
+model project_revenue_tracking {
+  id                        String    @id @default(cuid())
+  projectId                 String    @map("project_id")
+  
+  // Predicted vs Actual Values
+  predictedRevenue          Decimal   @default(0) @map("predicted_revenue") @db.Decimal(12,2)
+  actualRevenue             Decimal   @default(0) @map("actual_revenue") @db.Decimal(12,2)
+  revenueVariance           Decimal   @default(0) @map("revenue_variance") @db.Decimal(12,2)
+  variancePercentage        Float     @default(0) @map("variance_percentage")
+  
+  // Detailed Revenue Breakdown
+  baseContractActual        Decimal   @default(0) @map("base_contract_actual") @db.Decimal(12,2)
+  additionalWorkActual      Decimal   @default(0) @map("additional_work_actual") @db.Decimal(12,2)
+  maintenanceRevenueActual  Decimal   @default(0) @map("maintenance_revenue_actual") @db.Decimal(12,2)
+  referralRevenueActual     Decimal   @default(0) @map("referral_revenue_actual") @db.Decimal(12,2)
+  
+  // Prediction Accuracy Evaluation
+  predictionAccuracy        Float     @default(0) @map("prediction_accuracy")
+  predictionDate            DateTime? @map("prediction_date")
+  actualCompletionDate      DateTime? @map("actual_completion_date")
+  
+  // Learning Data
+  keySuccessFactors         Json      @default("[]") @map("key_success_factors")
+  unexpectedEvents          Json      @default("[]") @map("unexpected_events")
+  lessonsLearned            String?   @map("lessons_learned")
+  
+  // Metadata
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  project                   projects  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId], map: "idx_revenue_tracking_project_id")
+  @@index([predictionAccuracy], map: "idx_revenue_tracking_accuracy")
+  @@map("project_revenue_tracking")
+}
+
+// Phase 4: Sales Automation Tables
+
+model customers {
+  id                    String    @id @default(cuid())
+  companyName           String    @map("company_name")
+  industry              String
+  revenue               Decimal?  @db.Decimal(15,2)
+  employees             Int?
+  businessModel         String?   @map("business_model")
+  website               String?
+  contactEmail          String?   @map("contact_email")
+  contactPhone          String?   @map("contact_phone")
+  address               String?
+  city                  String?
+  country               String?
+  
+  // Relationship tracking
+  relationshipStage     customer_stage @default(PROSPECT) @map("relationship_stage")
+  accountManager        String?   @map("account_manager")
+  
+  // Metadata
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  sales_opportunities   sales_opportunities[]
+  contracts             contracts[]
+  ai_analysis_history   ai_analysis_history[]
+  account_manager_user  users?    @relation("CustomerAccountManager", fields: [accountManager], references: [id])
+  
+  @@index([industry], map: "idx_customers_industry")
+  @@index([relationshipStage], map: "idx_customers_relationship_stage")
+  @@index([accountManager], map: "idx_customers_account_manager")
+  @@map("customers")
+}
+
+model sales_opportunities {
+  id                    String         @id @default(cuid())
+  customerId            String         @map("customer_id")
+  companyName           String         @map("company_name")
+  contactName           String         @map("contact_name")
+  contactPosition       String?        @map("contact_position")
+  contactEmail          String?        @map("contact_email")
+  contactPhone          String?        @map("contact_phone")
+  
+  // Opportunity details
+  dealValue             Decimal?       @map("deal_value") @db.Decimal(12,2)
+  priority              priority       @default(C)
+  stage                 sales_stage    @default(PROSPECT)
+  source                String?        // Where this opportunity came from
+  
+  // Timeline
+  expectedCloseDate     DateTime?      @map("expected_close_date")
+  actualCloseDate       DateTime?      @map("actual_close_date")
+  
+  // Additional info
+  notes                 String?
+  tags                  String[]       @default([])
+  
+  // Metadata
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+  assignedTo            String?        @map("assigned_to")
+  
+  // Relations
+  customer              customers      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignee              users?         @relation("OpportunityAssignee", fields: [assignedTo], references: [id])
+  sales_activities      sales_activities[]
+  contracts             contracts[]
+  conversion_predictions conversion_predictions[]
+  
+  @@index([customerId], map: "idx_opportunities_customer_id")
+  @@index([stage], map: "idx_opportunities_stage")
+  @@index([priority], map: "idx_opportunities_priority")
+  @@index([assignedTo], map: "idx_opportunities_assigned_to")
+  @@index([expectedCloseDate], map: "idx_opportunities_expected_close")
+  @@map("sales_opportunities")
+}
+
+model sales_activities {
+  id                    String              @id @default(cuid())
+  opportunityId         String              @map("opportunity_id")
+  type                  sales_activity_type
+  title                 String
+  description           String?
+  outcome               activity_outcome    @default(NEUTRAL)
+  
+  // Scheduling
+  scheduledAt           DateTime?           @map("scheduled_at")
+  completedAt           DateTime?           @map("completed_at")
+  duration              Int?                // minutes
+  
+  // Metadata
+  metadata              Json                @default("{}")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  userId                String              @map("user_id")
+  
+  // Relations
+  opportunity           sales_opportunities @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  user                  users               @relation("SalesActivityUser", fields: [userId], references: [id])
+  
+  @@index([opportunityId], map: "idx_activities_opportunity_id")
+  @@index([type], map: "idx_activities_type")
+  @@index([userId], map: "idx_activities_user_id")
+  @@index([scheduledAt], map: "idx_activities_scheduled_at")
+  @@map("sales_activities")
+}
+
+model contracts {
+  id                    String              @id @default(cuid())
+  customerId            String              @map("customer_id")
+  opportunityId         String?             @map("opportunity_id")
+  
+  // Contract details
+  contractType          contract_type       @map("contract_type")
+  value                 Decimal             @db.Decimal(12,2)
+  terms                 String?
+  status                contract_status     @default(DRAFT)
+  
+  // Timeline
+  startDate             DateTime?           @map("start_date")
+  endDate               DateTime?           @map("end_date")
+  signedDate            DateTime?           @map("signed_date")
+  
+  // Additional info
+  notes                 String?
+  attachments           String[]            @default([])
+  
+  // Metadata
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  createdBy             String?             @map("created_by")
+  
+  // Relations
+  customer              customers           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sales_opportunity     sales_opportunities? @relation(fields: [opportunityId], references: [id])
+  creator               users?              @relation("ContractCreator", fields: [createdBy], references: [id])
+  
+  @@index([customerId], map: "idx_contracts_customer_id")
+  @@index([opportunityId], map: "idx_contracts_opportunity_id")
+  @@index([status], map: "idx_contracts_status")
+  @@index([contractType], map: "idx_contracts_type")
+  @@map("contracts")
+}
+
+model ai_analysis_history {
+  id                    String    @id @default(cuid())
+  customerId            String    @map("customer_id")
+  analysisType          String    @map("analysis_type")
+  result                Json
+  
+  // Metadata
+  executedAt            DateTime  @default(now()) @map("executed_at")
+  executedBy            String?   @map("executed_by")
+  
+  // Relations
+  customer              customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  executor              users?    @relation("AIAnalysisExecutor", fields: [executedBy], references: [id])
+  
+  @@index([customerId], map: "idx_ai_sales_analysis_customer_id")
+  @@index([analysisType], map: "idx_ai_sales_analysis_type")
+  @@index([executedAt], map: "idx_ai_sales_analysis_executed_at")
+  @@map("ai_analysis_history")
+}
+
+model conversion_predictions {
+  id                    String              @id @default(cuid())
+  opportunityId         String              @map("opportunity_id")
+  predictionType        String              @map("prediction_type")
+  probability           Float
+  confidence            Float               @default(0)
+  result                Json
+  
+  // Metadata
+  executedAt            DateTime            @default(now()) @map("executed_at")
+  executedBy            String?             @map("executed_by")
+  
+  // Relations
+  opportunity           sales_opportunities @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  executor              users?              @relation("ConversionPredictionExecutor", fields: [executedBy], references: [id])
+  
+  @@index([opportunityId], map: "idx_conversion_predictions_opportunity_id")
+  @@index([predictionType], map: "idx_conversion_predictions_type")
+  @@index([executedAt], map: "idx_conversion_predictions_executed_at")
+  @@map("conversion_predictions")
+}
+
+model sales_metrics_history {
+  id                    String    @id @default(cuid())
+  dateFrom              DateTime? @map("date_from")
+  dateTo                DateTime? @map("date_to")
+  metrics               Json
+  
+  // Metadata
+  calculatedAt          DateTime  @default(now()) @map("calculated_at")
+  calculatedBy          String?   @map("calculated_by")
+  
+  // Relations
+  calculator            users?    @relation("SalesMetricsCalculator", fields: [calculatedBy], references: [id])
+  
+  @@index([calculatedAt], map: "idx_sales_metrics_calculated_at")
+  @@index([dateFrom, dateTo], map: "idx_sales_metrics_date_range")
+  @@map("sales_metrics_history")
+}
+
+// Phase 4 Enums
+
+enum customer_stage {
+  PROSPECT
+  LEAD
+  OPPORTUNITY
+  CUSTOMER
+  ADVOCATE
+  INACTIVE
+  
+  @@map("customer_stage")
+}
+
+enum sales_stage {
+  PROSPECT
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+  
+  @@map("sales_stage")
+}
+
+enum sales_activity_type {
+  INITIAL_CONTACT
+  PHONE_CALL
+  EMAIL
+  MEETING
+  DEMO
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_REVIEW
+  STAGE_CHANGE
+  FOLLOW_UP
+  OTHER
+  
+  @@map("sales_activity_type")
+}
+
+enum activity_outcome {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  
+  @@map("activity_outcome")
+}
+
+enum contract_type {
+  SERVICE
+  PRODUCT
+  SUBSCRIPTION
+  MAINTENANCE
+  CONSULTING
+  LICENSE
+  
+  @@map("contract_type")
+}
+
+enum contract_status {
+  DRAFT
+  REVIEW
+  PENDING_SIGNATURE
+  SIGNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  
+  @@map("contract_status")
 }

@@ -189,7 +189,8 @@ function extractTitle(text: string, command?: string): string {
   
   // コマンド部分を除去
   if (command) {
-    title = title.replace(new RegExp(`^${command}\\s*`), '');
+    const escapedCommand = command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    title = title.replace(new RegExp(`^${escapedCommand}\\s*`), '');
   }
   
   // 長すぎる場合は最初の50文字

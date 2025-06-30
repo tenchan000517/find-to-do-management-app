@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { User, UserSkills, UserPreferences, WorkStyle } from '@/lib/types';
-import { Target, Briefcase, Wrench } from 'lucide-react';
+import { Target, Briefcase, Wrench, Brain, Clock, Activity } from 'lucide-react';
+import Select from 'react-select';
+import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 
 interface UserProfileModalProps {
   user: User;
@@ -14,7 +17,10 @@ interface UserProfileModalProps {
 
 export default function UserProfileModal({ user, isOpen, onClose, onSave, onDataRefresh }: UserProfileModalProps) {
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'skills' | 'preferences' | 'workstyle'>('skills');
+  const [activeTab, setActiveTab] = useState<'skills' | 'preferences' | 'workstyle' | 'resources'>('skills');
+  const [currentLoad, setCurrentLoad] = useState(0);
+  const [mbtiType, setMbtiType] = useState<string>('');
+  const [weeklyCommitHours, setWeeklyCommitHours] = useState<number>(20);
   
   const [skills, setSkills] = useState<UserSkills>({
     engineering: 5,
@@ -54,6 +60,15 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
         setSkills(profile.skills || skills);
         setPreferences(profile.preferences || preferences);
         setWorkStyle(profile.workStyle || workStyle);
+        setMbtiType(profile.mbtiType || '');
+        setWeeklyCommitHours(profile.weeklyCommitHours || 20);
+      }
+      
+      // 現在の負荷を取得
+      const loadResponse = await fetch(`/api/student-resources/load/${user.id}`);
+      if (loadResponse.ok) {
+        const loadData = await loadResponse.json();
+        setCurrentLoad(loadData.data.currentLoad || 0);
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
@@ -66,6 +81,22 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
     try {
       setLoading(true);
       await onSave({ skills, preferences, workStyle });
+      
+      // MBTI更新
+      if (mbtiType) {
+        await fetch(`/api/mbti/individual/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mbtiType })
+        });
+      }
+      
+      // リソース情報更新
+      await fetch(`/api/student-resources/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weeklyCommitHours })
+      });
       
       // データの再読み込みを実行
       onDataRefresh?.();
@@ -135,6 +166,17 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
           >
             <Briefcase className="w-4 h-4 mr-2 inline" />
             作業スタイル
+          </button>
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`px-6 py-3 font-medium ${
+              activeTab === 'resources' 
+                ? 'border-b-2 border-blue-500 text-blue-600' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Activity className="w-4 h-4 mr-2 inline" />
+            リソース管理
           </button>
         </div>
 
@@ -402,6 +444,117 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
                   </div>
                 </div>
               )}
+
+              {/* リソース管理タブ */}
+              {activeTab === 'resources' && (
+                <div className="space-y-6">
+                  {/* 現在の負荷表示 */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
+                    <h3 className="font-semibold mb-4 text-lg">現在の作業負荷</h3>
+                    <div className="flex items-center space-x-8">
+                      <div className="w-32 h-32">
+                        <CircularProgressbar
+                          value={currentLoad}
+                          text={`${currentLoad}%`}
+                          styles={buildStyles({
+                            textColor: currentLoad > 80 ? '#ef4444' : currentLoad > 60 ? '#f59e0b' : '#10b981',
+                            pathColor: currentLoad > 80 ? '#ef4444' : currentLoad > 60 ? '#f59e0b' : '#10b981',
+                            trailColor: '#e5e7eb'
+                          })}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600 mb-2">
+                          {currentLoad < 40 && '余裕があります。新しいタスクを引き受けることができます。'}
+                          {currentLoad >= 40 && currentLoad < 60 && '適切な負荷レベルです。生産性が最適化されています。'}
+                          {currentLoad >= 60 && currentLoad < 80 && '負荷が高めです。新規タスクは慎重に検討してください。'}
+                          {currentLoad >= 80 && '負荷が過剰です。タスクの調整が必要かもしれません。'}
+                        </p>
+                        <div className="flex items-center space-x-4 text-xs">
+                          <span className="flex items-center"><div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>適正（0-60%）</span>
+                          <span className="flex items-center"><div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>注意（60-80%）</span>
+                          <span className="flex items-center"><div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>過負荷（80%+）</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 週間コミット時間 */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3">
+                      <Clock className="w-4 h-4 mr-2 inline" />
+                      週間コミット可能時間
+                    </label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="range"
+                          min="5"
+                          max="60"
+                          value={weeklyCommitHours}
+                          onChange={(e) => setWeeklyCommitHours(parseInt(e.target.value))}
+                          className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="w-24 text-right">
+                          <span className="text-2xl font-bold text-blue-600">{weeklyCommitHours}</span>
+                          <span className="text-sm text-gray-500 ml-1">時間/週</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>5時間（最小）</span>
+                        <span>30時間（標準）</span>
+                        <span>60時間（フルタイム）</span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        1日あたり約{Math.round(weeklyCommitHours / 7 * 10) / 10}時間の作業時間
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* MBTIタイプ選択 */}
+                  <div>
+                    <label className="block text-sm font-medium mb-3">
+                      <Brain className="w-4 h-4 mr-2 inline" />
+                      MBTIタイプ
+                    </label>
+                    <Select
+                      value={mbtiOptions.find(option => option.value === mbtiType)}
+                      onChange={(option) => setMbtiType(option?.value || '')}
+                      options={mbtiOptions}
+                      placeholder="MBTIタイプを選択..."
+                      isClearable
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          borderColor: '#e5e7eb',
+                          '&:hover': {
+                            borderColor: '#3b82f6'
+                          }
+                        })
+                      }}
+                    />
+                    {mbtiType && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">
+                          {getMbtiDescription(mbtiType)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* リソース最適化の推奨事項 */}
+                  {currentLoad > 60 && (
+                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                      <h4 className="font-medium text-yellow-800 mb-2">⚠️ リソース最適化の推奨</h4>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        <li>• 優先度の低いタスクを延期することを検討してください</li>
+                        <li>• チームメンバーとタスクの再配分について相談してください</li>
+                        <li>• 必要に応じて締切の調整を行ってください</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -434,6 +587,26 @@ export default function UserProfileModal({ user, isOpen, onClose, onSave, onData
   );
 }
 
+// MBTIオプション
+const mbtiOptions = [
+  { value: 'INTJ', label: 'INTJ - 建築家' },
+  { value: 'INTP', label: 'INTP - 論理学者' },
+  { value: 'ENTJ', label: 'ENTJ - 指揮官' },
+  { value: 'ENTP', label: 'ENTP - 討論者' },
+  { value: 'INFJ', label: 'INFJ - 提唱者' },
+  { value: 'INFP', label: 'INFP - 仲介者' },
+  { value: 'ENFJ', label: 'ENFJ - 主人公' },
+  { value: 'ENFP', label: 'ENFP - 運動家' },
+  { value: 'ISTJ', label: 'ISTJ - 管理者' },
+  { value: 'ISFJ', label: 'ISFJ - 擁護者' },
+  { value: 'ESTJ', label: 'ESTJ - 幹部' },
+  { value: 'ESFJ', label: 'ESFJ - 領事' },
+  { value: 'ISTP', label: 'ISTP - 巨匠' },
+  { value: 'ISFP', label: 'ISFP - 冒険家' },
+  { value: 'ESTP', label: 'ESTP - 起業家' },
+  { value: 'ESFP', label: 'ESFP - エンターテイナー' },
+];
+
 // ヘルパー関数
 function getSkillLabel(skill: string): string {
   const labels: Record<string, string> = {
@@ -452,4 +625,26 @@ function getSkillDescription(skill: string, level: number): string {
   if (level <= 6) return '実務レベルの知識・経験';
   if (level <= 8) return '高度な知識・リーダー経験';
   return 'エキスパートレベル・指導可能';
+}
+
+function getMbtiDescription(mbtiType: string): string {
+  const descriptions: Record<string, string> = {
+    'INTJ': '戦略的思考に優れ、独立心が強く、効率性を重視します。長期的な計画立案が得意です。',
+    'INTP': '論理的で分析的、知的好奇心が強く、問題解決能力に優れています。',
+    'ENTJ': 'リーダーシップに優れ、目標達成への意欲が高く、効率的な組織運営が得意です。',
+    'ENTP': '革新的でアイデア豊富、議論を楽しみ、新しい可能性を追求します。',
+    'INFJ': '洞察力に優れ、他者への共感性が高く、理想主義的でビジョンを持っています。',
+    'INFP': '価値観を大切にし、創造性豊か、調和を重視し、個人の成長を追求します。',
+    'ENFJ': 'カリスマ性があり、他者の成長を支援し、チームの調和を大切にします。',
+    'ENFP': '熱意があり、創造的で、人との繋がりを大切にし、可能性を探求します。',
+    'ISTJ': '責任感が強く、組織的で、伝統を重んじ、確実な実行力があります。',
+    'ISFJ': '献身的で、細部に気を配り、他者のニーズに敏感で、安定性を重視します。',
+    'ESTJ': '実行力があり、組織的で、効率性を追求し、明確な指示を出すのが得意です。',
+    'ESFJ': '協調性が高く、他者への配慮が行き届き、チームの和を大切にします。',
+    'ISTP': '実践的で、問題解決能力が高く、手を動かして学ぶことを好みます。',
+    'ISFP': '柔軟性があり、美的センスに優れ、個人の価値観を大切にします。',
+    'ESTP': '行動的で、現実的、リスクを恐れず、即座の対応が得意です。',
+    'ESFP': '社交的で、エネルギッシュ、楽観的で、人を楽しませることが得意です。'
+  };
+  return descriptions[mbtiType] || '';
 }

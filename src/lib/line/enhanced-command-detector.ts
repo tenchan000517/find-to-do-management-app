@@ -1,5 +1,6 @@
 import { prismaDataService } from '@/lib/database/prisma-service';
 import { getAICallManager } from '@/lib/ai/call-manager';
+import { SalesMessageProcessor } from './sales-message-processor';
 
 interface CommandDetectionResult {
   intent: string;
@@ -15,6 +16,7 @@ interface CommandDetectionResult {
 
 export class EnhancedCommandDetector {
   private aiCallManager = getAICallManager();
+  private salesProcessor = new SalesMessageProcessor();
   
   /**
    * 高度なユーザーインテント検知
@@ -27,6 +29,12 @@ export class EnhancedCommandDetector {
     try {
       // ユーザーコンテキスト取得
       const userContext = await this.getUserContext(userId);
+      
+      // 営業関連メッセージかチェック
+      const salesResult = await this.checkSalesMessage(message, userId, groupId);
+      if (salesResult.confidence > 0.6) {
+        return salesResult;
+      }
       
       // 自然な表現の詳細検知
       const intent = await this.analyzeNaturalLanguage(message, userContext);
@@ -440,5 +448,66 @@ export class EnhancedCommandDetector {
       confidence: 0.3,
       entities: {}
     };
+  }
+
+  /**
+   * 営業関連メッセージチェック
+   */
+  private async checkSalesMessage(
+    message: string, 
+    userId: string, 
+    groupId?: string
+  ): Promise<CommandDetectionResult> {
+    try {
+      // 営業キーワードチェック
+      const salesKeywords = [
+        '契約', '成約', '提案', '見積', '商談', '営業', '顧客', 
+        '予算', 'アポ', 'ミーティング', '成功確率', '競合',
+        'クロージング', 'フォローアップ', '決定権者', 'LTV'
+      ];
+
+      const hasSalesKeywords = salesKeywords.some(keyword => 
+        message.includes(keyword)
+      );
+
+      if (!hasSalesKeywords) {
+        return {
+          intent: 'non_sales',
+          confidence: 0.1,
+          entities: {},
+          response: ''
+        };
+      }
+
+      // 営業メッセージ処理
+      const salesResult = await this.salesProcessor.processSalesMessage(
+        { 
+          source: { userId, groupId }, 
+          type: 'message',
+          message: { type: 'text', text: message }
+        } as any, 
+        message
+      );
+
+      return {
+        intent: 'sales_message',
+        confidence: 0.9,
+        entities: { sales_result: salesResult },
+        response: salesResult.responseMessage,
+        actions: salesResult.actions.map(action => ({
+          type: action.type,
+          data: action.data
+        }))
+      };
+
+    } catch (error) {
+      console.error('Sales message check failed:', error);
+      return {
+        intent: 'sales_error',
+        confidence: 0.1,
+        entities: {},
+        response: '営業システムで問題が発生しました。'
+      };
+    }
   }
 }

@@ -1,0 +1,166 @@
+/* モバイルジェスチャー専用スタイル */
+
+/* ジェスチャーヒント表示アニメーション */
+.gesture-hints {
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* ジェスチャー実行時のフィードバック */
+.gesture-feedback {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* スワイプ方向別フィードバック */
+.swipe-right-feedback {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateX(10px) scale(1.02);
+}
+
+.swipe-left-feedback {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateX(-10px) scale(1.02);
+}
+
+.swipe-up-feedback {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-10px) scale(1.02);
+}
+
+.swipe-down-feedback {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.5);
+  transform: translateY(10px) scale(1.02);
+}
+
+/* 長押しフィードバック */
+.press-feedback {
+  background-color: rgba(147, 51, 234, 0.1);
+  border-color: rgba(147, 51, 234, 0.5);
+  transform: scale(0.98);
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+}
+
+/* ダブルタップフィードバック */
+.doubletap-feedback {
+  background-color: rgba(236, 72, 153, 0.1);
+  border-color: rgba(236, 72, 153, 0.5);
+  transform: scale(1.05);
+}
+
+/* ピンチイン・アウトフィードバック */
+.pinch-in-feedback {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+.pinch-out-feedback {
+  transform: scale(1.1);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+/* タスクカード専用ジェスチャー */
+.task-card {
+  position: relative;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.task-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(34, 197, 94, 0.1) 0%,
+    transparent 20%,
+    transparent 80%,
+    rgba(245, 158, 11, 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.task-card:active::before {
+  opacity: 1;
+}
+
+/* ジェスチャーガイド表示 */
+.gesture-guide {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gesture-guide.show {
+  opacity: 1;
+}
+
+/* 振動対応デバイス用のアニメーション強化 */
+@media (prefers-reduced-motion: no-preference) {
+  .haptic-feedback {
+    animation: hapticPulse 0.2s ease-in-out;
+  }
+}
+
+@keyframes hapticPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .swipe-right-feedback {
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+  
+  .swipe-left-feedback {
+    background-color: rgba(245, 158, 11, 0.2);
+  }
+  
+  .swipe-up-feedback {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+  
+  .swipe-down-feedback {
+    background-color: rgba(239, 68, 68, 0.2);
+  }
+}
+
+/* 小さい画面デバイス用の調整 */
+@media (max-width: 380px) {
+  .gesture-hints {
+    font-size: 16px;
+  }
+  
+  .gesture-guide {
+    bottom: 80px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}
+
+/* 大きい画面デバイス用の調整 */
+@media (min-width: 768px) {
+  .gesture-hints {
+    font-size: 24px;
+  }
+}

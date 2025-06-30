@@ -7,7 +7,7 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-export default function LoadingSpinner({ 
+function LoadingSpinner({ 
   size = 'md', 
   message = 'データを読み込んでいます...', 
   overlay = false,
@@ -41,3 +41,6 @@ export default function LoadingSpinner({
     </div>
   );
 }
+
+export { LoadingSpinner };
+export default LoadingSpinner;

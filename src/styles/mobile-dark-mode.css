@@ -1,0 +1,295 @@
+/* Mobile Dark Mode Styles */
+
+/* ダークモードの基本設定 */
+.dark {
+  color-scheme: dark;
+}
+
+/* 背景とテキストの基本設定 */
+.dark body {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.dark .bg-white {
+  background-color: #2d2d2d !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #1a1a1a !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #2d2d2d !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #404040 !important;
+}
+
+/* テキストカラー */
+.dark .text-gray-900 {
+  color: #ffffff !important;
+}
+
+.dark .text-gray-600 {
+  color: #cccccc !important;
+}
+
+.dark .text-gray-500 {
+  color: #999999 !important;
+}
+
+.dark .text-gray-400 {
+  color: #666666 !important;
+}
+
+/* ボーダーカラー */
+.dark .border-gray-200 {
+  border-color: #404040 !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #555555 !important;
+}
+
+/* カードコンポーネント */
+.dark .card {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+/* ボタンスタイル */
+.dark .bg-blue-600 {
+  background-color: #3b82f6 !important;
+}
+
+.dark .hover\\:bg-blue-700:hover {
+  background-color: #2563eb !important;
+}
+
+.dark .bg-green-600 {
+  background-color: #16a34a !important;
+}
+
+.dark .hover\\:bg-green-700:hover {
+  background-color: #15803d !important;
+}
+
+.dark .bg-red-600 {
+  background-color: #dc2626 !important;
+}
+
+.dark .hover\\:bg-red-700:hover {
+  background-color: #b91c1c !important;
+}
+
+/* フォーム要素 */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark textarea,
+.dark select {
+  background-color: #404040;
+  border-color: #555555;
+  color: #ffffff;
+}
+
+.dark input[type="text"]::placeholder,
+.dark input[type="email"]::placeholder,
+.dark input[type="password"]::placeholder,
+.dark textarea::placeholder {
+  color: #999999;
+}
+
+/* スイッチコンポーネント */
+.dark .switch-track {
+  background-color: #404040;
+}
+
+.dark .switch-track.active {
+  background-color: #3b82f6;
+}
+
+.dark .switch-thumb {
+  background-color: #ffffff;
+}
+
+/* ナビゲーション */
+.dark nav {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+.dark .nav-item:hover {
+  background-color: #404040;
+}
+
+/* ヘッダー */
+.dark header {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+/* タスクカード */
+.dark .task-card {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+.dark .task-card:hover {
+  background-color: #353535;
+}
+
+/* プライオリティカラー（ダークモード用） */
+.dark .priority-high {
+  background-color: #7f1d1d;
+  border-color: #dc2626;
+  color: #fca5a5;
+}
+
+.dark .priority-medium {
+  background-color: #78350f;
+  border-color: #f59e0b;
+  color: #fcd34d;
+}
+
+.dark .priority-low {
+  background-color: #14532d;
+  border-color: #16a34a;
+  color: #86efac;
+}
+
+/* ステータスカラー（ダークモード用） */
+.dark .status-complete {
+  background-color: #14532d;
+  color: #86efac;
+}
+
+.dark .status-in-progress {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+.dark .status-pending {
+  background-color: #78350f;
+  color: #fcd34d;
+}
+
+/* アラートとメッセージ */
+.dark .alert-success {
+  background-color: #14532d;
+  border-color: #16a34a;
+  color: #86efac;
+}
+
+.dark .alert-warning {
+  background-color: #78350f;
+  border-color: #f59e0b;
+  color: #fcd34d;
+}
+
+.dark .alert-error {
+  background-color: #7f1d1d;
+  border-color: #dc2626;
+  color: #fca5a5;
+}
+
+.dark .alert-info {
+  background-color: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+/* ドロップゾーン（ダークモード用） */
+.dark .drop-zone {
+  background-color: #404040;
+  border-color: #666666;
+}
+
+.dark .drop-zone-active {
+  background-color: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+/* ジェスチャーヒント */
+.dark .gesture-hints {
+  background-color: rgba(45, 45, 45, 0.9);
+}
+
+/* モーダルとオーバーレイ */
+.dark .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark .modal-content {
+  background-color: #2d2d2d;
+  border-color: #404040;
+}
+
+/* スクロールバー */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background-color: #2d2d2d;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #555555;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #666666;
+}
+
+/* トグルアニメーション */
+.dark-mode-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ダークモード固有のユーティリティ */
+.dark .shadow-dark {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .shadow-dark-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* アクセシビリティ：高コントラスト + ダークモード */
+.dark.high-contrast {
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+  --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
+  --border-color: #ffffff;
+  --accent-color: #66ccff;
+}
+
+.dark.high-contrast * {
+  color: var(--text-primary) !important;
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark.high-contrast button {
+  background-color: var(--accent-color) !important;
+  color: #000000 !important;
+  border: 2px solid var(--border-color) !important;
+}
+
+/* ダークモード用のフォーカス表示 */
+.dark *:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.dark *:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
