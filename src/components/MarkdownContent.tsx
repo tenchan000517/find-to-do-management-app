@@ -182,12 +182,7 @@ export function MarkdownContent({ content, className = "", onInternalLinkClick }
               const language = match ? match[1] : '';
               
               if (language === 'mermaid') {
-                console.log('Mermaid pre block detected:', { className, language });
-              }
-              
-              if (language === 'mermaid') {
                 const code = String(codeProps.children).replace(/\n$/, '');
-                console.log('Rendering Mermaid from pre block:', code);
                 return <MermaidDiagram chart={code} className="my-4" />;
               }
             }

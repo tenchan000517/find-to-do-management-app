@@ -52,21 +52,21 @@ const docSections: DocSection[] = [
     description: '詳細な操作方法・設定ガイド',
     icon: FileText,
     files: [
-      'manuals/01-authentication-authorization.md',
-      'manuals/02-task-management-system.md',
-      'manuals/03-project-management.md',
-      'manuals/04-appointment-management.md',
-      'manuals/05-calendar-schedule-management.md',
-      'manuals/06-knowledge-management.md',
-      'manuals/07-ai-machine-learning.md',
-      'manuals/08-1-smart-dashboard.md',
-      'manuals/09-social-external-integration.md',
-      'manuals/10-financial-ltv-management.md',
-      'manuals/11-hr-resource-management.md',
-      'manuals/12-realtime-notification.md',
-      'manuals/13-mobile-support.md',
-      'manuals/14-system-management.md',
-      'manuals/15-line-integration-complete.md'
+      'docs/manuals/01-authentication-authorization.md',
+      'docs/manuals/02-task-management-system.md',
+      'docs/manuals/03-project-management.md',
+      'docs/manuals/04-appointment-management.md',
+      'docs/manuals/05-calendar-schedule-management.md',
+      'docs/manuals/06-knowledge-management.md',
+      'docs/manuals/07-ai-machine-learning.md',
+      'docs/manuals/08-1-smart-dashboard.md',
+      'docs/manuals/09-social-external-integration.md',
+      'docs/manuals/10-financial-ltv-management.md',
+      'docs/manuals/11-hr-resource-management.md',
+      'docs/manuals/12-realtime-notification.md',
+      'docs/manuals/13-mobile-support.md',
+      'docs/manuals/14-system-management.md',
+      'docs/manuals/15-line-integration-complete.md'
     ]
   },
   {
@@ -193,13 +193,11 @@ export default function HelpPage() {
       targetFile += '.md';
     }
 
-    // docs/ や manuals/ プレフィックスを調整
-    if (!targetFile.startsWith('docs/') && !targetFile.startsWith('manuals/')) {
+    // docs/ プレフィックスを調整
+    if (!targetFile.startsWith('docs/')) {
       // 現在のファイルと同じディレクトリ構造を推測
       if (selectedFile?.startsWith('docs/')) {
         targetFile = `docs/${targetFile}`;
-      } else if (selectedFile?.startsWith('manuals/')) {
-        targetFile = `manuals/${targetFile}`;
       }
     }
 
@@ -226,7 +224,7 @@ export default function HelpPage() {
                   </Button>
                   <div>
                     <h1 className="text-xl font-semibold text-gray-900">
-                      {selectedFile.replace(/^(docs\/|manuals\/)/, '').replace('.md', '')}
+                      {selectedFile.replace(/^docs\//, '').replace('.md', '')}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
                       {docSections.find(s => s.id === selectedSection)?.title}
@@ -234,7 +232,7 @@ export default function HelpPage() {
                   </div>
                 </div>
                 <a
-                  href={`https://github.com/your-repo/find-to-do-management-app/blob/main/${selectedFile.startsWith('manuals/') ? selectedFile : `docs/${selectedFile}`}`}
+                  href={`https://github.com/your-repo/find-to-do-management-app/blob/main/${selectedFile}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-2 text-sm text-gray-500 hover:text-blue-600 transition-colors"
@@ -286,8 +284,8 @@ export default function HelpPage() {
           <div className="grid gap-4">
             {section.files.map((file, index) => {
               const metadata = fileMetadata[file];
-              const fileName = file.replace(/^(docs\/|manuals\/)/, '').replace('.md', '');
-              const isManual = file.startsWith('manuals/');
+              const fileName = file.replace(/^docs\//, '').replace('.md', '');
+              const isManual = file.includes('/manuals/');
               
               // タイトルと説明を取得（メタデータがあれば使用、なければフォールバック）
               const displayTitle = metadata?.title || fileName;
