@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface Task {
   id: string;
@@ -35,21 +35,17 @@ interface ScheduleBlock {
   estimatedProductivity: number;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { tasks, events, preferences, date } = req.body;
+    const { tasks, events, preferences, date } = await request.json();
 
     if (!tasks || !Array.isArray(tasks)) {
-      return res.status(400).json({ error: 'Tasks array is required' });
+      return NextResponse.json({ error: 'Tasks array is required' }, { status: 400 });
     }
 
     const schedule = await generateOptimalSchedule(tasks, events || [], preferences);
 
-    return res.status(200).json({
+    return NextResponse.json({
       success: true,
       schedule,
       date,
@@ -64,10 +60,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Schedule generation error:', error);
-    return res.status(500).json({
+    return NextResponse.json({
       success: false,
       error: 'スケジュール生成中にエラーが発生しました'
-    });
+    }, { status: 500 });
   }
 }
 

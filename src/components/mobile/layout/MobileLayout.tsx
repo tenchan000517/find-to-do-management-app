@@ -88,8 +88,8 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
     },
     {
       icon: Calendar,
-      label: 'カレンダー',
-      href: '/mobile/calendar'
+      label: 'プロジェクト',
+      href: '/mobile/projects'
     },
     {
       icon: Settings,

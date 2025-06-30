@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface ParsedTask {
   title: string;
@@ -10,22 +10,18 @@ interface ParsedTask {
   estimatedHours?: number;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { text } = req.body;
+    const { text } = await request.json();
 
     if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'Text input is required' });
+      return NextResponse.json({ error: 'Text input is required' }, { status: 400 });
     }
 
     // Advanced natural language processing
     const parsedTask = await parseTaskWithAI(text);
 
-    return res.status(200).json({
+    return NextResponse.json({
       success: true,
       task: parsedTask,
       originalText: text
@@ -33,10 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Task parsing error:', error);
-    return res.status(500).json({
+    return NextResponse.json({
       success: false,
       error: 'タスクの解析中にエラーが発生しました'
-    });
+    }, { status: 500 });
   }
 }
 
