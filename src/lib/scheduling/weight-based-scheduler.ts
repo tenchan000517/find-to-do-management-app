@@ -257,11 +257,26 @@ export class WeightBasedScheduler {
    */
   private async analyzeDailyCapacity(): Promise<DailyScheduleBreakdown[]> {
     const breakdown: DailyScheduleBreakdown[] = [];
-    const startDate = new Date(this.configuration.startDate);
+    const startDate = typeof this.configuration.startDate === 'string' 
+      ? new Date(this.configuration.startDate) 
+      : this.configuration.startDate;
+    
+    // Validate startDate
+    if (isNaN(startDate.getTime())) {
+      console.error('Invalid startDate in configuration:', this.configuration.startDate);
+      throw new Error('Invalid startDate provided to WeightBasedScheduler');
+    }
     
     for (let i = 0; i < this.configuration.targetDays; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
+      const date = new Date(startDate.getTime());
+      date.setDate(startDate.getDate() + i);
+      
+      // Invalid date check
+      if (isNaN(date.getTime())) {
+        console.warn(`Invalid date generated for day ${i}`);
+        continue;
+      }
+      
       const dateStr = date.toISOString().split('T')[0];
       
       const timeSlots = this.constraintEngine.calculateAvailableSlots(dateStr);

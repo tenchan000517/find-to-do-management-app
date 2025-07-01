@@ -70,6 +70,36 @@ interface ResourceScheduleResult {
     capacityUtilization: number;
     message?: string;
   };
+  resourceAllocation: {
+    dailyCapacity: {
+      totalWeightLimit: number;
+      usedWeight: number;
+      remainingWeight: number;
+      utilizationRate: number; // 0-1
+    };
+    timeAllocation: {
+      totalAvailableHours: number;
+      allocatedHours: number;
+      freeHours: number;
+      timeUtilizationRate: number; // 0-1
+    };
+    taskDistribution: {
+      lightTasks: number;
+      heavyTasks: number;
+      lightTaskCapacity: number;
+      heavyTaskCapacity: number;
+    };
+    energyDistribution: {
+      highEnergyTasks: number;
+      mediumEnergyTasks: number;
+      lowEnergyTasks: number;
+    };
+    riskAssessment: {
+      overloadRisk: 'low' | 'medium' | 'high';
+      burnoutRisk: 'low' | 'medium' | 'high';
+      efficiencyRisk: 'low' | 'medium' | 'high';
+    };
+  };
   futurePrediction: {
     weeklyCapacity: Array<{
       week: number;
@@ -323,10 +353,26 @@ async function generateResourceBasedSchedule(
     // 時間順ソート
     schedule.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-    // 容量利用率計算
+    // リソース配分計算
     const totalWeight = taskWeightProfiles.reduce((sum, profile) => sum + profile.estimatedWeight, 0);
+    const usedWeight = scheduleResult.scheduledTasks.reduce((sum, task) => sum + task.actualWeight, 0);
     const capacityUtilization = capacityStatus.totalAvailableHours > 0 ? 
       capacityStatus.scheduledHours / capacityStatus.totalAvailableHours : 0;
+
+    // タスク分布計算
+    const lightTasks = scheduleResult.scheduledTasks.filter(task => task.actualWeight <= 3).length;
+    const heavyTasks = scheduleResult.scheduledTasks.filter(task => task.actualWeight > 3).length;
+
+    // エネルギー分布計算（仮想的な計算）
+    const highEnergyTasks = scheduleResult.scheduledTasks.filter(task => task.confidence > 0.8).length;
+    const mediumEnergyTasks = scheduleResult.scheduledTasks.filter(task => task.confidence > 0.5 && task.confidence <= 0.8).length;
+    const lowEnergyTasks = scheduleResult.scheduledTasks.filter(task => task.confidence <= 0.5).length;
+
+    // リスク評価
+    const weightUtilizationRate = usedWeight / userProfile.dailyCapacity.totalWeightLimit;
+    const overloadRisk = weightUtilizationRate > 0.9 ? 'high' : weightUtilizationRate > 0.7 ? 'medium' : 'low';
+    const burnoutRisk = scheduleResult.scheduledTasks.length > userProfile.dailyCapacity.lightTaskSlots + userProfile.dailyCapacity.heavyTaskSlots ? 'high' : 'low';
+    const efficiencyRisk = capacityUtilization < 0.3 ? 'high' : capacityUtilization < 0.6 ? 'medium' : 'low';
 
     return {
       schedule,
@@ -339,6 +385,36 @@ async function generateResourceBasedSchedule(
         isDemoMode: false, // Will be set by caller
         totalWeight,
         capacityUtilization: Math.round(capacityUtilization * 100) / 100
+      },
+      resourceAllocation: {
+        dailyCapacity: {
+          totalWeightLimit: userProfile.dailyCapacity.totalWeightLimit,
+          usedWeight: usedWeight,
+          remainingWeight: userProfile.dailyCapacity.totalWeightLimit - usedWeight,
+          utilizationRate: weightUtilizationRate
+        },
+        timeAllocation: {
+          totalAvailableHours: capacityStatus.totalAvailableHours,
+          allocatedHours: capacityStatus.scheduledHours,
+          freeHours: capacityStatus.remainingHours,
+          timeUtilizationRate: capacityUtilization
+        },
+        taskDistribution: {
+          lightTasks: lightTasks,
+          heavyTasks: heavyTasks,
+          lightTaskCapacity: userProfile.dailyCapacity.lightTaskSlots,
+          heavyTaskCapacity: userProfile.dailyCapacity.heavyTaskSlots
+        },
+        energyDistribution: {
+          highEnergyTasks: highEnergyTasks,
+          mediumEnergyTasks: mediumEnergyTasks,
+          lowEnergyTasks: lowEnergyTasks
+        },
+        riskAssessment: {
+          overloadRisk: overloadRisk,
+          burnoutRisk: burnoutRisk,
+          efficiencyRisk: efficiencyRisk
+        }
       },
       futurePrediction: {
         weeklyCapacity: [
@@ -471,7 +547,16 @@ function generateSimpleFallbackSchedule(
   schedule.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const totalWeight = taskWeightProfiles.reduce((sum, profile) => sum + profile.estimatedWeight, 0);
-  const capacityUtilization = totalWeight / userProfile.dailyCapacity.totalWeightLimit;
+  const usedWeight = schedule.filter(s => s.type === 'task').reduce((sum, task) => sum + (task.weight || 0), 0);
+  const weightUtilizationRate = usedWeight / userProfile.dailyCapacity.totalWeightLimit;
+  const capacityUtilization = weightUtilizationRate;
+
+  // タスク分布計算（フォールバック版）
+  const lightTasks = schedule.filter(s => s.type === 'task' && (s.weight || 0) <= 3).length;
+  const heavyTasks = schedule.filter(s => s.type === 'task' && (s.weight || 0) > 3).length;
+
+  // リスク評価（フォールバック版）
+  const overloadRisk = weightUtilizationRate > 0.9 ? 'high' : weightUtilizationRate > 0.7 ? 'medium' : 'low';
 
   return {
     schedule,
@@ -484,6 +569,36 @@ function generateSimpleFallbackSchedule(
       isDemoMode: false,
       totalWeight,
       capacityUtilization: Math.round(capacityUtilization * 100) / 100
+    },
+    resourceAllocation: {
+      dailyCapacity: {
+        totalWeightLimit: userProfile.dailyCapacity.totalWeightLimit,
+        usedWeight: usedWeight,
+        remainingWeight: userProfile.dailyCapacity.totalWeightLimit - usedWeight,
+        utilizationRate: weightUtilizationRate
+      },
+      timeAllocation: {
+        totalAvailableHours: userProfile.timeConstraints.maxWorkingHours,
+        allocatedHours: schedule.filter(s => s.type === 'task').length * 1.5, // 仮想計算
+        freeHours: userProfile.timeConstraints.maxWorkingHours - (schedule.filter(s => s.type === 'task').length * 1.5),
+        timeUtilizationRate: (schedule.filter(s => s.type === 'task').length * 1.5) / userProfile.timeConstraints.maxWorkingHours
+      },
+      taskDistribution: {
+        lightTasks: lightTasks,
+        heavyTasks: heavyTasks,
+        lightTaskCapacity: userProfile.dailyCapacity.lightTaskSlots,
+        heavyTaskCapacity: userProfile.dailyCapacity.heavyTaskSlots
+      },
+      energyDistribution: {
+        highEnergyTasks: Math.ceil(schedule.filter(s => s.type === 'task').length * 0.3),
+        mediumEnergyTasks: Math.ceil(schedule.filter(s => s.type === 'task').length * 0.5),
+        lowEnergyTasks: Math.ceil(schedule.filter(s => s.type === 'task').length * 0.2)
+      },
+      riskAssessment: {
+        overloadRisk: overloadRisk,
+        burnoutRisk: lightTasks + heavyTasks > userProfile.dailyCapacity.lightTaskSlots + userProfile.dailyCapacity.heavyTaskSlots ? 'high' : 'low',
+        efficiencyRisk: weightUtilizationRate < 0.3 ? 'high' : 'medium'
+      }
     },
     futurePrediction: {
       weeklyCapacity: [

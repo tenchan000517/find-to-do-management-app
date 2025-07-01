@@ -488,11 +488,10 @@ export class ResourceConstraintEngine {
    * 基本的な時間枠を取得（無限ループ防止用）
    */
   private getBasicTimeSlots(date: string): TimeSlot[] {
-    const workingHours = this.getWorkingHours();
     const basicSlots: TimeSlot[] = [];
     
-    // 単純に1時間刻みの基本枠を作成
-    for (let hour = workingHours.start; hour < workingHours.end; hour++) {
+    // 単純に1時間刻みの基本枠を作成（9-18時）
+    for (let hour = 9; hour < 18; hour++) {
       const startTime = `${hour.toString().padStart(2, '0')}:00`;
       const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`;
       

@@ -9,78 +9,144 @@
 
  ✓ Starting...
  ○ Compiling middleware ...
- ✓ Compiled middleware in 928ms
- ✓ Ready in 24.5s
+ ✓ Compiled middleware in 516ms
+ ✓ Ready in 19.3s
  ⚠ Webpack is configured while Turbopack is not, which may cause problems.
  ⚠ See instructions if you need to configure Turbopack:
   https://nextjs.org/docs/app/api-reference/next-config-js/turbo
 
- ○ Compiling / ...
- ✓ Compiled / in 42.5s
- GET / 200 in 44614ms
- ○ Compiling /api/system/integration ...
- ✓ Compiled /api/system/integration in 2.9s
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🏥 Monitoring system health...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": false
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 12164ms
- ○ Compiling /api/tasks ...
- ✓ Compiled /api/tasks in 5.6s
- GET /api/calendar 200 in 6625ms
- GET /api/tasks 200 in 6684ms
- GET /api/projects 200 in 6996ms
- GET /api/appointments 200 in 7747ms
- GET /api/calendar 200 in 2268ms
- GET /api/projects 200 in 2009ms
- GET /api/tasks 200 in 2607ms
- GET /api/appointments 200 in 1694ms
- GET /api/calendar 200 in 1409ms
- GET /api/calendar 200 in 1143ms
- GET /api/tasks 200 in 2310ms
- GET /api/tasks 200 in 1481ms
  ○ Compiling /api/ai/resource-schedule ...
- ✓ Compiled /api/ai/resource-schedule in 2s
- POST /api/ai/resource-schedule 200 in 2713ms
- POST /api/ai/resource-schedule 200 in 1059ms
- POST /api/ai/resource-schedule 200 in 723ms
- POST /api/ai/resource-schedule 200 in 1177ms
+ ✓ Compiled /api/ai/resource-schedule in 2.7s
+Core engine error, falling back to simple scheduling: RangeError: Invalid time value
+    at Date1.toISOString (<anonymous>)
+    at WeightBasedScheduler.analyzeDailyCapacity (src/lib/scheduling/weight-based-scheduler.ts:265:27)
+    at WeightBasedScheduler.generateSchedule (src/lib/scheduling/weight-based-scheduler.ts:122:38)
+    at generateResourceBasedSchedule (src/app/api/ai/resource-schedule/route.ts:290:43)
+    at POST (src/app/api/ai/resource-schedule/route.ts:160:33)
+  263 |       const date = new Date(startDate);
+  264 |       date.setDate(date.getDate() + i);
+> 265 |       const dateStr = date.toISOString().split('T')[0];
+      |                           ^
+  266 |       
+  267 |       const timeSlots = this.constraintEngine.calculateAvailableSlots(dateStr);
+  268 |       const capacity = this.constraintEngine.checkDailyCapacity(dateStr, []);
+ POST /api/ai/resource-schedule 200 in 4060ms
+Core engine error, falling back to simple scheduling: RangeError: Invalid time value
+    at Date1.toISOString (<anonymous>)
+    at WeightBasedScheduler.analyzeDailyCapacity (src/lib/scheduling/weight-based-scheduler.ts:265:27)
+    at WeightBasedScheduler.generateSchedule (src/lib/scheduling/weight-based-scheduler.ts:122:38)
+    at generateResourceBasedSchedule (src/app/api/ai/resource-schedule/route.ts:290:43)
+    at POST (src/app/api/ai/resource-schedule/route.ts:160:33)
+  263 |       const date = new Date(startDate);
+  264 |       date.setDate(date.getDate() + i);
+> 265 |       const dateStr = date.toISOString().split('T')[0];
+      |                           ^
+  266 |       
+  267 |       const timeSlots = this.constraintEngine.calculateAvailableSlots(dateStr);
+  268 |       const capacity = this.constraintEngine.checkDailyCapacity(dateStr, []);
+ POST /api/ai/resource-schedule 200 in 766ms
+Core engine error, falling back to simple scheduling: RangeError: Invalid time value
+    at Date1.toISOString (<anonymous>)
+    at WeightBasedScheduler.analyzeDailyCapacity (src/lib/scheduling/weight-based-scheduler.ts:265:27)
+    at WeightBasedScheduler.generateSchedule (src/lib/scheduling/weight-based-scheduler.ts:122:38)
+    at generateResourceBasedSchedule (src/app/api/ai/resource-schedule/route.ts:290:43)
+    at POST (src/app/api/ai/resource-schedule/route.ts:160:33)
+  263 |       const date = new Date(startDate);
+  264 |       date.setDate(date.getDate() + i);
+> 265 |       const dateStr = date.toISOString().split('T')[0];
+      |                           ^
+  266 |       
+  267 |       const timeSlots = this.constraintEngine.calculateAvailableSlots(dateStr);
+  268 |       const capacity = this.constraintEngine.checkDailyCapacity(dateStr, []);
+ POST /api/ai/resource-schedule 200 in 569ms
+Core engine error, falling back to simple scheduling: RangeError: Invalid time value
+    at Date1.toISOString (<anonymous>)
+    at WeightBasedScheduler.analyzeDailyCapacity (src/lib/scheduling/weight-based-scheduler.ts:265:27)
+    at WeightBasedScheduler.generateSchedule (src/lib/scheduling/weight-based-scheduler.ts:122:38)
+    at generateResourceBasedSchedule (src/app/api/ai/resource-schedule/route.ts:290:43)
+    at POST (src/app/api/ai/resource-schedule/route.ts:160:33)
+  263 |       const date = new Date(startDate);
+  264 |       date.setDate(date.getDate() + i);
+> 265 |       const dateStr = date.toISOString().split('T')[0];
+      |                           ^
+  266 |       
+  267 |       const timeSlots = this.constraintEngine.calculateAvailableSlots(dateStr);
+  268 |       const capacity = this.constraintEngine.checkDailyCapacity(dateStr, []);
+ POST /api/ai/resource-schedule 200 in 1044ms
+Core engine error, falling back to simple scheduling: RangeError: Invalid time value
+    at Date1.toISOString (<anonymous>)
+    at WeightBasedScheduler.analyzeDailyCapacity (src/lib/scheduling/weight-based-scheduler.ts:265:27)
+    at WeightBasedScheduler.generateSchedule (src/lib/scheduling/weight-based-scheduler.ts:122:38)
+    at generateResourceBasedSchedule (src/app/api/ai/resource-schedule/route.ts:290:43)
+    at POST (src/app/api/ai/resource-schedule/route.ts:160:33)
+  263 |       const date = new Date(startDate);
+  264 |       date.setDate(date.getDate() + i);
+> 265 |       const dateStr = date.toISOString().split('T')[0];
+      |                           ^
+  266 |       
+  267 |       const timeSlots = this.constraintEngine.calculateAvailableSlots(dateStr);
+  268 |       const capacity = this.constraintEngine.checkDailyCapacity(dateStr, []);
+ POST /api/ai/resource-schedule 200 in 993ms
+ ○ Compiling /api/system/integration ...
+ ✓ Compiled /api/system/integration in 1664ms
+🔍 Starting comprehensive system integration validation...
+🔍 Validating Phase 1 integration...
+🔍 Validating Phase 2 integration...
+🔍 Validating Phase 3 integration...
+🔍 Validating Phase 4 integration...
+🏥 Monitoring system health...
+🔍 Validating overall integration...
+📊 Generating integration report...
+Integration Status: {
+  "phase1": {
+    "studentResourceManager": true,
+    "mbtiTeamOptimizer": true,
+    "dataIntegrity": true
+  },
+  "phase2": {
+    "ltvAnalyzer": true,
+    "templateGenerator": true,
+    "knowledgeAutomator": true,
+    "performanceOptimized": false
+  },
+  "phase3": {
+    "reachCalculator": true,
+    "connectionAnalyzer": true,
+    "successPredictor": true,
+    "analyticsIntegrated": true
+  },
+  "phase4": {
+    "nlpProcessor": true,
+    "salesAutomator": true,
+    "contractProcessing": true,
+    "aiAssistant": true
+  },
+  "overall": {
+    "dataConsistency": true,
+    "performanceTargets": true,
+    "securityCompliance": true,
+    "operationalReadiness": true
+  }
+}
+✅ System integration validation completed
+ GET /api/system/integration 200 in 6681ms
+ ○ Compiling /api/tasks ...
+ ✓ Compiled /api/tasks in 2.8s
+ GET /api/calendar 200 in 3168ms
+ GET /api/appointments 200 in 4036ms
+ GET /api/projects 200 in 4244ms
+ GET /api/tasks 200 in 4502ms
+ GET /api/calendar 200 in 1649ms
+ GET /api/projects 200 in 1611ms
+ GET /api/appointments 200 in 1901ms
+ GET /api/calendar 200 in 1683ms
+ GET /api/tasks 200 in 2116ms
+ GET /api/calendar 200 in 1043ms
+ GET /api/tasks 200 in 1935ms
+ GET /api/tasks 200 in 1319ms
+ ○ Compiling / ...
+ ✓ Compiled / in 37.7s
+ HEAD / 200 in 39050ms
 🔍 Starting comprehensive system integration validation...
 🔍 Validating Phase 1 integration...
 🔍 Validating Phase 2 integration...
@@ -120,75 +186,9 @@ Integration Status: {
   }
 }
 ✅ System integration validation completed
- GET /api/system/integration 200 in 2728ms
- GET /api/projects 200 in 3477ms
- GET /api/appointments 200 in 3613ms
- GET /api/calendar 200 in 3702ms
- GET /api/tasks 200 in 4599ms
- GET /api/appointments 200 in 2526ms
- GET /api/projects 200 in 2776ms
- GET /api/calendar 200 in 2607ms
- GET /api/tasks 200 in 3405ms
- GET /api/calendar 200 in 2007ms
- GET /api/tasks 200 in 1605ms
- GET /api/calendar 200 in 1522ms
- GET /api/tasks 200 in 1453ms
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": false
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 3623ms
- GET /api/projects 200 in 1430ms
- GET /api/appointments 200 in 1470ms
- GET /api/calendar 200 in 1612ms
- GET /api/tasks 200 in 2427ms
- GET /api/projects 200 in 1728ms
- GET /api/appointments 200 in 1698ms
- GET /api/calendar 200 in 1798ms
- GET /api/calendar 200 in 726ms
- GET /api/tasks 200 in 2089ms
- GET /api/calendar 200 in 679ms
- GET /api/tasks 200 in 1677ms
- GET /api/tasks 200 in 987ms
-🔍 Starting vulnerability scan...
-✅ Vulnerability scan completed
-🏥 Monitoring system health...
+ GET /api/system/integration 200 in 2356ms
+ GET /api/tasks 200 in 1955ms
+ GET /api/projects 200 in 1195ms
 🔍 Starting comprehensive system integration validation...
 🔍 Validating Phase 1 integration...
 🔍 Validating Phase 2 integration...
@@ -228,394 +228,40 @@ Integration Status: {
   }
 }
 ✅ System integration validation completed
- GET /api/system/integration 200 in 2289ms
- GET /api/appointments 200 in 1366ms
- GET /api/calendar 200 in 1374ms
- GET /api/projects 200 in 1387ms
- GET /api/tasks 200 in 1665ms
- GET /api/appointments 200 in 1433ms
- GET /api/projects 200 in 1417ms
- GET /api/calendar 200 in 1583ms
- GET /api/tasks 200 in 1735ms
- GET /api/calendar 200 in 917ms
- GET /api/tasks 200 in 1368ms
- GET /api/calendar 200 in 867ms
- GET /api/tasks 200 in 1061ms
+ GET /api/system/integration 200 in 2380ms
+ GET /api/projects 200 in 1772ms
+ GET /api/appointments 200 in 1799ms
+ GET /api/calendar 200 in 1939ms
+ GET /api/tasks 200 in 2726ms
+ GET /api/projects 200 in 1698ms
+ GET /api/appointments 200 in 1744ms
+ GET /api/calendar 200 in 1720ms
+ GET /api/tasks 200 in 2287ms
+ GET /api/calendar 200 in 1317ms
+ GET /api/calendar 200 in 1157ms
+ GET /api/tasks 200 in 2142ms
+ GET /api/tasks 200 in 1089ms
 🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": false
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 3367ms
- GET /api/appointments 200 in 1263ms
- GET /api/projects 200 in 1309ms
- GET /api/calendar 200 in 1440ms
- GET /api/tasks 200 in 2234ms
- GET /api/projects 200 in 957ms
- GET /api/appointments 200 in 1151ms
- GET /api/calendar 200 in 1198ms
- GET /api/calendar 200 in 982ms
- GET /api/calendar 200 in 709ms
- GET /api/tasks 200 in 2164ms
- GET /api/tasks 200 in 1140ms
- GET /api/tasks 200 in 1055ms
-🔍 Starting vulnerability scan...
-✅ Vulnerability scan completed
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": true
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 2382ms
- GET /api/appointments 200 in 1367ms
- GET /api/projects 200 in 1415ms
- GET /api/calendar 200 in 1580ms
- GET /api/tasks 200 in 2368ms
- GET /api/appointments 200 in 2680ms
- GET /api/projects 200 in 2655ms
- GET /api/calendar 200 in 2825ms
- GET /api/tasks 200 in 2554ms
- GET /api/calendar 200 in 857ms
- GET /api/tasks 200 in 1441ms
- GET /api/calendar 200 in 1202ms
- GET /api/tasks 200 in 1103ms
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": false
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 3603ms
- GET /api/projects 200 in 1279ms
- GET /api/appointments 200 in 1303ms
- GET /api/calendar 200 in 1466ms
- GET /api/tasks 200 in 2271ms
- GET /api/projects 200 in 1660ms
- GET /api/appointments 200 in 1727ms
- GET /api/calendar 200 in 1751ms
- GET /api/tasks 200 in 1426ms
- GET /api/calendar 200 in 760ms
- GET /api/calendar 200 in 1024ms
- GET /api/tasks 200 in 1892ms
- GET /api/tasks 200 in 1050ms
-🔍 Starting vulnerability scan...
-✅ Vulnerability scan completed
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": true
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 4084ms
- GET /api/projects 200 in 1353ms
- GET /api/appointments 200 in 1389ms
- GET /api/calendar 200 in 1576ms
- GET /api/tasks 200 in 1692ms
- GET /api/projects 200 in 1393ms
- GET /api/appointments 200 in 1524ms
- GET /api/calendar 200 in 1508ms
- GET /api/tasks 200 in 2205ms
- GET /api/calendar 200 in 879ms
- GET /api/calendar 200 in 1166ms
- GET /api/tasks 200 in 2110ms
- GET /api/tasks 200 in 1124ms
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": false
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 3581ms
- GET /api/appointments 200 in 1264ms
- GET /api/projects 200 in 1285ms
- GET /api/calendar 200 in 1446ms
- GET /api/tasks 200 in 2268ms
- GET /api/appointments 200 in 1287ms
- GET /api/projects 200 in 1311ms
- GET /api/calendar 200 in 1553ms
- GET /api/tasks 200 in 1290ms
- GET /api/calendar 200 in 773ms
- GET /api/calendar 200 in 1125ms
- GET /api/tasks 200 in 1860ms
- GET /api/tasks 200 in 1013ms
-🔍 Starting vulnerability scan...
-✅ Vulnerability scan completed
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": true
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 2953ms
- GET /api/appointments 200 in 1357ms
- GET /api/projects 200 in 1401ms
- GET /api/calendar 200 in 1540ms
- GET /api/tasks 200 in 2306ms
- GET /api/appointments 200 in 1361ms
- GET /api/projects 200 in 1350ms
- GET /api/calendar 200 in 1439ms
- GET /api/calendar 200 in 885ms
- GET /api/tasks 200 in 1940ms
- GET /api/calendar 200 in 880ms
- GET /api/tasks 200 in 1814ms
- GET /api/tasks 200 in 967ms
-🏥 Monitoring system health...
-🔍 Starting comprehensive system integration validation...
-🔍 Validating Phase 1 integration...
-🔍 Validating Phase 2 integration...
-🔍 Validating Phase 3 integration...
-🔍 Validating Phase 4 integration...
-🔍 Validating overall integration...
-📊 Generating integration report...
-Integration Status: {
-  "phase1": {
-    "studentResourceManager": true,
-    "mbtiTeamOptimizer": true,
-    "dataIntegrity": true
-  },
-  "phase2": {
-    "ltvAnalyzer": true,
-    "templateGenerator": true,
-    "knowledgeAutomator": true,
-    "performanceOptimized": false
-  },
-  "phase3": {
-    "reachCalculator": true,
-    "connectionAnalyzer": true,
-    "successPredictor": true,
-    "analyticsIntegrated": true
-  },
-  "phase4": {
-    "nlpProcessor": true,
-    "salesAutomator": true,
-    "contractProcessing": true,
-    "aiAssistant": true
-  },
-  "overall": {
-    "dataConsistency": true,
-    "performanceTargets": true,
-    "securityCompliance": true,
-    "operationalReadiness": true
-  }
-}
-✅ System integration validation completed
- GET /api/system/integration 200 in 3159ms
- GET /api/appointments 200 in 2231ms
- GET /api/projects 200 in 2282ms
- GET /api/calendar 200 in 2427ms
- GET /api/tasks 200 in 3207ms
- GET /api/appointments 200 in 2255ms
- GET /api/projects 200 in 2157ms
- GET /api/calendar 200 in 2238ms
- GET /api/calendar 200 in 1064ms
- GET /api/tasks 200 in 2670ms
- GET /api/calendar 200 in 1166ms
- GET /api/tasks 200 in 2073ms
- GET /api/tasks 200 in 2573ms
+ ○ Compiling /api/project-templates/quick-create ...
+ ✓ Compiled /api/project-templates/quick-create in 1126ms
+クイックプロジェクト作成エラー: TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+    at POST (src/app/api/project-templates/quick-create/route.ts:14:20)
+  12 |     let template;
+  13 |     
+> 14 |     if (projectType.toLowerCase().includes('web') || projectType.toLowerCase().includes('アプリ')) {
+     |                    ^
+  15 |       // 開発プロジェクト
+  16 |       template = await generator.generateDevelopmentTemplate({
+  17 |         projectType: 'WEB_APP',
+ POST /api/project-templates/quick-create 200 in 1794ms
+クイックプロジェクト作成エラー: TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+    at POST (src/app/api/project-templates/quick-create/route.ts:14:20)
+  12 |     let template;
+  13 |     
+> 14 |     if (projectType.toLowerCase().includes('web') || projectType.toLowerCase().includes('アプリ')) {
+     |                    ^
+  15 |       // 開発プロジェクト
+  16 |       template = await generator.generateDevelopmentTemplate({
+  17 |         projectType: 'WEB_APP',
+ POST /api/project-templates/quick-create 200 in 555ms
 [?25h

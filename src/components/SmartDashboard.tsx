@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth/client';
 import { useScheduleGenerator } from '@/hooks/useScheduleGenerator';
 import QuickProjectCreator from '@/components/QuickProjectCreator';
 import AutoScheduler from '@/components/AutoScheduler';
+import ResourceUtilizationViewer from '@/components/ResourceUtilizationViewer';
 
 interface TodayEssentials {
   urgentTasks: Array<{
@@ -48,6 +49,7 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
   const [todayEssentials, setTodayEssentials] = useState<TodayEssentials | null>(null);
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [autoScheduleGenerated, setAutoScheduleGenerated] = useState(false);
+  const [resourceData, setResourceData] = useState(null);
   const { generatedSchedule, generateSchedule, isGenerating } = useScheduleGenerator();
 
   // Calculate today's essentials using AI-like logic
@@ -153,11 +155,27 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
     }, 2000);
   };
 
-  // Generate auto schedule
+  // Generate auto schedule with resource data
   const handleAutoScheduleGenerate = async () => {
     try {
       await generateSchedule();
       setAutoScheduleGenerated(true);
+      
+      // リソースベーススケジューリングAPIを呼び出し
+      const response = await fetch('/api/ai/resource-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tasks: tasks.filter(task => task.status !== 'COMPLETE'),
+          events: events,
+          date: new Date().toISOString().split('T')[0]
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setResourceData(data);
+      }
     } catch (error) {
       console.error('スケジュール生成エラー:', error);
     }
@@ -314,8 +332,19 @@ export default function SmartDashboard({ showAdvancedFeatures = false, onAdvance
             </div>
           </div>
 
-          {/* Generated Schedule Display */}
-          {(autoScheduleGenerated || generatedSchedule) && (
+          {/* Resource Utilization Display */}
+          {resourceData && (
+            <div className="mt-6">
+              <ResourceUtilizationViewer 
+                data={resourceData}
+                onRefresh={handleAutoScheduleGenerate}
+                className="rounded-lg border border-gray-200"
+              />
+            </div>
+          )}
+
+          {/* Traditional Schedule Display (fallback) */}
+          {(autoScheduleGenerated || generatedSchedule) && !resourceData && (
             <div className="mt-6">
               <AutoScheduler 
                 onScheduleGenerated={(schedule) => {

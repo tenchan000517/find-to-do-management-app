@@ -9,6 +9,8 @@
 - **認証方式**: NextAuth.js (OAuth)
 - **レート制限**: 実装済み（エンドポイント別）
 - **API総数**: 100+ エンドポイント
+- **🚀 NEW: リソースベーススケジューリングAPI**: ウエイト・容量ベース自動スケジューリング
+- **🚀 NEW: AI駆動テンプレートAPI**: 自然言語からのプロジェクト自動生成
 
 ### 1.2 認証・認可
 
@@ -636,6 +638,300 @@ npm run test:performance
 #### テストデータ
 ```bash
 npm run db:seed
+```
+
+---
+
+## 🚀 NEW: リソースベーススケジューリングAPI
+
+### 9.1 /api/ai/resource-schedule
+
+#### POST /api/ai/resource-schedule
+**概要**: 業界初のウエイト・容量ベース自動スケジューリング
+
+**認証**: 必要  
+**権限**: MEMBER以上
+
+**リクエストボディ**:
+```json
+{
+  "projectDescription": "学生の期末レポート作成プロジェクト",
+  "userType": "student",
+  "constraints": {
+    "availableHours": ["19:00-22:00"],
+    "blockedHours": ["09:00-16:00"]
+  },
+  "deadline": "2025-07-15",
+  "projectWeight": 8,
+  "preferences": {
+    "optimizationMode": "balanced",
+    "allowTaskSplitting": true,
+    "prioritizeHighWeight": true,
+    "energyBasedScheduling": true
+  }
+}
+```
+
+**リクエストパラメータ**:
+- `projectDescription` (string, required): プロジェクトの概要
+- `userType` (enum, required): ユーザータイプ (`student` | `employee` | `freelancer` | `entrepreneur` | `parent` | `retiree`)
+- `constraints` (object, required): 制約条件
+  - `availableHours` (array): 利用可能時間帯
+  - `blockedHours` (array): 利用不可時間帯
+- `deadline` (string, required): 期限日（ISO 8601形式）
+- `projectWeight` (number, required): プロジェクト総ウエイト
+- `preferences` (object, optional): 最適化設定
+
+**レスポンス**:
+```json
+{
+  "success": true,
+  "schedule": [
+    {
+      "id": "task-1",
+      "startTime": "19:00",
+      "endTime": "21:00",
+      "title": "レポート企画・構成作成",
+      "type": "task",
+      "priority": "high",
+      "estimatedProductivity": 85,
+      "weight": 6,
+      "canBeSplit": true
+    }
+  ],
+  "metadata": {
+    "totalTasks": 5,
+    "scheduledTasks": 5,
+    "estimatedProductivity": 82,
+    "isDemoMode": false,
+    "totalWeight": 24,
+    "capacityUtilization": 0.75
+  },
+  "resourceAllocation": {
+    "dailyCapacity": {
+      "totalWeightLimit": 8,
+      "usedWeight": 6,
+      "remainingWeight": 2,
+      "utilizationRate": 0.75
+    },
+    "timeAllocation": {
+      "totalAvailableHours": 3,
+      "allocatedHours": 2.5,
+      "freeHours": 0.5,
+      "timeUtilizationRate": 0.83
+    },
+    "taskDistribution": {
+      "lightTasks": 2,
+      "heavyTasks": 3,
+      "lightTaskCapacity": 4,
+      "heavyTaskCapacity": 2
+    },
+    "energyDistribution": {
+      "highEnergyTasks": 2,
+      "mediumEnergyTasks": 2,
+      "lowEnergyTasks": 1
+    },
+    "riskAssessment": {
+      "overloadRisk": "low",
+      "burnoutRisk": "low",
+      "efficiencyRisk": "medium"
+    }
+  },
+  "futurePrediction": {
+    "weeklyCapacity": [
+      {
+        "week": 1,
+        "capacityStatus": "optimal",
+        "estimatedWorkload": 8
+      },
+      {
+        "week": 2,
+        "capacityStatus": "medium",
+        "estimatedWorkload": 10
+      },
+      {
+        "week": 3,
+        "capacityStatus": "high",
+        "estimatedWorkload": 12
+      },
+      {
+        "week": 4,
+        "capacityStatus": "low",
+        "estimatedWorkload": 6
+      }
+    ],
+    "riskAlerts": [
+      "Week 3で容量超過の可能性があります"
+    ],
+    "recommendations": [
+      "Week 2での前倒し実行を推奨",
+      "重量タスクの分割を検討してください"
+    ]
+  },
+  "userProfile": {
+    "id": "profile_12345",
+    "userId": "user_67890",
+    "userType": "student",
+    "commitmentRatio": 0.8,
+    "dailyCapacity": {
+      "lightTaskSlots": 4,
+      "heavyTaskSlots": 2,
+      "totalWeightLimit": 8,
+      "continuousWorkHours": 3
+    },
+    "timeConstraints": {
+      "unavailableHours": ["09:00-16:00"],
+      "preferredWorkHours": ["19:00-22:00"],
+      "maxWorkingHours": 3
+    },
+    "workingPattern": {
+      "productiveHours": ["19:00-21:00"],
+      "focusCapacity": "high",
+      "multitaskingAbility": 0.6
+    },
+    "personalConstraints": {},
+    "preferences": {
+      "earlyStart": false,
+      "lateWork": true,
+      "weekendWork": true,
+      "breakFrequency": "medium"
+    }
+  },
+  "generatedAt": "2025-07-01T01:15:30.000Z",
+  "isDemoMode": false
+}
+```
+
+**エラーレスポンス**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_USER_TYPE",
+    "message": "指定されたユーザータイプはサポートされていません",
+    "details": {
+      "supportedTypes": ["student", "employee", "freelancer", "entrepreneur", "parent", "retiree"]
+    }
+  }
+}
+```
+
+**ステータスコード**:
+- `200 OK`: 正常にスケジュール生成完了
+- `400 Bad Request`: リクエストパラメータエラー
+- `401 Unauthorized`: 認証エラー
+- `403 Forbidden`: 権限不足
+- `429 Too Many Requests`: レート制限超過
+- `500 Internal Server Error`: サーバー内部エラー
+
+### 9.2 ユーザータイプ別制約
+
+#### 学生 (student)
+```json
+{
+  "dailyCapacity": {
+    "totalWeightLimit": 8,
+    "lightTaskSlots": 4,
+    "heavyTaskSlots": 2,
+    "continuousWorkHours": 3
+  },
+  "timeConstraints": {
+    "unavailableHours": ["09:00-16:00"],
+    "preferredWorkHours": ["19:00-22:00"],
+    "maxWorkingHours": 3
+  }
+}
+```
+
+#### 会社員 (employee)
+```json
+{
+  "dailyCapacity": {
+    "totalWeightLimit": 12,
+    "lightTaskSlots": 4,
+    "heavyTaskSlots": 2,
+    "continuousWorkHours": 4
+  },
+  "timeConstraints": {
+    "unavailableHours": ["09:00-18:00"],
+    "preferredWorkHours": ["19:00-21:00"],
+    "maxWorkingHours": 3
+  }
+}
+```
+
+#### フリーランス (freelancer)
+```json
+{
+  "dailyCapacity": {
+    "totalWeightLimit": 18,
+    "lightTaskSlots": 6,
+    "heavyTaskSlots": 3,
+    "continuousWorkHours": 8
+  },
+  "timeConstraints": {
+    "unavailableHours": [],
+    "preferredWorkHours": ["09:00-18:00"],
+    "maxWorkingHours": 8
+  }
+}
+```
+
+### 9.3 AI駆動プロジェクトテンプレートAPI
+
+#### POST /api/project-templates/quick-create
+**概要**: 自然言語からの自動プロジェクト生成
+
+**リクエストボディ**:
+```json
+{
+  "input": "学生の期末レポート作成プロジェクト、個人作業、2週間"
+}
+```
+
+**レスポンス**:
+```json
+{
+  "projectName": "期末レポート作成プロジェクト",
+  "description": "学生の期末レポート作成を効率的に進めるプロジェクト",
+  "teamSize": 1,
+  "timeline": "2週間",
+  "phases": [
+    {
+      "name": "企画・調査フェーズ",
+      "duration": "3日",
+      "tasks": [
+        {
+          "title": "テーマ選定・研究",
+          "description": "レポートテーマの選定と基礎調査",
+          "estimatedHours": 4,
+          "priority": "A",
+          "dependencies": [],
+          "skillRequirements": ["調査分析"],
+          "deliverables": ["テーマ決定書"]
+        }
+      ]
+    }
+  ],
+  "budgetBreakdown": {
+    "total": 0
+  },
+  "riskFactors": [
+    "参考文献不足",
+    "時間管理の困難"
+  ],
+  "successMetrics": [
+    "期限内提出",
+    "品質基準達成"
+  ],
+  "resources": {
+    "humanResources": ["学生"],
+    "technicalResources": ["PC", "文献データベース"],
+    "externalServices": []
+  },
+  "status": "created",
+  "createdAt": "2025-07-01T01:20:00.000Z"
+}
 ```
 
 ---
